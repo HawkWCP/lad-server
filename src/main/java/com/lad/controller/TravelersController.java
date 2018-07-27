@@ -20,6 +20,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.beanutils.BeanComparator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -535,7 +537,8 @@ public class TravelersController extends BaseContorller {
 		map.put("hobbys", JSON.toJSONString(hobbys));
 		map.put("result", list);
 		map.put("headPictureName", userBo.getHeadPictureName());
-
+		Logger logger = LoggerFactory.getLogger(TravelersController.class);
+		logger.error("======={Date:"+new Date(System.currentTimeMillis()+"},Data:{"+JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}")+"}==="));
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 
