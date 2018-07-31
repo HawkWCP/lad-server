@@ -5,6 +5,7 @@ import com.lad.dao.INoteDao;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -444,5 +445,14 @@ public class NoteDaoImpl implements INoteDao {
 		query.skip((page - 1) * limit);
 		query.limit(limit);
 		return mongoTemplate.find(query, NoteBo.class);
+	}
+
+	@Override
+	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
+		String jsonCommand = "{geoNear:\"note\",near:{type:\"Point\",coordinates:[" + position[0] + "," + position[1]
+				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0}}";
+		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
+		
+		return executeCommand;
 	}
 }

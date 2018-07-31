@@ -2,6 +2,7 @@ package com.lad.service;
 
 import com.lad.bo.CommentBo;
 import com.lad.bo.NoteBo;
+import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 import org.springframework.data.geo.GeoResults;
 
@@ -255,5 +256,7 @@ public interface INoteService extends IBaseService {
 	public List<NoteBo> dayHotNotes(int page, int limit);
 
 	public List<NoteBo> dayHotNotes(Set<String> circleSet, int page, int limit);
+
+	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
 }
 

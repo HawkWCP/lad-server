@@ -2,13 +2,10 @@ package com.lad.controller;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -23,7 +20,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bson.types.ObjectId;
 import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSON;
-import com.google.gson.JsonArray;
 import com.lad.bo.CircleAddBo;
 import com.lad.bo.CircleBo;
 import com.lad.bo.CircleHistoryBo;
@@ -105,7 +100,6 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import net.sf.json.JSONArray;
-import net.sf.json.JSONNull;
 import net.sf.json.JSONObject;
 
 @Api(value = "CircleController", description = "圈子相关接口")
@@ -956,9 +950,12 @@ public class CircleController extends BaseContorller {
 		if (!topCircles.isEmpty() && page <= 1) {
 			List<CircleBo> tops = circleService.findCirclesInList(topCircles);
 			// 因置顶圈子不能再数据库实现分页，
+			// 遍历个人中心里的指定圈子id
 			for (String top : topCircles) {
 				// 由于mongo查询结果不是按照list的顺序，在程序中再次处理顺序
+				// top = topCricleId
 				for (CircleBo circleBo : tops) {
+					// 嵌套循环,如果用户中心的置顶圈子id在查询出来的id中
 					if (top.equals(circleBo.getId())) {
 						if (circleBo.getTotal() == 0) {
 							int number = noteService.selectPeopleNum(circleBo.getId());

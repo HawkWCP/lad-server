@@ -1,6 +1,7 @@
 package com.lad.dao.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.lad.bo.WaiterBo;
 import com.lad.dao.IMarriageDao;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
+import com.lad.util.Education;
 import com.lad.vo.OptionVo;
 import com.lad.vo.WaiterVo;
 import com.mongodb.BasicDBObject;
@@ -217,7 +219,7 @@ public class MarriageDaoImpl implements IMarriageDao {
 		WaiterBo waiter = mongoTemplate.findOne(
 				new Query(Criteria.where("_id").is(waiterId).and("deleted").is(Constant.ACTIVITY)), WaiterBo.class);
 		if (waiter == null) {
-			return new HashMap<String, Set<String>>();
+			return null;
 		}
 		return waiter.getCares();
 	}
@@ -384,12 +386,9 @@ public class MarriageDaoImpl implements IMarriageDao {
 		Map<String, Set<String>> waiterHobbys = waiterBo.getHobbys();
 
 		Set<String> requireHobbysSet = new LinkedHashSet<>();
-		Logger logger = LoggerFactory.getLogger(MarriageDaoImpl.class);
-
 		for (String key : requireHobbys.keySet()) {
 			requireHobbysSet.addAll(requireHobbys.get(key));
 		}
-		logger.error("{找儿媳匹配推荐}----{" + requireHobbysSet.toString() + "}");
 		Set<String> waiterHobbysSet = new LinkedHashSet<>();
 		if (requireHobbysSet.size() > 0) {
 			for (String key : waiterHobbys.keySet()) {
@@ -405,12 +404,10 @@ public class MarriageDaoImpl implements IMarriageDao {
 
 			matchNum -= Math.floor(notContain.size() * 6 / requireHobbysSet.size());
 		}
-		// 学历匹配
-		int requireEducation = requireBo.getEducation();
-		int waiterEducation = waiterBo.getEducation();
-		if (waiterEducation == 0) {
-			matchNum -= 6;
-		} else if (requireEducation != 0 && requireEducation > waiterEducation) {
+		// 学历匹配		
+		Education requireEducation = Education.getEnumByDesc(requireBo.getEducation());
+		
+		if (requireEducation.compare(waiterBo.getEducation()) > 0) {
 			matchNum -= 6;
 		}
 

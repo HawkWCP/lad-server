@@ -3,6 +3,7 @@ package com.lad.service;
 import com.lad.bo.PartyBo;
 import com.lad.bo.PartyNoticeBo;
 import com.lad.bo.PartyUserBo;
+import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 import org.springframework.data.geo.GeoResults;
 
@@ -260,4 +261,6 @@ public interface IPartyService {
      * @return
      */
     GeoResults<PartyBo> findNearParty(double[] position, int maxDistance, int limit,int page);
+
+	CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
 }

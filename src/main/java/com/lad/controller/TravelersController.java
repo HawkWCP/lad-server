@@ -223,8 +223,14 @@ public class TravelersController extends BaseContorller {
 		}
 
 		Map map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("result", resultList);
+		if(resultList.size()>=1){
+			map.put("ret", 0);
+			map.put("result", resultList);
+		}else{
+			map.put("ret", -1);
+			map.put("message", "查询结果为空");
+		}
+
 		return JSONObject.fromObject(map).toString().replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 
@@ -537,8 +543,12 @@ public class TravelersController extends BaseContorller {
 		map.put("hobbys", JSON.toJSONString(hobbys));
 		map.put("result", list);
 		map.put("headPictureName", userBo.getHeadPictureName());
+		
 		Logger logger = LoggerFactory.getLogger(TravelersController.class);
-		logger.error("======={Date:"+new Date(System.currentTimeMillis()+"},Data:{"+JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}")+"}==="));
+		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		
+		logger.error("======={Date:"+format.format(new Date())+"},Data:"+JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}")+"===");
+		
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 

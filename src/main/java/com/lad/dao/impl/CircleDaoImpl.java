@@ -247,9 +247,9 @@ public class CircleDaoImpl implements ICircleDao {
 		if (StringUtils.isNotEmpty(userid)) {
 			query.addCriteria(new Criteria("users").nin(userid));
 		}
-		/*query.with(new Sort(new Order(Direction.DESC,"_id")));*/
-		int skip = (page-1)*limit;
-		skip = (page-1)*limit<0?0:(page-1)*limit;
+		/* query.with(new Sort(new Order(Direction.DESC,"_id"))); */
+		int skip = (page - 1) * limit;
+		skip = (page - 1) * limit < 0 ? 0 : (page - 1) * limit;
 		query.skip(skip);
 		query.limit(limit);
 		query.with(new Sort(new Order(Direction.DESC, "createTime")));
@@ -524,7 +524,8 @@ public class CircleDaoImpl implements ICircleDao {
 
 	@Override
 	public CommandResult findNearCircleByCommond(String userid, double[] position, int i, int page, int limit) {
-		String jsonCommand = "{geoNear:\"circle\",near:{type:\"Point\",coordinates:["+position[0]+","+position[1]+"]},spherical:true,minDistance:0,maxDistance:"+i+"}";
+		String jsonCommand = "{geoNear:\"circle\",near:{type:\"Point\",coordinates:[" + position[0] + "," + position[1]
+				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0}}";
 		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
 		return executeCommand;
 	}

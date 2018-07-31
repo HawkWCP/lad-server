@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -148,14 +149,13 @@ public class MarriageController extends BaseContorller {
 		List<Map> list = marriageService.getRecommend(waiterId, userBo.getId());
 
 		Map map = new HashMap<>();
-		map.put("ret", 0);
 		if (list.size() == 0) {
-			map.put("result", "数据为空");
+			map.put("ret", -1);
+			map.put("message", "未找到匹配者");
 		} else {
-			/*
-			 * Comparator<? super Map> c = new
-			 * BeanComparator("match").reversed(); list.sort(c);
-			 */
+			// Comparator<? super Map> c = new
+			// BeanComparator("match").reversed(); list.sort(c);
+			map.put("ret", 0);
 			map.put("result", list);
 		}
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
@@ -270,8 +270,11 @@ public class MarriageController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-
 		Map<String, Set<String>> map = marriageService.getCareMap(waiterId);
+		if (map == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_PUBLISH_NULL.getIndex(),
+					ERRORCODE.MARRIAGE_PUBLISH_NULL.getReason());
+		}
 
 		String time = CommonUtil.getDateStr(new Date(), "yyyy-MM-dd");
 		// 如果原map中包含今天的关注,则添加到今天的关注
@@ -301,6 +304,10 @@ public class MarriageController extends BaseContorller {
 		}
 
 		Map<String, Set<String>> careMap = marriageService.getCareMap(waiterId);
+		if (careMap == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_PUBLISH_NULL.getIndex(),
+					ERRORCODE.MARRIAGE_PUBLISH_NULL.getReason());
+		}
 
 		for (Entry<String, Set<String>> entity : careMap.entrySet()) {
 			Set<String> set = entity.getValue();
@@ -328,6 +335,10 @@ public class MarriageController extends BaseContorller {
 
 		Map map = new HashMap<>();
 		Map<String, Set<String>> careMap = marriageService.getCareMap(waiterId);
+		if (careMap == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_PUBLISH_NULL.getIndex(),
+					ERRORCODE.MARRIAGE_PUBLISH_NULL.getReason());
+		}
 
 		List resultList = new ArrayList();
 
@@ -352,6 +363,7 @@ public class MarriageController extends BaseContorller {
 		}
 
 		if (resultList.size() > 0) {
+			Collections.reverse(resultList);
 			map.put("ret", 0);
 			map.put("result", resultList);
 		} else {
@@ -673,7 +685,7 @@ public class MarriageController extends BaseContorller {
 					waiter.setMarriaged(random.nextInt(2));
 
 					String[] education = { "初中", "高中", "大专", "本科", "研究生及以上" };
-					waiter.setEducation(random.nextInt(6));
+					waiter.setEducation(education[random.nextInt(6)]);
 
 					List<OptionBo> salaryOptions = marriageService.getSalaryOptions();
 					waiter.setSalary(salaryOptions.get(random.nextInt(salaryOptions.size())).getValue());
@@ -697,7 +709,7 @@ public class MarriageController extends BaseContorller {
 					requireBo.setSex(1 - waiter.getSex());
 					requireBo.setAge((random.nextInt(15) + 20) + "岁-" + ((random.nextInt(15) + 40)) + "岁");
 					requireBo.setHight((random.nextInt(30) + 145) + "厘米-" + ((random.nextInt(30) + 175)) + "厘米");
-					requireBo.setEducation(random.nextInt(6));
+					requireBo.setEducation(education[random.nextInt(6)]);
 					requireBo.setMarriaged(random.nextInt(2));
 					Set jobSet = new HashSet<>();
 					jobSet.add(jobOptions.get(random.nextInt(jobOptions.size())).getValue());

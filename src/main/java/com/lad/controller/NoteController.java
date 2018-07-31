@@ -1,9 +1,9 @@
 package com.lad.controller;
 
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -26,8 +26,6 @@ import org.redisson.api.RLock;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.geo.GeoResult;
-import org.springframework.data.geo.GeoResults;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,7 +72,9 @@ import com.lad.vo.NoteVo;
 import com.lad.vo.UserBaseVo;
 import com.lad.vo.UserNoteVo;
 import com.lad.vo.UserThumbsupVo;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -177,7 +177,7 @@ public class NoteController extends BaseContorller {
 			@ApiImplicitParam(name = "pictures", value = "图片或视频文件流", dataType = "file") })
 	@PostMapping("/insert")
 	public String insert(String noteJson, String atUserids, MultipartFile[] pictures, HttpServletRequest request,
-			HttpServletResponse response) {
+			HttpServletResponse response) {		
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1431,11 +1431,60 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/near-notes")
 	public String nearPeopel(double px, double py, int limit, int page, HttpServletRequest request,
 			HttpServletResponse response) {
+		
 		double[] position = new double[] { px, py };
+		org.slf4j.Logger logger = LoggerFactory.getLogger(NoteController.class);
+		logger.error(Arrays.toString(position));
 		// 未登录情况
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo != null ? userBo.getId() : "";
-		GeoResults<NoteBo> noteBos = noteService.findNearNote(position, 5000, limit, page);
+		CommandResult commanResult = noteService.findNearCircleByCommond(position, 5000, limit, page);
+		BasicDBList dbList = (BasicDBList) commanResult.get("results");
+		List<Object> subList = new BasicDBList();
+		int size = dbList.size();
+		int start = (page - 1) * limit;
+		int end = page * limit;
+
+		if (start <= size && end <= size) {
+			subList = dbList.subList(start, end);
+		} else if (start <= size && end >= size) {
+			subList = dbList.subList(start, size);
+		}
+		
+		List<NoteVo> noteVoList = new LinkedList<>();
+        for (Object object : subList) {
+        	BasicDBObject basicDBObject = (BasicDBObject)object;
+        	BasicDBObject obj = (BasicDBObject) basicDBObject.get("obj");
+        	Map<String,Object> map = obj.toMap();
+        	map.put("id", map.get("_id").toString());
+        	map.put("id", map.get("_id").toString());
+        	NoteBo noteBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), NoteBo.class);
+        	NoteVo noteVo = new NoteVo();
+			if (noteBo.getCreateuid().equals(userid)) {
+				boToVo(noteBo, noteVo, userBo, userid);
+			} else {
+				UserBo user = userService.getUser(noteBo.getCreateuid());
+				boToVo(noteBo, noteVo, user, userid);
+			}
+			noteVo.setDistance(Double.valueOf(basicDBObject.get("dis").toString()));
+			noteVo.setMyThumbsup(hasThumbsup(userid, noteBo.getId()));
+			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
+			if (circleBo != null && circleBo.getName() != null) {
+				noteVo.setCirName(circleBo.getName());
+			} else {
+				noteVo.setCirName("未知的圈子");
+			}
+			noteVoList.add(noteVo);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("noteVoList", noteVoList);
+		return JSONObject.fromObject(map).toString();
+		
+		
+		
+		
+		/*GeoResults<NoteBo> noteBos = noteService.findNearNote(position, 5000, limit, page);
 		DecimalFormat df = new DecimalFormat("###.00");
 		List<NoteVo> noteVoList = new LinkedList<>();
 		for (GeoResult<NoteBo> result : noteBos) {
@@ -1461,7 +1510,8 @@ public class NoteController extends BaseContorller {
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("noteVoList", noteVoList);
-		return JSONObject.fromObject(map).toString();
+		return JSONObject.fromObject(map).toString();*/
+
 	}
 
 	@ApiOperation("我的新帖子")

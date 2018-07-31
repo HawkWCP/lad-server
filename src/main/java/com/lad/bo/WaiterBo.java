@@ -24,7 +24,7 @@ public class WaiterBo extends BaseBo{
 	private Object birthday;	// 生日
 	private int age;		// 年龄,后台计算
 	private int hight;		// 身高
-	private int education; 	// 学历 0,不限;1,初中;2,高中;3,大专;4,本科;5,研究生及以上
+	private String education; 	// 学历 0,不限;1,初中;2,高中;3,大专;4,本科;5,研究生及以上
 	private int marriaged;	// 婚史 0,没有;1,爱过;-1,不限
 	private String job;			// 职业
 	private String salary;		// 收入

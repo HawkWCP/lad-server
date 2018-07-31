@@ -1,6 +1,7 @@
 package com.lad.dao;
 
 import com.lad.bo.PartyBo;
+import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 import org.springframework.data.geo.GeoResults;
 
@@ -147,5 +148,7 @@ public interface IPartyDao {
      * @return
      */
     GeoResults<PartyBo> findNearParty(double[] position, int maxDistance, int limit,int page);
+
+	CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
 
 }

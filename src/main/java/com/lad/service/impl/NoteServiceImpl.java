@@ -4,6 +4,7 @@ import com.lad.bo.CommentBo;
 import com.lad.bo.NoteBo;
 import com.lad.dao.INoteDao;
 import com.lad.service.INoteService;
+import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.GeoResults;
@@ -185,5 +186,10 @@ public class NoteServiceImpl implements INoteService {
 	@Override
 	public List<NoteBo> dayHotNotes(Set<String> circleSet, int page, int limit) {
 		return noteDao.dayHotNotes(circleSet,page, limit);
+	}
+
+	@Override
+	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
+		return noteDao.findNearCircleByCommond(position, i, limit, page);
 	}
 }

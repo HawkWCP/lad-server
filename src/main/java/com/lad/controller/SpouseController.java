@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -453,6 +454,7 @@ public class SpouseController extends BaseContorller {
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
+		Collections.reverse(resultContainer);
 		map.put("require", resultContainer);
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
