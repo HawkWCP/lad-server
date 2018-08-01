@@ -143,8 +143,6 @@ public class ShowController extends BaseContorller {
         showService.insert(showBo);
         int recomType = showBo.getType() == ShowBo.NEED ? ShowBo.PROVIDE : ShowBo.NEED;
         long num = showService.findByKeyword(showBo.getShowType(), userid, recomType);
-        System.out.println(showBo.getShowType());
-        System.out.println(userid);
         asyncController.addShowTypes(showBo.getShowType(), userid);
         if (showBo.getType() == ShowBo.NEED) {
             asyncController.pushShowToCreate(showService, showBo);
@@ -241,7 +239,7 @@ public class ShowController extends BaseContorller {
     @PostMapping("/update")
     public String update(String showid, String showVoJson,String picType,String delImages, MultipartFile[] images, MultipartFile
             video, HttpServletRequest request, HttpServletResponse response) {
-        UserBo userBo = getUserLogin(request);
+    	UserBo userBo = getUserLogin(request);
         if (userBo == null) {
             return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(), ERRORCODE.ACCOUNT_OFF_LINE.getReason());
         }
@@ -284,6 +282,7 @@ public class ShowController extends BaseContorller {
                     for (String url : delArray) {
                         photos.remove(url);
                     }
+                    params.put("images", photos);
                 }
             } else {
                 HashMap<String, Object> map = new HashMap<>();
@@ -347,10 +346,13 @@ public class ShowController extends BaseContorller {
             params.put("picType", "video");
         }
         if (!params.isEmpty()) {
+        	params.put("updateTime", new Date());
             showService.update(showid, params);
         }
         int recomType = showBo.getType() == ShowBo.NEED ? ShowBo.PROVIDE : ShowBo.NEED;
-        long num = showService.findByKeyword(showBo.getShowType(), userid, recomType);
+        Object showType = params.get("showType");
+        String showTypeStr = StringUtils.isEmpty(showType)?showBo.getShowType():showType.toString();
+        long num = showService.findByKeyword(showTypeStr, userid, recomType);
         Map<String, Object> map = new HashMap<>();
         map.put("ret", 0);
         map.put("showid", showBo.getId());

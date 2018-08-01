@@ -30,8 +30,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.lad.bo.WaiterBo;
-
 import net.sf.json.JSONObject;
 
 public class CommonUtil {
