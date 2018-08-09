@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,12 +24,19 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.alibaba.fastjson.JSON;
+import com.lad.bo.ChatroomBo;
+import com.lad.bo.FriendsBo;
+import com.lad.bo.UserBo;
+import com.lad.service.IChatroomService;
+import com.lad.service.IFriendsService;
+import com.lad.service.IUserService;
 
 import net.sf.json.JSONObject;
 
@@ -534,15 +542,11 @@ public class CommonUtil {
 	}
 
 	public static <T> List<T> randomQuery(MongoTemplate mongoTemplate, Query query, Class<T> clazz) {
-
-		org.slf4j.Logger logger = LoggerFactory.getLogger(CommonUtil.class);
-		logger.error(
-				"{此处随机从数据库获取数据}:{mongoTemplate:" + mongoTemplate + "},{query:" + query + "},{class:" + clazz + "}");
 		// 统计数据库长度
 		int count = (int) mongoTemplate.count(query, clazz);
 		List<T> find = new ArrayList<>();
 		if (count < 100) {
-			query.with(new Sort(Sort.Direction.DESC,"_id"));
+			query.with(new Sort(Sort.Direction.DESC, "_id"));
 			find = mongoTemplate.find(query, clazz);
 		} else {
 			// 不允许开始数据定位到最后25条,所以逻辑上skip的范围是(长度-25)
@@ -559,5 +563,156 @@ public class CommonUtil {
 		}
 
 		return find;
+	}
+
+	public static String fl_format(String json) {		
+		String regex = "\\D+";
+		com.alibaba.fastjson.JSONObject object = JSON.parseObject(json);
+		Set<String> keySet = object.keySet();
+		
+		for (String key : keySet) {
+			String value = object.getString(key);
+			if ("salary".equals(key)) {
+				if (value.equals("不限")) {
+					value = "0元-30000元";
+				} else if (value.equals("25000元以上")) {
+					value = "25001元-30000元";
+				} else if (value.equals("3000元以下")) {
+					value = "0元-3000元";
+				}
+				object.put(key, value);
+				continue;
+			}
+			if ("age".equals(key)) {
+				if (value.equals("不限")) {
+					value = "17岁-100岁";
+				} else if (value.contains("及以上")) {
+					value = value.replaceAll(regex, "岁")+"-100岁";
+				} else if (value.contains("及以下")) {
+					value = "17岁-"+value.replaceAll(regex, "岁");
+				}
+				object.put(key, value);
+				continue;
+			}
+			if ("hight".equals(key)) {
+				if (value.equals("不限")) {
+					value = "100厘米-250厘米";
+				} else if (value.contains("及以上")) {
+					value = value.replaceAll(regex, "厘米")+"-250厘米";
+				} else if (value.contains("及以下")) {
+					value = "100厘米-"+value.replaceAll(regex, "厘米");
+				}
+				object.put(key, value);
+			}
+		}
+		return object.toJSONString();
+	}
+	
+	public static Object vo_format(Object json,Class clazz) {		
+		com.alibaba.fastjson.JSONObject object = JSON.parseObject(JSON.toJSONString(json));
+		Set<String> keySet = object.keySet();
+		
+		for (String key : keySet) {
+			String value = object.getString(key);
+			if ("salary".equals(key)) {
+				if (value.equals("0元-30000元")) {
+					value = "不限";
+				} else if (value.equals("25001元-30000元")) {
+					value = "25000元以上";
+				} else if (value.equals("0元-3000元")) {
+					value = "3000元以下";
+				}
+				object.put(key, value);
+				continue;
+			}
+			if ("age".equals(key)) {
+				if (value.equals("17岁-100岁")) {
+					value = "不限";
+				} else if (value.contains("100岁")) {
+					value = value.replaceAll("-100岁", "及以上");
+				} else if (value.contains("17岁")) {
+					value =value.replaceAll("17岁-", "")+"及以下";
+				}
+				object.put(key, value);
+				continue;
+			}
+			if ("hight".equals(key)) {
+				if (value.equals("100厘米-250厘米")) {
+					value = "不限";
+				} else if (value.contains("250厘米")) {
+					value = value.replaceAll("-250厘米", "及以上");
+				} else if (value.contains("100厘米")) {
+					value =value.replaceAll("100厘米-", "")+"及以下";
+				}
+				object.put(key, value);
+			}
+		}
+		
+		return JSON.parseObject(JSON.toJSONString(object), clazz);
+	}
+	
+	
+//	@Autowired
+//	private IFriendsService friendsService;
+//	@Autowired
+//	private IChatroomService chatroomService;
+//	@Autowired
+//	private IUserService userService;
+	/**
+	 * 获取聊天室id
+	 * @param uid
+	 * @param fid
+	 * @param friendsService
+	 * @param chatroomService
+	 * @param userService
+	 * @return
+	 */
+	public static String getChannelId(String uid,String fid,IFriendsService friendsService,IChatroomService chatroomService,IUserService userService){
+		ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(uid,
+				fid);
+		UserBo userBo = userService.getUser(uid);
+		if(userBo == null){
+			return "idWrong";
+		}
+		FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(uid, fid);
+		if(friendsBo == null){
+			return null;
+		}
+		UserBo friend = userService.getUser(friendsBo.getFriendid());
+		if(userBo == null){
+			return "idWrong";
+		}
+		if (chatroomBo == null) {
+			chatroomBo = chatroomService.selectByUserIdAndFriendid(fid, uid);
+			if (chatroomBo == null) {
+
+				chatroomBo = new ChatroomBo();
+				chatroomBo.setType(1);
+				chatroomBo.setName(friend.getUserName());
+				chatroomBo.setUserid(userBo.getId());
+				chatroomBo.setFriendid(friend.getId());
+				chatroomService.insert(chatroomBo);
+				
+				HashSet<String> userChatrooms = userBo.getChatrooms();
+				HashSet<String> friendChatrooms = friend.getChatrooms();
+				userChatrooms.add(chatroomBo.getId());
+				friendChatrooms.add(chatroomBo.getId());
+				userBo.setChatrooms(userChatrooms);
+				friend.setChatrooms(friendChatrooms);
+				userService.updateChatrooms(userBo);
+				userService.updateChatrooms(friend);
+				
+				// 首次创建聊天室，需要输入名称
+				String res = IMUtil.subscribe(0, chatroomBo.getId(), uid, friend.getId());
+				if (!res.equals(IMUtil.FINISH)) {
+					return res;
+				}
+			}
+		}
+		// 返回结果null,表示非好友
+		// 返回结果finish,依照好友列表处理
+		// 返回结果idWrong,传入id错误
+		// 返回结果id字符串,正确
+		return chatroomBo.getId();
 	}
 }

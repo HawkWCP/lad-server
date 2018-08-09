@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import com.lad.bo.ExposeBo;
+import com.lad.scrapybo.InforBo;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.mongodb.WriteResult;
@@ -22,6 +26,10 @@ import com.mongodb.WriteResult;
  */
 @Repository("exposeDao")
 public class ExposeDao extends BaseDao<ExposeBo> {
+
+	@Autowired
+	@Qualifier("mongoTemplateTwo")
+	private MongoTemplate mongoTemplateTwo;
 
 	/**
 	 * 根据参数匹配
@@ -54,6 +62,7 @@ public class ExposeDao extends BaseDao<ExposeBo> {
 
 	/**
 	 * 根据参数匹配
+	 * 
 	 * @param params
 	 * @param page
 	 * @param limit
@@ -73,6 +82,7 @@ public class ExposeDao extends BaseDao<ExposeBo> {
 
 	/**
 	 * 根据参数匹配
+	 * 
 	 * @param params
 	 * @return
 	 */
@@ -87,6 +97,7 @@ public class ExposeDao extends BaseDao<ExposeBo> {
 
 	/**
 	 * 根据参数匹配
+	 * 
 	 * @param params
 	 * @return
 	 */
@@ -104,5 +115,16 @@ public class ExposeDao extends BaseDao<ExposeBo> {
 		Update update = new Update();
 		update.set("visitNum", i);
 		getMongoTemplate().updateFirst(query, update, ExposeBo.class);
+	}
+
+	public List<InforBo> findAllInfores() {
+		return mongoTemplateTwo.find(new Query(Criteria.where("className").is("曝光台")),InforBo.class);
+	}
+
+	public WriteResult updateSource(String title, String source) {
+		Query query = new Query(Criteria.where("title").is(title));
+		Update update = new Update();
+		update.set("source", source);
+		return getMongoTemplate().updateFirst(query, update, ExposeBo.class);
 	}
 }

@@ -1,8 +1,10 @@
 package com.lad.dao.impl;
 
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +29,9 @@ import org.springframework.stereotype.Repository;
 
 import com.lad.bo.BaseBo;
 import com.lad.bo.TravelersRequireBo;
+import com.lad.bo.UserBo;
 import com.lad.dao.ITravelersDao;
+import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.mongodb.BasicDBObject;
 import com.mongodb.WriteResult;
@@ -152,19 +157,19 @@ public class TravelersDaoImpl implements ITravelersDao {
 		Criteria orcriteria = new Criteria();
 		orcriteria.orOperator(Criteria.where("times.0").gte(getFirsrtDay()),
 				Criteria.where("times.1").gte(getFirsrtDay()));
+
+		Date firsrtDay = getFirsrtDay();
+		System.out.println(firsrtDay);
 		// 过滤id和已删除数据
 		Criteria criteria = new Criteria();
 		criteria.andOperator(Criteria.where("deleted").is(Constant.ACTIVITY),
-				Criteria.where("createuid").ne(require.getCreateuid()), orcriteria);
+				Criteria.where("createuid").ne(require.getCreateuid()),
+				Criteria.where("destination").is(require.getDestination()), orcriteria);
 		Query query = new Query(criteria);
-		
-		
-		
-
 		int count = (int) mongoTemplate.count(query, TravelersRequireBo.class);
-		if(count<100){
-			query.with(new Sort(Sort.Direction.DESC,"_id"));
-		}else{
+		if (count < 100) {
+			query.with(new Sort(Sort.Direction.DESC, "_id"));
+		} else {
 			Random r = new Random();
 			int length = (count - 99) > 0 ? (count - 99) : 1;
 			int skip = r.nextInt(length);
@@ -173,11 +178,6 @@ public class TravelersDaoImpl implements ITravelersDao {
 		}
 		List<TravelersRequireBo> find = mongoTemplate.find(query, TravelersRequireBo.class);
 
-		// 我的意向
-		String destination = "不限";
-		if (require.getDestination() != null) {
-			destination = require.getDestination();
-		}
 		DateFormat format = new SimpleDateFormat("yyyy-MM");
 		List<Date> times = require.getTimes();
 		long myStart = Long.valueOf(format.format(times.get(0)).replaceAll("-", ""));
@@ -191,10 +191,9 @@ public class TravelersDaoImpl implements ITravelersDao {
 		if (require.getSex() != null) {
 			sex = require.getSex();
 		}
-		String age = "不限";
-		if (require.getAge() != null) {
-			age = require.getAge();
-		}
+		String[] age = require.getAge().replaceAll("岁", "").split("-");
+		int minAgeReq = Integer.valueOf(age[0]);
+		int maxAgeReq = Integer.valueOf(age[1]);
 
 		List<String> temp = new ArrayList<>();
 		List<Map> list = new ArrayList<>();
@@ -204,15 +203,15 @@ public class TravelersDaoImpl implements ITravelersDao {
 				continue;
 			}
 
-			int match = 0;
-			// 目的地
-			if ("不限".equals(destination)) {
-				match += 25;
-			} else if (other.getDestination() != null) {
-				if (destination.equals(other.getDestination())) {
-					match += 25;
-				}
-			}
+			UserBo user = mongoTemplate.findOne(new Query(Criteria.where("_id").is(other.getCreateuid())),
+					UserBo.class);
+
+			// 目的地:25分,时段:25分,旅行方式:20分,性别":15,年龄:15
+			int match = 100;
+
+			Logger logger = LoggerFactory.getLogger(TravelersDaoImpl.class);
+			logger.error("------------开始匹配  {当前匹配者为:" + user.getUserName() + ",初始分数为:" + match
+					+ "}  -----------------------------------");
 
 			// 时段
 			List<Date> OtherTimes = other.getTimes();
@@ -220,38 +219,40 @@ public class TravelersDaoImpl implements ITravelersDao {
 			long othStart = Long.valueOf(format.format(OtherTimes.get(0)).replaceAll("-", ""));
 			long othEnd = Long.valueOf(format.format(OtherTimes.get(1)).replaceAll("-", ""));
 			// 交集或包含
-			if ((othStart >= myStart && othStart <= myEnd) || (othEnd >= myStart && othEnd <= myEnd)
-					|| (othStart <= myStart && othEnd >= myEnd)) {
-				match += 25;
+			if (othStart > myEnd || othEnd < myStart) {
+				match -= 25;
 			}
+			logger.error("旅行时段匹配,单项分数:25---意向时段:" + format.format(times.get(0)) + "~" + format.format(times.get(1))
+					+ ",匹配者时段" + format.format(OtherTimes.get(0)) + "~" + format.format(OtherTimes.get(1)) + ",分数结算为:"
+					+ match);
 
 			// 旅行方式
-			if ("不限".equals(type)) {
-				match += 20;
-			} else if (other.getType() != null) {
-				if (type.equals(other.getType())) {
-					match += 20;
-				}
+			if (!"不限".equals(type) && !other.getType().equals(type)) {
+				match -= 20;
 			}
-
+			logger.error("旅行方式匹配,单项分数为:20---意向方式为:" + type + ",匹配者意向为:" + other.getType() + ",结算分数为:" + match);
 			// 驴友性别
-			if ("不限".equals(sex)) {
-				match += 15;
-			} else if (other.getSex() != null) {
-				if (sex.equals((String) other.getSex())) {
-					match += 15;
+			if (!"不限".equals(sex) && !user.getSex().equals(sex)) {
+				match -= 15;
+			}
+			logger.error("驴友性别匹配,单项分数为:15---意向性别为:" + sex + ",匹配者性别为:" + other.getSex() + ",结算分数为:" + match);
+			// 年龄匹配
+			String bir = user.getBirthDay();
+			int temp1 = 0;
+			if (StringUtils.isEmpty(bir)) {
+				match -= 15;
+			} else {
+				Calendar calendar = Calendar.getInstance();
+				String[] split = bir.split("\\D+");
+				calendar.set(Integer.valueOf((split[0])), Integer.valueOf((split[1])), Integer.valueOf((split[2])));
+				int userAge = CommonUtil.getAge(calendar.getTime());
+				temp1 = userAge;
+				if (userAge > maxAgeReq || userAge < minAgeReq) {
+					match -= 15;
 				}
 			}
-
-			// 驴友年龄
-			if ("不限".equals(age)) {
-				match += 15;
-			} else if (other.getAge() != null) {
-				if (age.equals((String) other.getAge())) {
-					match += 15;
-				}
-			}
-
+			logger.error("驴友年龄匹配,单项分数为:15---意向年龄为:" + Arrays.toString(age) + ",匹配者年龄为:" + temp1 + ",结算分数为:" + match);
+			logger.error("----------------------------end-------------------------------------------");
 			if (match > 0) {
 				temp.add(other.getId());
 				Map map = new HashMap<>();

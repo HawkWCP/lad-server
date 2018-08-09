@@ -1,6 +1,7 @@
 package com.lad.service;
 
 import com.lad.bo.ExposeBo;
+import com.lad.scrapybo.InforBo;
 import com.mongodb.WriteResult;
 
 import java.util.List;
@@ -76,4 +77,8 @@ public interface IExposeService {
     WriteResult updateCounts(String id, int numType, int num);
 
 	void updateVisitNum(String exposeid, int i);
+
+	List<InforBo> findAllInfores();
+
+	WriteResult updateSource(String title, String source);
 }

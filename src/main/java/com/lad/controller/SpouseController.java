@@ -28,7 +28,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -85,11 +84,8 @@ public class SpouseController extends BaseContorller {
 			return JSONObject.fromObject(map).toString();
 		}
 		String baseId = spouseBaseBo.getId();
-		// 通过基础id获取需求
-		SpouseRequireBo require = spouseService.findRequireById(baseId);
-		String id = userBo.getId();
-		List<Map> recommend = spouseService.getRecommend(require, id,baseId);
-
+		String userId = userBo.getId();
+		List<Map> recommend = spouseService.getRecommend(userId,baseId);
 		map.put("ret", 0);
 
 		Comparator<? super Map> c = new BeanComparator("match").reversed();
@@ -115,7 +111,6 @@ public class SpouseController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		// keyWord = "邵户吹";
 		SpouseBaseBo baseBo = spouseService.getSpouseByUserId(userBo.getId());
 
 		String sex = null;
@@ -130,6 +125,8 @@ public class SpouseController extends BaseContorller {
 		for (SpouseBaseBo spouseBaseBo : list) {
 			SpouseBaseVo baseVo = new SpouseBaseVo();
 			BeanUtils.copyProperties(spouseBaseBo, baseVo);
+			baseVo.setMyself(spouseBaseBo.getCreateuid().equals(userBo.getId()));
+			baseVo = (SpouseBaseVo) CommonUtil.vo_format(baseVo, SpouseBaseVo.class);
 			resultList.add(baseVo);
 		}
 
@@ -156,13 +153,6 @@ public class SpouseController extends BaseContorller {
 		}
 		Map map = new HashMap<>();
 		SpouseBaseBo spouseBo = spouseService.getSpouseByUserId(userBo.getId());
-		
-		
-
-
-		
-		
-
 		if (spouseBo == null) {
 			map.put("ret", -1);
 			map.put("result", "当前账号无发布消息");
@@ -173,21 +163,14 @@ public class SpouseController extends BaseContorller {
 
 		DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 		spouseBo.setBirthday(format.format(spouseBo.getBirthday()));
+		spouseBo = (SpouseBaseBo) CommonUtil.vo_format(spouseBo, SpouseBaseBo.class);
 		map.put("baseDate", JSON.toJSONString(spouseBo));
 
 		SpouseRequireBo requireBo = spouseService.findRequireById(spouseBo.getId());
 		if (requireBo != null) {
 			SpouseRequireVo requireVo = new SpouseRequireVo();
 			BeanUtils.copyProperties(requireBo, requireVo);
-			String age = requireVo.getAge();
-			if (age.equals("17岁-100岁")) {
-				age = "不限";
-			} else if (age.contains("-100岁")) {
-				age = age.replaceAll("-100岁", "") + "及以上";
-			} else if (age.contains("17岁-")) {
-				age = age.replaceAll("17岁-", "") + "及以下";
-			}
-			requireVo.setAge(age);
+			requireVo = (SpouseRequireVo) CommonUtil.vo_format(requireVo,SpouseRequireVo.class);
 			map.put("RequireDate", requireVo);
 		} else {
 			map.put("RequireDate", ERRORCODE.MARRIAGE_QUIRE_NULL.getReason());
@@ -210,6 +193,7 @@ public class SpouseController extends BaseContorller {
 	public String updateRequire(@RequestParam String requireData, String requireId, HttpServletRequest request,
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
+		requireData = CommonUtil.fl_format(requireData);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -217,7 +201,6 @@ public class SpouseController extends BaseContorller {
 		if (requireData == null || requireId == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.PARAMS_ERROR.getIndex(), ERRORCODE.PARAMS_ERROR.getReason());
 		}
-
 		updateByIdAndParams(requireData, requireId, SpouseRequireBo.class);
 
 		return Constant.COM_RESP;
@@ -237,6 +220,7 @@ public class SpouseController extends BaseContorller {
 	public String updateSpouse(@RequestParam String baseData, String spouseId, HttpServletRequest request,
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
+		baseData = CommonUtil.fl_format(baseData);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -304,6 +288,7 @@ public class SpouseController extends BaseContorller {
 			SpouseBaseVo baseVo = new SpouseBaseVo();
 			BeanUtils.copyProperties(spouseBaseBo, baseVo);
 			baseVo.setMyself(spouseBaseBo.getCreateuid().equals(userBo.getId()));
+			baseVo = (SpouseBaseVo) CommonUtil.vo_format(baseVo, SpouseBaseVo.class);
 			resultList.add(baseVo);
 		}
 		map.put("ret", 0);
@@ -341,6 +326,7 @@ public class SpouseController extends BaseContorller {
 		map.put("ret", 0);
 		SpouseBaseVo baseVo = new SpouseBaseVo();
 		BeanUtils.copyProperties(baseBo, baseVo);
+		baseVo = (SpouseBaseVo) CommonUtil.vo_format(baseVo, SpouseBaseVo.class);
 		map.put("baseDate", baseVo);
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
@@ -569,14 +555,6 @@ public class SpouseController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		// 判断当前账号是否有发布消息
-		/*
-		 * SpouseBaseBo baseBo2 =
-		 * spouseService.getSpouseByUserId(userBo.getId()); if (baseBo2 == null)
-		 * { Map map = new HashMap<String, String>(); map.put("ret", -1);
-		 * map.put("result", "当前账号无发布消息"); return
-		 * JSONObject.fromObject(map).toString(); }
-		 */
 
 		Map<String, Object> map = new HashMap<>();
 		SpouseBaseBo baseBo = spouseService.findBaseById(spouseId);
@@ -589,21 +567,14 @@ public class SpouseController extends BaseContorller {
 		baseBo.setBirthday(format.format(baseBo.getBirthday()));
 		SpouseBaseVo baseVo = new SpouseBaseVo();
 		BeanUtils.copyProperties(baseBo, baseVo);
+		baseVo = (SpouseBaseVo) CommonUtil.vo_format(baseVo, SpouseBaseVo.class);
 		map.put("baseDate", baseVo);
 		SpouseRequireBo requireBo = spouseService.findRequireById(spouseId);
 
 		if (requireBo != null) {
 			SpouseRequireVo requireVo = new SpouseRequireVo();
 			BeanUtils.copyProperties(requireBo, requireVo);
-			String age = requireVo.getAge();
-			if (age.equals("17岁-100岁")) {
-				age = "不限";
-			} else if (age.contains("-100岁")) {
-				age = age.replaceAll("-100岁", "") + "及以上";
-			} else if (age.contains("17岁-")) {
-				age = age.replaceAll("17岁-", "") + "及以下";
-			}
-			requireVo.setAge(age);
+			requireVo = (SpouseRequireVo) CommonUtil.vo_format(requireVo, SpouseRequireVo.class);
 			map.put("require", requireVo);
 		} else {
 			map.put("require", ERRORCODE.MARRIAGE_QUIRE_NULL.getReason());
@@ -632,7 +603,8 @@ public class SpouseController extends BaseContorller {
 	public String insertPublish(@RequestParam String baseDate, @RequestParam String requireDate,
 			HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-
+		baseDate = CommonUtil.fl_format(baseDate);
+		requireDate = CommonUtil.fl_format(requireDate);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -662,21 +634,6 @@ public class SpouseController extends BaseContorller {
 		// 设置要求的实体参数
 		fromObject = JSONObject.fromObject(requireDate);
 		SpouseRequireBo requireBo = (SpouseRequireBo) JSONObject.toBean(fromObject, SpouseRequireBo.class);
-
-		// 处理生日以及年龄
-		String regex = "\\D+";
-		String age = requireBo.getAge();
-		if (age.contains("及以上")) {
-			age = age.replaceAll(regex, "岁") + "-100岁";
-			requireBo.setAge(age);
-		}
-		if (age.contains("及以下")) {
-			age = "17岁-" + age.replaceAll(regex, "岁");
-			requireBo.setAge(age);
-		}
-		if (age.equals("不限")) {
-			requireBo.setAge("17岁-100岁");
-		}
 
 		// 设置性别
 		// baseBo==男 则 取女
@@ -710,25 +667,6 @@ public class SpouseController extends BaseContorller {
 		Map params = new HashMap<>();
 		while (iterator.hasNext()) {
 			Map.Entry<String, Object> entry = iterator.next();
-
-			if (clazz.toString().equals(SpouseRequireBo.class.toString())&& "age".equals(entry.getKey())) {
-				// 处理生日以及年龄
-				String regex = "\\D+";
-				String age = (String) entry.getValue();
-				if (age.equals("不限")) {
-					params.put("age", "17岁-100岁");
-				}else if (age.contains("及以上")) {
-					age = age.replaceAll(regex, "岁") + "-100岁";
-					params.put("age", age);
-				}else if (age.contains("及以下")) {
-					age = "17岁-" + age.replaceAll(regex, "岁");
-					params.put("age", age);
-				}else{
-					params.put("age", age);
-				}
-				continue;
-			}
-
 			if (clazz.toString().equals(SpouseBaseBo.class.toString()) && "sex".equals(entry.getKey())) {
 				Logger logger = LoggerFactory.getLogger(SpouseController.class);
 				logger.error("修改找老伴基础资料");
@@ -764,10 +702,5 @@ public class SpouseController extends BaseContorller {
 		}
 		WriteResult updateByParams = spouseService.updateByParams(requireId, params, clazz);
 		return updateByParams;
-	}
-
-	@GetMapping("/test")
-	public void test() {
-		spouseService.test();
 	}
 }

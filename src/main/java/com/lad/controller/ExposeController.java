@@ -1,6 +1,8 @@
 package com.lad.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.*;
+import com.lad.scrapybo.InforBo;
 import com.lad.service.*;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -8,6 +10,8 @@ import com.lad.util.ERRORCODE;
 import com.lad.vo.CommentVo;
 import com.lad.vo.ExposeVo;
 import com.lad.vo.UserBaseVo;
+import com.mongodb.WriteResult;
+
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -597,4 +601,16 @@ public class ExposeController extends BaseContorller {
         }
         return Constant.COM_RESP;
     }
+    
+	@GetMapping("/updateSource")
+	public String updateSource() {
+		// 更新数据的来源字段
+		List<InforBo> infors = exposeService.findAllInfores();
+		for (InforBo inforBo : infors) {
+			String title = inforBo.getTitle();
+			String source = inforBo.getSource();
+			WriteResult updateSource = exposeService.updateSource(title,source);
+		}
+		return "成功";
+	}
 }

@@ -2,6 +2,7 @@ package com.lad.service.impl;
 
 import com.lad.bo.ExposeBo;
 import com.lad.dao.ExposeDao;
+import com.lad.scrapybo.InforBo;
 import com.lad.service.IExposeService;
 import com.mongodb.WriteResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,5 +61,15 @@ public class ExposeServiceImpl implements IExposeService {
 	@Override
 	public void updateVisitNum(String exposeid, int i) {
 		exposeDao.updateVisitNum(exposeid,i);
+	}
+
+	@Override
+	public List<InforBo> findAllInfores() {
+		return exposeDao.findAllInfores();
+	}
+
+	@Override
+	public WriteResult updateSource(String title, String source) {
+		return exposeDao.updateSource(title,source);
 	}
 }

@@ -1,16 +1,15 @@
 package com.lad.dao.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Map.Entry;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -23,13 +22,12 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import com.fasterxml.jackson.databind.util.BeanUtil;
 import com.lad.bo.BaseBo;
 import com.lad.bo.CareAndPassBo;
-import com.lad.bo.OptionBo;
 import com.lad.bo.SpouseBaseBo;
 import com.lad.bo.SpouseRequireBo;
 import com.lad.dao.ISpouseDao;
+import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.vo.SpouseBaseVo;
 import com.mongodb.BasicDBObject;
@@ -106,10 +104,6 @@ public class SpouseDaoImpl implements ISpouseDao {
 				SpouseRequireBo.class);
 	}
 
-	@Override
-	public void test() {
-		System.out.println(mongoTemplate);
-	}
 
 	@Override
 	public WriteResult updateByParams(String spouseId, Map<String, Object> params, Class class1) {
@@ -154,32 +148,38 @@ public class SpouseDaoImpl implements ISpouseDao {
 	}
 
 	@Override
-	public List<Map> getRecommend(SpouseRequireBo require, String uid,String baseId) {
+	public List<Map> getRecommend(String uid, String baseId) {
 		// 查询关于与黑名单
-		CareAndPassBo careAndPass = mongoTemplate.findOne(new Query(Criteria.where("mainId").is(baseId)), CareAndPassBo.class);
+		CareAndPassBo careAndPass = mongoTemplate.findOne(new Query(Criteria.where("mainId").is(baseId)),
+				CareAndPassBo.class);
 		Set<String> skipId = new LinkedHashSet<>();
-		if(careAndPass!=null){
+		if (careAndPass != null) {
 			// 将黑名单加入跳过列表
 			Set<String> passRoster = careAndPass.getPassRoster();
-			if(passRoster!=null){
+			if (passRoster != null) {
 				skipId.addAll(passRoster);
 			}
 			Map<String, Set<String>> careRoster = careAndPass.getCareRoster();
-			if(careRoster!=null){
+			if (careRoster != null) {
 				for (String key : careRoster.keySet()) {
 					skipId.addAll(careRoster.get(key));
 				}
 			}
 		}
-
+		/*=============以下用与打日志,可删================*/
+		SpouseBaseBo baseBo = mongoTemplate.findOne(new Query(Criteria.where("_id").is(baseId).and("deleted").is(Constant.ACTIVITY)), SpouseBaseBo.class);
+		/*=============================================*/
 		
+		SpouseRequireBo require = mongoTemplate.findOne(
+				new Query(Criteria.where("baseId").is(baseId).and("deleted").is(Constant.ACTIVITY)),
+				SpouseRequireBo.class);
 		// 随机取100个实体
 		Query query = new Query(Criteria.where("sex").is(require.getSex()).and("deleted").is(Constant.ACTIVITY)
 				.and("createuid").ne(uid).and("_id").nin(skipId));
 		int count = (int) mongoTemplate.count(query, SpouseBaseBo.class);
-		if(count<100){
-			query.with(new Sort(Sort.Direction.DESC,"_id"));
-		}else{
+		if (count < 100) {
+			query.with(new Sort(Sort.Direction.DESC, "_id"));
+		} else {
 			Random r = new Random();
 			int length = (count - 99) > 0 ? (count - 99) : 1;
 			int skip = r.nextInt(length);
@@ -189,119 +189,116 @@ public class SpouseDaoImpl implements ISpouseDao {
 
 		List<SpouseBaseBo> find = mongoTemplate.find(query, SpouseBaseBo.class);
 
+		String regex = "\\D+";
 		// 年龄要求
-		int minAge = 0;
-		int maxAge = 150;
-		if (require.getAge() != null && !("不限".equals(require.getAge()))) {
-			String[] age = require.getAge().split("-");
-			minAge = Integer.valueOf(age[0].replaceAll("\\D*", ""));
-			maxAge = Integer.valueOf(age[1].replaceAll("\\D+", ""));
+		int minAge = 17;
+		int maxAge = 100;
+		String reqAge = require.getAge();
+		if (reqAge != null) {
+			String[] age = reqAge.split("-");
+			minAge = Integer.valueOf(age[0].replaceAll(regex, ""));
+			maxAge = Integer.valueOf(age[1].replaceAll(regex, ""));
 		}
 
 		// 月收入要求
-
-		List<OptionBo> optionBos = mongoTemplate.find(
-				new Query(Criteria.where("field").is("salary").and("deleted").is(Constant.ACTIVITY)), OptionBo.class);
-		int salary = 0;
-		if (require.getSalary() != null) {
-			for (OptionBo optionBo : optionBos) {
-				if (require.getSalary().equals(optionBo.getValue())) {
-					salary = optionBo.getSort();
-				}
-			}
+		int minSal = 0;
+		int maxSal = 30000;
+		String reqSal = require.getSalary();
+		if (reqSal != null) {
+			String[] salary = reqSal.split("-");
+			minSal = Integer.valueOf(salary[0].replaceAll(regex, ""));
+			maxSal = Integer.valueOf(salary[1].replaceAll(regex, ""));
 		}
 
 		// 居住地 同省:50分 同市80分 同县100
 		String address = "不限";
-		if (require.getAddress() != null) {
-			address = require.getAddress();
+		String reqAds = require.getAddress();
+		if (reqAds != null) {
+			String[] addArr = reqAds.split("-");
+			if (addArr.length == 1) {
+				address = addArr[0];
+			} else {
+				address = addArr[1];
+			}
 		}
 
 		// 兴趣爱好
 		Map<String, Set<String>> myHobbys = require.getHobbys();
-
+		Set<String> mhSet = new LinkedHashSet<>();
+		for (String key : myHobbys.keySet()) {
+			mhSet.addAll(myHobbys.get(key));
+		}
+		
+		
 		List<Map> list = new ArrayList<>();
-
 		List tempList = new ArrayList<>();
 		for (SpouseBaseBo bo : find) {
 			if (tempList.contains(bo.getId())) {
 				continue;
 			}
-			// 地址
-			int addressNum = 0;
-			if (bo.getAddress() != null) {
-				if ("不限".equals(bo.getAddress()) || address.equals(bo.getAddress())) {
-					addressNum = 100;
-				}
+			
+			Logger logger = LoggerFactory.getLogger(SpouseDaoImpl.class);
+			logger.error("==================找老伴匹配,初始分数为:100,要求者为:"+baseBo.getNickName()+",当前参与匹配者为:"+bo.getNickName()+"====================");
+			
+			int match = 100;
+			// 地址匹配
+			String boAdd = bo.getAddress();
+			if((boAdd == null) || (boAdd!=null && !boAdd.contains(address))){
+				match -= 25;
 			}
-
+			logger.error("地址匹配:----意向地址为:"+address+",匹配者地址为:"+boAdd+",结算分数为:"+match);
+			
+			// 年龄
+			int boAge = bo.getAge();
+			int dif = 0;
+			if(boAge<minAge){
+				dif = (minAge-boAge)*5<25?(minAge-boAge)*5:25;
+			}else if(boAge>maxAge){
+				dif = (boAge-maxAge)*5<25?(boAge-maxAge)*5:25;
+			}
+			match = match - dif;
+			
+			logger.error("年龄匹配:----意向年龄为:"+reqAge+",匹配者年龄为:"+boAge+",结算分数为:"+match);
 			// 兴趣
+			Map<String, Set<String>> bh = bo.getHobbys();
 			int temp = 0;
-			int hobbysNum = 0;
-			int myHobNum = 0;
-			for (Entry<String, Set<String>> myHobby : myHobbys.entrySet()) {
-				myHobNum += myHobby.getValue().size();
-				Set<String> requireSet = bo.getHobbys().get(myHobby.getKey());
-				for (String hob : myHobby.getValue()) {
-					if (requireSet.contains(hob)) {
-						temp++;
+			int mhSetLen =mhSet.size();
+			if(mhSetLen>0){
+				for (String str : mhSet) {
+					for (String key : bh.keySet()) {
+						if(bh.get(key).contains(str)){
+							temp+=1;
+						}
 					}
 				}
+				if(temp < mhSetLen && temp!=0){
+					match = match-10*((mhSetLen-temp)/(mhSetLen-1));
+				}else if(temp==0 ){
+					match = match- 25;
+				} 
 			}
+			
+			logger.error("兴趣匹配:----意向兴趣数量为:"+mhSetLen+",匹配数量为:"+temp+",结算分数为:"+match);
 
-			if (temp == 1) {
-				hobbysNum = 60;
-			} else if (temp > 1) {
-				hobbysNum = temp / myHobNum * 40 + 60;
-			}
-
-			// 年龄
-			int ageNum = 0;
-
-			if ("不限".equals(require.getAge())) {
-				ageNum = 100;
-			} else {
-				int boage = bo.getAge();
-
-				if (boage >= minAge && boage <= maxAge) {
-					ageNum = 100;
-				}
-				if (boage > maxAge) {
-					ageNum = 100 - (boage - maxAge) * 5;
-				}
-				if (boage < minAge) {
-					ageNum = 100 - (minAge - boage) * 5;
-				}
-			}
 
 			// 月收入
-			int salaryNum = 0;
-
-			int boSalary = 0;
-			if (bo.getSalary() != null) {
-				for (OptionBo string : optionBos) {
-					if (bo.getSalary().equals(string)) {
-						boSalary = string.getSort();
-					}
-				}
+			String[] bsArr = bo.getSalary().split("-");
+			int minBs = Integer.valueOf(bsArr[0].replaceAll(regex, ""));
+			int maxBs = Integer.valueOf(bsArr[1].replaceAll(regex, ""));
+			if(maxBs<minSal){
+				match = match-25; 
 			}
-
-			if (salary == 0) {
-				salaryNum = 100;
-			} else if (salary <= boSalary) {
-				salaryNum = 100;
-			} else if (salary > boSalary) {
-				salaryNum = 100 - (salary - boSalary) * 15;
-			}
-
-			int match = (int) Math.rint((addressNum + hobbysNum + ageNum + salaryNum) * 0.25);
-
+			logger.error("收入匹配:----意向收入与为:"+reqSal+",匹配者收入为:"+bo.getSalary()+",结算分数为:"+match);
+			logger.error("=========================================================end==============================================================");
+			
+			
 			tempList.add(bo.getId());
 			if (match >= 0) {
 				Map map = new HashMap<>();
 				map.put("match", match);
 				SpouseBaseVo baseVo = new SpouseBaseVo();
 				BeanUtils.copyProperties(bo, baseVo);
+				baseVo = (SpouseBaseVo) CommonUtil.vo_format(baseVo, SpouseBaseVo.class);
 				map.put("spouseBo", baseVo);
 				list.add(map);
 			}

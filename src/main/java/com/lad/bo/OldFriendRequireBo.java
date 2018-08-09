@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
@@ -23,4 +24,5 @@ public class OldFriendRequireBo extends BaseBo {
 	private Map<String,Set<String>> hobbys = new HashMap<>();// 兴趣,list
 	private List<String> images = new ArrayList<>();
 	private boolean agree = false;
+	private ObjectId uid;
 }

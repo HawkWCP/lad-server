@@ -282,17 +282,15 @@ public class MarriageDaoImpl implements IMarriageDao {
 	 */
 	public List<Map> getRecommend(String waiterId, String uid) {
 
-		// 查询关于与黑名单
-		CareAndPassBo careAndPass = mongoTemplate.findOne(new Query(Criteria.where("mainId").is(waiterId)),
-				CareAndPassBo.class);
+		WaiterBo findOne = mongoTemplate.findOne(new Query(Criteria.where("_id").is(waiterId).and("deleted").is(Constant.ACTIVITY)), WaiterBo.class);
 		Set<String> skipId = new LinkedHashSet<>();
-		if (careAndPass != null) {
+		if (findOne != null) {
 			// 将黑名单加入跳过列表
-			Set<String> passRoster = careAndPass.getPassRoster();
+			Set<String> passRoster = findOne.getPass();
 			if (passRoster != null) {
 				skipId.addAll(passRoster);
 			}
-			Map<String, Set<String>> careRoster = careAndPass.getCareRoster();
+			Map<String, Set<String>> careRoster = findOne.getCares();
 			if (careRoster != null) {
 				for (String key : careRoster.keySet()) {
 					skipId.addAll(careRoster.get(key));
@@ -306,7 +304,7 @@ public class MarriageDaoImpl implements IMarriageDao {
 
 		// 随机取100个实体
 		Query query = new Query(Criteria.where("sex").is(requireBo.getSex()).and("deleted").is(Constant.ACTIVITY)
-				.and("createuid").ne(uid).and("waiterId").nin(skipId));
+				.and("createuid").ne(uid).and("_id").nin(skipId));
 
 		int count = (int) mongoTemplate.count(query, WaiterBo.class);
 		List<Map> result = new ArrayList<>();
@@ -354,23 +352,51 @@ public class MarriageDaoImpl implements IMarriageDao {
 		 * 总匹配度 = 基础分(40分)+其他分(60分) 基础分 = 地址(20分)+婚史(20分) 其他分 =
 		 * 工作(0.1)+兴趣(0.1)+学历(0.1)+收入(0.3)+身高(0.3)+年龄(0.1)
 		 */
-
+		Logger logger = LoggerFactory.getLogger(MarriageDaoImpl.class);
 		int matchNum = 100;
+		
+		logger.error("基础分数"+matchNum);
 		// 基础条件匹配
-		String requireAddress = requireBo.getNowin();
-		String waiterAddress = waiterBo.getNowin();
+		String[] requireAddList = requireBo.getNowin().split("-");
+		String[] waiterAddList = waiterBo.getNowin().split("-");
+		
+		// 如果要求方精确到省,则比较省;如果要求放精确到市,则判断请求方精确到哪一步,若精确到市,比较市,精确到省,比较省
+		String requireAddress = null;
+		String waiterAddress = null;	
+		int temp = 0;
+		if(requireAddList.length==1){
+			requireAddress = requireAddList[0];
+			waiterAddress = waiterAddList[0];
+		}
+		if(requireAddList.length>1){
+			requireAddress = requireAddList[1];
+			if(waiterAddList.length==1){
+				requireAddress = requireAddList[0];
+				waiterAddress = waiterAddList[0];
+				temp = 1;
+			}else{
+				waiterAddress = waiterAddList[1];
+			}
+		}
 		if (!StringUtils.isEmpty(requireAddress) && !StringUtils.isEmpty(waiterAddress)) {
 			if (!"不限".equals(requireAddress) && !requireAddress.equals(waiterAddress)) {
 				matchNum -= 20;
 			}
+			if(requireAddress.equals(waiterAddress) && temp == 1){
+				matchNum -= 10;
+			}
 		}
+		
+		logger.error("=============================================start   匹配者为:"+waiterBo.getNickName()+"============================================================");
+		
+		logger.error("地址匹配--分数加权为20分--地址意向:"+requireAddress+";基础资料地址:"+waiterAddress+";结算之后的分数为:"+matchNum);
 
 		int requireMarriaged = requireBo.getMarriaged();
 		int WaiterMarriaged = waiterBo.getMarriaged();
-		if (requireMarriaged != 0 && requireMarriaged != WaiterMarriaged) {
+		if (requireMarriaged != 0 && requireMarriaged != (WaiterMarriaged+1)) {
 			matchNum -= 20;
 		}
-
+		logger.error("婚史匹配:0表示不限,1表示无,2表示有--分数加权为20分--婚史意向:"+requireMarriaged+";基础资料婚史:"+WaiterMarriaged+";结算之后的分数为:"+matchNum);
 		// 其他条件匹配
 		// 工作匹配
 		Set<String> requireJob = requireBo.getJob();
@@ -381,6 +407,8 @@ public class MarriageDaoImpl implements IMarriageDao {
 			}
 		}
 
+		logger.error("工作匹配--分数加权为6分--工作意向:"+requireJob+";基础资料工作:"+waiterJob+";结算之后的分数为:"+matchNum);
+		
 		// 兴趣匹配
 		Map<String, Set<String>> requireHobbys = requireBo.getHobbys();
 		Map<String, Set<String>> waiterHobbys = waiterBo.getHobbys();
@@ -404,13 +432,16 @@ public class MarriageDaoImpl implements IMarriageDao {
 
 			matchNum -= Math.floor(notContain.size() * 6 / requireHobbysSet.size());
 		}
+		
+		logger.error("兴趣匹配--分数加权为6分--兴趣意向:"+requireHobbysSet+";基础资料兴趣:"+waiterHobbysSet+";结算之后的分数为:"+matchNum);
+		
 		// 学历匹配		
 		Education requireEducation = Education.getEnumByDesc(requireBo.getEducation());
-		
 		if (requireEducation.compare(waiterBo.getEducation()) > 0) {
 			matchNum -= 6;
 		}
-
+		logger.error("学历匹配--分数加权为6分--学历意向:"+requireBo.getEducation()+";基础资料学历:"+waiterBo.getEducation()+";结算之后的分数为:"+matchNum);
+		
 		// 收入匹配,高位不限,如果最高收入低于最低要求,则不匹配
 		String regex = "\\D+";
 		int minSalaryRequire = 0;
@@ -436,6 +467,7 @@ public class MarriageDaoImpl implements IMarriageDao {
 		if (maxSalaryProvide < minSalaryRequire) {
 			matchNum -= 18;
 		}
+		logger.error("收入匹配--分数加权为18分--收入意向:"+requireSalary+";基础资料收入:"+waiterSalary+";结算之后的分数为:"+matchNum);
 
 		// 身高匹配 请求者身高小于最低要求则减分,大于最高要求减分
 		// 修改过需求,不限更改为xx米以上或xx米以下,对应数据库数据为100厘米-xx厘米,xx厘米-250厘米
@@ -448,7 +480,7 @@ public class MarriageDaoImpl implements IMarriageDao {
 		if (wh < minhr || wh > maxhr) {
 			matchNum -= 18;
 		}
-
+		logger.error("身高匹配--分数加权为18分--身高意向:"+requireBo.getHight()+";基础资料身高:"+waiterBo.getHight()+";结算之后的分数为:"+matchNum);
 		// 年龄匹配,同上
 		int minar = Integer.valueOf(requireBo.getAge().split("-")[0].replaceAll(regex, ""));
 		int maxar = Integer.valueOf(requireBo.getAge().split("-")[1].replaceAll(regex, ""));
@@ -456,16 +488,23 @@ public class MarriageDaoImpl implements IMarriageDao {
 		if (wa < minar || wa > maxar) {
 			matchNum -= 6;
 		}
-
+		logger.error("年龄匹配--分数加权为6分--年龄意向:"+requireBo.getAge()+";基础资料年龄:"+waiterBo.getAge()+";结算之后的分数为:"+matchNum);
 		Map map = new HashMap<>();
 		WaiterVo waiterVo = new WaiterVo();
 		BeanUtils.copyProperties(waiterBo, waiterVo);
-		if (matchNum > 60) {
+		logger.error("===================================================================end============================================================");
+		if (matchNum > 0) {
 			map.put("match", matchNum);
 			map.put("waiter", waiterVo);
 			return map;
 		}
 		return null;
+		/*if (matchNum > 60) {
+			map.put("match", matchNum);
+			map.put("waiter", waiterVo);
+			return map;
+		}
+		return null;*/
 	}
 
 	@Override

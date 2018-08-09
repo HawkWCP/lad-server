@@ -1,16 +1,17 @@
 package com.lad.dao;
 
-import com.lad.bo.FriendsBo;
-import com.mongodb.WriteResult;
-
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+
+import com.lad.bo.FriendsBo;
+import com.mongodb.WriteResult;
 
 public interface IFriendsDao extends IBaseDao {
 	public FriendsBo insert(FriendsBo friendsBo);
 
-	public WriteResult updateBackname(String userid, String friendid, String backname);
+	public WriteResult updateBackname(String userid, String friendid, String backname,LinkedList<String> usedBackName);
 
 	public WriteResult updateTag(String userid, String friendid, List tag);
 

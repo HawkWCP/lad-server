@@ -3,7 +3,9 @@ package com.lad.service.impl;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.stereotype.Service;
 
 import com.lad.bo.OldFriendRequireBo;
@@ -76,6 +78,11 @@ public class OldFriendServiceImpl implements IOldFriendService {
 	@Override
 	public int findPublishNum(String uid) {
 		return oldFriendDao.findPublishNum(uid);
+	}
+
+	@Override
+	public AggregationResults<Document> epicQuery(OldFriendRequireBo require) {
+		return oldFriendDao.epicQuery(require);
 	}
 	
 

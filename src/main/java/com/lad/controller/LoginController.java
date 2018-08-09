@@ -15,6 +15,7 @@ import io.swagger.annotations.ApiOperation;
 import net.sf.json.JSONObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -233,6 +234,10 @@ public class LoginController extends BaseContorller {
 	@PostMapping("/wx-open-login")
 	public String openLogin(String code, String rantType, HttpServletRequest request, HttpServletResponse
 			response){
+		
+		org.slf4j.Logger log = LoggerFactory.getLogger(LoginController.class);
+		log.error("微信登录--"+"code:"+code+",rantType:"+rantType);
+		
 		HttpSession session = request.getSession();
 		rantType = StringUtils.isEmpty(rantType) ? "authorization_code" : rantType;
 		StringBuilder url = new StringBuilder(weixin_ip);
@@ -335,6 +340,9 @@ public class LoginController extends BaseContorller {
 	public String qqOpenLogin(String accessToken, String openid, String nickname, String userPic, String gender,
 			HttpServletRequest request, HttpServletResponse
 			response){
+		org.slf4j.Logger log = LoggerFactory.getLogger(LoginController.class);
+		log.error("QQ登录--"+"accessToken:"+accessToken+",openid:"+openid+",nickname:"+nickname+",userPic:"+userPic+",gender:"+gender);
+		
 		HttpSession session = request.getSession();
 		UserBo userBo = userService.findByOpenid(openid);
 		if (userBo == null) {

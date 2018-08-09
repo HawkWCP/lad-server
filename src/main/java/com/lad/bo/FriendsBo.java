@@ -1,11 +1,22 @@
 package com.lad.bo;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.HashSet;
+import java.util.LinkedList;
+
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "friends")
 public class FriendsBo extends BaseBo {
+
+
+	public LinkedList<String> getUsedBackName() {
+		return usedBackName;
+	}
+
+	public void setUsedBackName(LinkedList<String> usedBackName) {
+		this.usedBackName = usedBackName;
+	}
+
 	//主用户
 	private String userid;
 	//好友用户
@@ -23,6 +34,7 @@ public class FriendsBo extends BaseBo {
 	private boolean parent;
 	//关联账号状态，0表示普通好友， 1 表示发送关联申请，2 表示被申请用户的状态， 3表示已建立关联， -1  表示拒绝或取消
 	private int relateStatus = 0;
+	private LinkedList<String> usedBackName = new LinkedList<>();
 
 	public String getUserid() {
 		return userid;

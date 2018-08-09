@@ -2,7 +2,6 @@ package com.lad.service.impl;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -74,12 +73,6 @@ public class SpouseServiceImpl implements SpouseService {
 	public int getNum(String id) {
 		return spouseDao.getNum(id);
 	}
-	
-	@Override
-	public void test() {
-		spouseDao.test();
-	}
-
 
 	@Override
 	public List<SpouseBaseBo> findListByKeyword(String keyWord,String sex,int page,int limit, Class<SpouseBaseBo> clazz) {
@@ -88,8 +81,8 @@ public class SpouseServiceImpl implements SpouseService {
 
 
 	@Override
-	public List<Map> getRecommend(SpouseRequireBo require,String uid,String baseId) {
-		return spouseDao.getRecommend(require,uid,baseId);
+	public List<Map> getRecommend(String uid,String baseId) {
+		return spouseDao.getRecommend(uid,baseId);
 	}
 
 

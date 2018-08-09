@@ -30,4 +30,5 @@ public class ShowResultVo {
 	private String require;
 	private String birthday;
 	private boolean myself;
+	private String channelId;
 }

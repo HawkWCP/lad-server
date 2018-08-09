@@ -1,9 +1,11 @@
 package com.lad.dao.impl;
 
-import com.lad.bo.FriendsBo;
-import com.lad.dao.IFriendsDao;
-import com.lad.util.Constant;
-import com.mongodb.WriteResult;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -13,10 +15,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.regex.Pattern;
+import com.lad.bo.FriendsBo;
+import com.lad.dao.IFriendsDao;
+import com.lad.util.Constant;
+import com.mongodb.WriteResult;
 
 @Repository("friendsDao")
 public class FriendsDaoImpl implements IFriendsDao {
@@ -30,13 +32,22 @@ public class FriendsDaoImpl implements IFriendsDao {
 		return friendsBo;
 	}
 
-	public WriteResult updateBackname(String userid, String friendid, String backname) {
+	public WriteResult updateBackname(String userid, String friendid, String backname,LinkedList<String> usedBackName) {
 		Query query = new Query();
 		query.addCriteria(new Criteria("userid").is(userid));
 		query.addCriteria(new Criteria("friendid").is(friendid));
 		query.addCriteria(new Criteria("deleted").is(0));
 		Update update = new Update();
-		update.set("backname", backname);
+
+		
+		if(StringUtils.isEmpty(backname)){
+			Update unset = new Update();
+			unset.unset("backname");
+			mongoTemplate.updateFirst(query, unset, FriendsBo.class);
+		}else{
+			update.set("backname", backname);
+		}
+		update.set("usedBackName", usedBackName);
 		update.set("updateTime", new Date());
 		return mongoTemplate.updateFirst(query, update, FriendsBo.class);
 	}

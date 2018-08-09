@@ -3,7 +3,6 @@ package com.lad.vo;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +17,7 @@ import lombok.ToString;
 
 public class WaiterVo extends BaseVo {
 
-	private String createrId;	// 创建者Id
+	private String createuid;	// 创建者Id
 	private String nickName;	// 昵称
 	private int sex;		// 性别 0,女;1,男
 	private Date birthday;		// 生日
@@ -31,4 +30,5 @@ public class WaiterVo extends BaseVo {
 	private String nowin;		// 居住地
 	private List<String> images = new ArrayList<>();// 照片地址,保存url的list;
 	private Map<String,Set<String>> hobbys = new HashMap<>();// 兴趣,list
+	private boolean myself;
 }

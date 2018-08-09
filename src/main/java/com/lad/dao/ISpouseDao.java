@@ -9,8 +9,6 @@ import com.lad.bo.SpouseRequireBo;
 import com.mongodb.WriteResult;
 
 public interface ISpouseDao {
-	void test();
-
 	String insert(BaseBo baseBo);
 
 	SpouseBaseBo findBaseById(String baseId);
@@ -29,7 +27,7 @@ public interface ISpouseDao {
 
 	List<SpouseBaseBo> findListByKeyword(String keyWord, String sex, int page, int limit, Class clazz);
 
-	List<Map> getRecommend(SpouseRequireBo require, String uid, String baseId);
+	List<Map> getRecommend(String uid, String baseId);
 
 	int findPublishNum(String uid);
 

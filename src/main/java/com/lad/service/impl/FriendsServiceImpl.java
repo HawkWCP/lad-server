@@ -1,15 +1,17 @@
 package com.lad.service.impl;
 
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.FriendsBo;
 import com.lad.dao.IFriendsDao;
 import com.lad.service.IFriendsService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
 
 @Service("friendsService")
 public class FriendsServiceImpl implements IFriendsService {
@@ -21,8 +23,8 @@ public class FriendsServiceImpl implements IFriendsService {
 		return friendsDao.insert(friendsBo);
 	}
 
-	public WriteResult updateBackname(String userid, String friendid, String backname) {
-		return friendsDao.updateBackname(userid, friendid, backname);
+	public WriteResult updateBackname(String userid, String friendid, String backname,LinkedList<String> usedBackName) {
+		return friendsDao.updateBackname(userid, friendid, backname,usedBackName);
 	}
 
 	public WriteResult updateTag(String userid, String friendid, List tag) {

@@ -14,8 +14,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.beanutils.BeanComparator;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,15 +27,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
+import com.lad.bo.ChatroomBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.OldFriendRequireBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
+import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IOldFriendService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
+import com.lad.util.IMUtil;
 import com.lad.vo.OldFriendRequireVo;
 import com.lad.vo.ShowResultVo;
 import com.lad.vo.UserTasteVo;
@@ -50,6 +56,9 @@ public class OldFriendController extends BaseContorller {
 	private IUserService userService;
 	@Autowired
 	private IFriendsService friendsService;
+	@Autowired
+	private IChatroomService chatroomService;
+
 
 	/**
 	 * 匹配推荐
@@ -82,10 +91,19 @@ public class OldFriendController extends BaseContorller {
 				Map resultOne = new HashMap<>();
 				OldFriendRequireBo resultBo = (OldFriendRequireBo) recMap.get("requireBo");
 				ShowResultVo showResultVo = getShowResultVo(resultBo);
+				String channelId = CommonUtil.getChannelId(userBo.getId(), resultBo.getCreateuid(), friendsService, chatroomService, userService);
+				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+					showResultVo.setFriend(false);
+					showResultVo.setChannelId("");
+				}else{
+					showResultVo.setFriend(true);
+					showResultVo.setChannelId(channelId);
+				}
 				resultOne.put("match", recMap.get("match"));
 				resultOne.put("baseData", showResultVo);
 				OldFriendRequireVo resultVo = new OldFriendRequireVo();
 				BeanUtils.copyProperties(resultBo, resultVo);
+				resultVo = (OldFriendRequireVo) CommonUtil.vo_format(resultVo, OldFriendRequireVo.class);
 				resultOne.put("require", resultVo);
 				result.add(resultOne);
 			}
@@ -98,7 +116,6 @@ public class OldFriendController extends BaseContorller {
 			map.put("ret", -1);
 			map.put("message", "未找到匹配者");
 		}
-
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 
@@ -164,14 +181,23 @@ public class OldFriendController extends BaseContorller {
 				if (user.getSex() != null) {
 					showResult.setSex(user.getSex());
 				} else {
-					showResult.setSex("");
+					showResult.setSex("未填写");
 				}
 				if (user.getCity() != null) {
 					showResult.setAddress(user.getCity());
 				} else {
-					showResult.setAddress("");
+					showResult.setAddress("未填写");
+				}				
+				String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
+				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+					showResult.setFriend(false);
+					showResult.setChannelId("");
+				}else{
+					showResult.setFriend(true);
+					showResult.setChannelId(channelId);
 				}
-
+				
+				showResult.setUid(user.getId());
 				resultList.add(showResult);
 			}
 			map.put("ret", 0);
@@ -262,6 +288,7 @@ public class OldFriendController extends BaseContorller {
 			} else {
 				showResult.setAddress("");
 			}
+			showResult.setMyself(user.getId().equals(userBo.getId()));
 			resultList.add(showResult);
 		}
 		if (resultList.size() >= 1) {
@@ -328,26 +355,26 @@ public class OldFriendController extends BaseContorller {
 				}
 			}
 			if (user.getAddress() != null) {
-				result.setAddress(user.getCity());
+				result.setAddress(user.getAddress());
 			} else {
 				result.setAddress("");
 			}
 			result.setUid(user.getId());
 			result.setAddress(user.getAddress());
-			if (!(user.getId().equals(userBo.getId()))) {
-				FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), user.getId());
-				if (friendsBo != null) {
-					result.setFriend(true);
-				} else {
-					result.setFriend(false);
-				}
+			String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
+			if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+				result.setFriend(false);
+				result.setChannelId("");
+			}else{
+				result.setFriend(true);
+				result.setChannelId(channelId);
 			}
 			UserTasteBo findByUserId = userService.findByUserId(user.getId());
 			UserTasteBo hobbysBo = StringUtils.isEmpty(findByUserId) ? new UserTasteBo() : findByUserId;
 			UserTasteVo hobbysVo = new UserTasteVo();
 			BeanUtils.copyProperties(hobbysBo, hobbysVo);
 			result.setHobbys(hobbysVo);
-
+			result.setMyself(requireBo.getCreateuid().equals(userBo.getId()));			
 			map.put("ret", 0);
 			map.put("baseData", result);
 		} else {
@@ -357,15 +384,7 @@ public class OldFriendController extends BaseContorller {
 
 		OldFriendRequireVo requireVo = new OldFriendRequireVo();
 		BeanUtils.copyProperties(requireBo, requireVo);
-		String age = requireVo.getAge();
-		if (age.equals("17岁-100岁")) {
-			age = "不限";
-		} else if (age.contains("-100岁")) {
-			age = age.replaceAll("-100岁", "") + "及以上";
-		} else if (age.contains("17岁-")) {
-			age = age.replaceAll("17岁-", "") + "及以下";
-		}
-		requireVo.setAge(age);
+		requireVo = (OldFriendRequireVo) CommonUtil.vo_format(requireVo, OldFriendRequireVo.class);
 		map.put("requireData", requireVo);
 		return JSON.toJSONString(map);
 	}
@@ -383,6 +402,7 @@ public class OldFriendController extends BaseContorller {
 	public String updateRequire(@RequestParam String requireData, String requireId, HttpServletRequest request,
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
+		requireData = CommonUtil.fl_format(requireData);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -402,31 +422,20 @@ public class OldFriendController extends BaseContorller {
 
 			if ("sex".equals(entity.getKey()) && !(entity.getValue().equals(oldRequireBo.getSex()))) {
 				params.put(entity.getKey(), entity.getValue());
+				continue;
 			}
-			
-			if ("age".equals(entity.getKey()) && !(entity.getValue().equals(oldRequireBo.getAge()))) {				
-				// 处理生日以及年龄
-				String regex = "\\D+";
-				String age = (String) entity.getValue();
-				if (age.equals("不限")) {
-					params.put("age", "17岁-100岁");
-				}else if (age.contains("及以上")) {
-					age = age.replaceAll(regex, "岁") + "-100岁";
-					params.put("age", age);
-				}else if (age.contains("及以下")) {
-					age = "17岁-" + age.replaceAll(regex, "岁");
-					params.put("age", age);
-				}else{
-					params.put("age", age);
-				}
+
+			if ("age".equals(entity.getKey()) && !(entity.getValue().equals(oldRequireBo.getAge()))) {
+				params.put(entity.getKey(), entity.getValue());
 				continue;
 			}
 			if ("address".equals(entity.getKey()) && !(entity.getValue().equals(oldRequireBo.getAddress()))) {
 				params.put(entity.getKey(), entity.getValue());
+				continue;
 			}
 			if ("hobbys".equals(entity.getKey())) {
-				System.out.println(entity.getValue().getClass());
 				params.put(entity.getKey(), entity.getValue());
+				continue;
 			}
 			if ("images".equals(entity.getKey())) {
 				List newlist = (List) entity.getValue();
@@ -442,7 +451,6 @@ public class OldFriendController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.UPDATE_NO_CHANGE.getIndex(),
 					ERRORCODE.UPDATE_NO_CHANGE.getReason());
 		}
-		System.out.println(params.get("age"));
 		WriteResult result = oldFriendService.updateByParams(params, requireId);
 
 		Map map = new HashMap<>();
@@ -475,6 +483,7 @@ public class OldFriendController extends BaseContorller {
 			OldFriendRequireVo requireVo = new OldFriendRequireVo();
 			try {
 				BeanUtils.copyProperties(requireBo, requireVo);
+				requireVo = (OldFriendRequireVo) CommonUtil.vo_format(requireVo, OldFriendRequireVo.class);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -529,6 +538,7 @@ public class OldFriendController extends BaseContorller {
 	@PostMapping("/add")
 	public String insert(@RequestParam String requireData, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
+		requireData = CommonUtil.fl_format(requireData);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -551,20 +561,7 @@ public class OldFriendController extends BaseContorller {
 		requireBo.setCreateuid(userBo.getId());
 		requireBo.setUpdateTime(new Date());
 		requireBo.setUpdateuid(userBo.getId());
-		// 处理生日以及年龄
-		String regex = "\\D+";
-		String age = requireBo.getAge();
-		if (age.contains("及以上")) {
-			age = age.replaceAll(regex, "岁") + "-100岁";
-			requireBo.setAge(age);
-		}
-		if (age.contains("及以下")) {
-			age = "17岁-" + age.replaceAll(regex, "岁");
-			requireBo.setAge(age);
-		}
-		if (age.equals("不限")) {
-			requireBo.setAge("17岁-100岁");
-		}
+		requireBo.setUid(new ObjectId(userBo.getId()));
 		String requireId = oldFriendService.insert(requireBo);
 		Map map = new HashMap<>();
 		if (requireId != null) {
@@ -741,12 +738,27 @@ public class OldFriendController extends BaseContorller {
 		UserTasteVo hobbysVo = new UserTasteVo();
 		BeanUtils.copyProperties(hobbysBo, hobbysVo);
 		showResult.setHobbys(hobbysVo);
-		/*
-		 * 设置照片 List images = new ArrayList(); if(requireBo.getImages()!=null){
-		 * images = requireBo.getImages(); }
-		 * showResult.setImages(requireBo.getImages());
-		 */
+
 		return showResult;
 	}
 
+	@RequestMapping("epicQuery")
+	public String epicQuery(String rId, HttpServletRequest request, HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		Map map = new HashMap<>();
+		// 通过基础id获取需求
+		OldFriendRequireBo require = oldFriendService.getByRequireId(userBo.getId(), rId);
+		if (require == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.REQUIREID_NOMATCH.getIndex(),
+					ERRORCODE.REQUIREID_NOMATCH.getReason());
+		}
+
+		AggregationResults<Document> recommend = oldFriendService.epicQuery(require);
+
+		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
+	}
 }

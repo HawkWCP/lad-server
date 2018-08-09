@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -660,7 +661,8 @@ public class InforController extends BaseContorller {
     @ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query",dataType = "string")
     @RequestMapping(value = "/news-infor", method = {RequestMethod.GET, RequestMethod.POST})
     public String infor(String inforid, HttpServletRequest request, HttpServletResponse response){
-
+    	org.slf4j.Logger logger = LoggerFactory.getLogger(InforController.class);
+    	logger.error("查看资讯详情:"+inforid+"时间为:"+new Date());
         InforBo inforBo = inforService.findById(inforid);
         if (inforBo == null) {
             return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(),

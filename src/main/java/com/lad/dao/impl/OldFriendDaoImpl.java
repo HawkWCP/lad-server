@@ -13,20 +13,26 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
+import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.OldFriendRequireBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
-import com.lad.controller.OldFriendController;
 import com.lad.dao.IOldFriendDao;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -183,9 +189,13 @@ public class OldFriendDaoImpl implements IOldFriendDao {
 				continue;
 			}
 
+			UserBo user = mongoTemplate.findOne(new Query(Criteria.where("_id").is(bo.getCreateuid())), UserBo.class);
+			if(!"不限".equals(sexRequire)&& !sexRequire.equals(user.getSex())){
+				temp.add(bo.getId());
+				continue;
+			}
 			int match = 0;
 
-			UserBo user = mongoTemplate.findOne(new Query(Criteria.where("_id").is(bo.getCreateuid())), UserBo.class);
 			// 匹配性别
 			if (user.getSex() != null) {
 				if ("不限".equals(sexRequire) || user.getSex().equals(sexRequire)) {
@@ -302,6 +312,52 @@ public class OldFriendDaoImpl implements IOldFriendDao {
 		return (int) mongoTemplate.count(
 				new Query(Criteria.where("createuid").is(uid).and("deleted").is(Constant.ACTIVITY)),
 				OldFriendRequireBo.class);
+	}
+	
+	@Override
+	public AggregationResults<Document> epicQuery(OldFriendRequireBo require) {		
+		/*db.getCollection('oldFriendRequire').aggregate([
+		 *	{$lookup:{from:"user",localField:"uid",foreignField:"_id",as:"user"}},
+		 *	{ "$unwind": "$user" },
+		 *	{$match:{deleted:0,"user.sex":"女"}}])			
+		*/
+		
+		// 过滤条件:user性别,require状态,userId不等于require.createuid
+		
+		AggregationOperation lookup = Aggregation.lookup("user", "uid", "_id", "user");
+		AggregationOperation unwind = Aggregation.unwind("user");
+		AggregationOperation matches = Aggregation.match(Criteria.where("deleted").is(Constant.ACTIVITY).and("user.sex").is(require.getSex()).and("createuid").ne(require.getCreateuid()));
+		AggregationOperation sum = Aggregation.group("_class").count().as("sum");
+		AggregationOperation sort = Aggregation.sort(Sort.Direction.DESC,"createTime");
+
+		Aggregation aggregation = Aggregation.newAggregation(lookup,unwind,matches,sum);
+		Logger logger = LoggerFactory.getLogger(OldFriendDaoImpl.class);
+		logger.error("aggregate count is "+aggregation.toString()+"-----------------");
+		AggregationResults<Document> count = mongoTemplate.aggregate(aggregation, "oldFriendRequire", Document.class);
+		int num = 0;
+		for (Document document : count) {
+			num = document.getInteger("sum");
+		}
+		
+		if(num<100){
+			aggregation = Aggregation.newAggregation(lookup,unwind,matches,sort);
+		}else{
+			Random r = new Random();
+			int length = (num - 99) > 0 ? (num - 99) : 1;
+			int skipNum = r.nextInt(length);
+			AggregationOperation skip = Aggregation.skip(Long.valueOf(skipNum));
+			AggregationOperation limit = Aggregation.limit(100L);
+			aggregation = Aggregation.newAggregation(lookup,unwind,matches,skip,limit,sort);
+		}
+
+		AggregationResults<Document> res = mongoTemplate.aggregate(aggregation, "oldFriendRequire", Document.class);
+		logger.error("aggregate documents is "+aggregation.toString()+"-----------------");
+		for (Document doc : res) {
+			logger.error("doc is " + JSON.toJSONString(res.toString()));
+			UserBo userBo = (UserBo) doc.get("user");
+		}
+
+		return res;
 	}
 
 }

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,10 +20,8 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.beanutils.BeanComparator;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,7 +33,6 @@ import com.alibaba.fastjson.JSON;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.OptionBo;
 import com.lad.bo.RequireBo;
-import com.lad.bo.TravelersRequireBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.WaiterBo;
 import com.lad.service.IFriendsService;
@@ -47,7 +43,6 @@ import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.vo.CareResultVo;
 import com.lad.vo.RequireVo;
-import com.lad.vo.TravelersRequireVo;
 import com.lad.vo.WaiterVo;
 import com.mongodb.WriteResult;
 
@@ -75,13 +70,14 @@ public class MarriageController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		// keyWord = "成";
+		type = 1-type;
 		List<WaiterBo> list = marriageService.findListByKeyword(keyWord, type, page, limit, WaiterBo.class);
 
 		List resultList = new ArrayList<>();
 		for (WaiterBo waiterBo : list) {
 			WaiterVo waiterVo = new WaiterVo();
 			BeanUtils.copyProperties(waiterBo, waiterVo);
+			waiterVo.setMyself(waiterBo.getCreateuid().equals(userBo.getId()));
 			resultList.add(waiterVo);
 		}
 
@@ -153,8 +149,6 @@ public class MarriageController extends BaseContorller {
 			map.put("ret", -1);
 			map.put("message", "未找到匹配者");
 		} else {
-			// Comparator<? super Map> c = new
-			// BeanComparator("match").reversed(); list.sort(c);
 			map.put("ret", 0);
 			map.put("result", list);
 		}
@@ -190,25 +184,7 @@ public class MarriageController extends BaseContorller {
 
 		RequireVo requireVo = new RequireVo();
 		BeanUtils.copyProperties(require, requireVo);
-		String age = require.getAge();
-		if (age.equals("17岁-100岁")) {
-			age = "不限";
-		} else if (age.contains("-100岁")) {
-			age = age.replaceAll("-100岁", "") + "及以上";
-		} else if (age.contains("17岁-")) {
-			age = age.replaceAll("17岁-", "") + "及以下";
-		}
-
-		requireVo.setAge(age);
-		String hight = require.getHight();
-		if (hight.equals("100厘米-250厘米")) {
-			hight = "不限";
-		} else if (hight.contains("100厘米")) {
-			hight = hight.replaceAll("100厘米-", "") + "及以下";
-		} else if (hight.contains("250厘米")) {
-			hight = hight.replaceAll("-250厘米", "") + "及以上";
-		}
-		requireVo.setHight(hight);
+		requireVo = (RequireVo) CommonUtil.vo_format(requireVo, RequireVo.class);
 		if (require != null) {
 			map.put("require", requireVo);
 		} else {
@@ -401,9 +377,13 @@ public class MarriageController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_WAITER_NULL.getIndex(),
 					ERRORCODE.MARRIAGE_WAITER_NULL.getReason());
 		}
-
+		RequireBo requireBo = marriageService.findRequireById(id);
+		if(requireBo==null){
+			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_REQUIRE_NULL.getIndex(),
+					ERRORCODE.MARRIAGE_REQUIRE_NULL.getReason());
+		}
 		WriteResult result = update(wv, id, WaiterBo.class);
-
+		
 		return Constant.COM_RESP;
 	}
 
@@ -420,7 +400,6 @@ public class MarriageController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.MARRIAGE_REQUIRE_NULL.getIndex(),
 					ERRORCODE.MARRIAGE_REQUIRE_NULL.getReason());
 		}
-
 		WriteResult result = update(rv, id, RequireBo.class);
 
 		return Constant.COM_RESP;
@@ -459,7 +438,7 @@ public class MarriageController extends BaseContorller {
 	public String insertPublish(@RequestParam String wv, @RequestParam String rv, HttpServletRequest request,
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-
+		rv = CommonUtil.fl_format(rv);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -491,38 +470,6 @@ public class MarriageController extends BaseContorller {
 
 		fromObject = JSONObject.fromObject(rv);
 		RequireBo requireBo = (RequireBo) JSONObject.toBean(fromObject, RequireBo.class);
-		// 处理生日以及年龄
-		String regex = "\\D+";
-		String age = requireBo.getAge();
-		if (!StringUtils.isEmpty(age)) {
-			if (age.contains("及以上")) {
-				age = age.replaceAll(regex, "岁") + "-100岁";
-				requireBo.setAge(age);
-			}
-			if (age.contains("及以下")) {
-				age = "17岁-" + age.replaceAll(regex, "岁");
-				requireBo.setAge(age);
-			}
-			if (age.equals("不限")) {
-				requireBo.setAge("17岁-100岁");
-			}
-		}
-
-		String hight = requireBo.getHight();
-		if (!StringUtils.isEmpty(hight)) {
-			if (hight.contains("及以上")) {
-				hight = hight.replaceAll(regex, "厘米") + "-250厘米";
-				requireBo.setHight(hight);
-			}
-			if (hight.contains("及以下")) {
-				hight = "100厘米-" + hight.replaceAll(regex, "厘米");
-				requireBo.setHight(hight);
-			}
-			if (hight.equals("不限")) {
-				requireBo.setHight("100厘米-250厘米");
-			}
-		}
-
 		requireBo.setSex(1 - waiterBo.getSex());
 		requireBo.setCreateTime(null);
 
@@ -538,7 +485,7 @@ public class MarriageController extends BaseContorller {
 	}
 
 	private WriteResult update(String obj, String id, Class clazz) {
-		JSONObject fromObject = JSONObject.fromObject(obj);
+		JSONObject fromObject = JSONObject.fromObject(CommonUtil.fl_format(obj));
 
 		Iterator<Map.Entry<String, Object>> iterator = fromObject.entrySet().iterator();
 		Map<String, Object> params = new LinkedHashMap<>();
@@ -552,7 +499,6 @@ public class MarriageController extends BaseContorller {
 			}
 
 		}
-
 		// 处理时间
 		if (fromObject.containsKey("birthday")) {
 			String birthdayStr = fromObject.getString("birthday");
@@ -566,25 +512,8 @@ public class MarriageController extends BaseContorller {
 					e.printStackTrace();
 				}
 			}
-		}
-		if (fromObject.containsKey("age")) {
-			// 处理生日以及年龄
-			String regex = "\\D+";
-			String age = (String) fromObject.get("age");
-			if (age.contains("及以上")) {
-				age = age.replaceAll(regex, "岁") + "-100岁";
-				params.put("age", age);
-			}
-			if (age.contains("及以下")) {
-				age = "17岁-" + age.replaceAll(regex, "岁");
-				params.put("age", age);
-			}
-			if (age.equals("不限")) {
-				params.put("age", "17岁-100岁");
-			}
-		}
-
-		params.put("updateTime", new Date());
+		}		
+		params.put("updateTime", new Date());		
 		WriteResult result = null;
 		if (params.size() > 0) {
 			result = marriageService.updateByParams(id, params, clazz);
@@ -732,7 +661,6 @@ public class MarriageController extends BaseContorller {
 	}
 
 	private Map<String, Set<String>> hobbys() {
-		// private Map<String,Set<String>> hobbys = new HashMap<>();
 		Random random = new Random();
 		Map<String, Set<String>> hobbys = new HashMap<>();
 		List<OptionBo> supOptions = marriageService.getHobbysSupOptions();

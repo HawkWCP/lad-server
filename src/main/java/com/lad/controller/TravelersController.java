@@ -39,12 +39,14 @@ import com.lad.bo.TravelersRequireBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
 import com.lad.service.CareAndPassService;
+import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IUserService;
 import com.lad.service.TravelersService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.IMUtil;
 import com.lad.vo.CareResultVo;
 import com.lad.vo.ShowResultVo;
 import com.lad.vo.TravelersRequireVo;
@@ -70,6 +72,9 @@ public class TravelersController extends BaseContorller {
 
 	@Autowired
 	private IFriendsService friendsService;
+	
+	@Autowired
+	private IChatroomService chatroomService;
 
 	// 匹配推荐
 	@GetMapping("/recommend")
@@ -102,7 +107,7 @@ public class TravelersController extends BaseContorller {
 
 				TravelersRequireVo requireVo = new TravelersRequireVo();
 				BeanUtils.copyProperties(resultBo, requireVo);
-
+				requireVo = (TravelersRequireVo) CommonUtil.vo_format(requireVo, TravelersRequireVo.class);
 				if (resultBo.getTimes() != null) {
 					List<Date> times = resultBo.getTimes();
 					DateFormat format = new SimpleDateFormat("yyyy-MM");
@@ -119,6 +124,7 @@ public class TravelersController extends BaseContorller {
 				} else {
 					requireVo.setTimes("");
 				}
+				//TODO
 
 				resultOne.put("require", requireVo);
 				result.add(resultOne);
@@ -217,7 +223,7 @@ public class TravelersController extends BaseContorller {
 				} else {
 					showResult.setType("");
 				}
-
+				showResult.setMyself(user.getId().equals(userBo.getId()));
 				resultList.add(JSON.toJSONString(showResult));
 			}
 		}
@@ -252,6 +258,7 @@ public class TravelersController extends BaseContorller {
 	public String updateTravelers(@RequestParam String requireDate, String requireId, HttpServletRequest request,
 			HttpServletResponse response) throws ParseException {
 		UserBo userBo = getUserLogin(request);
+		requireDate = CommonUtil.fl_format(requireDate);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -299,24 +306,6 @@ public class TravelersController extends BaseContorller {
 					continue;
 				}
 
-				if ("age".equals(next.getKey())) {
-					// 处理生日以及年龄
-					String regex = "\\D+";
-					String age = (String) next.getValue();
-					if (age.equals("不限")) {
-						params.put("age", "17岁-100岁");
-					}else if (age.contains("及以上")) {
-						age = age.replaceAll(regex, "岁") + "-100岁";
-						params.put("age", age);
-					}else if (age.contains("及以下")) {
-						age = "17岁-" + age.replaceAll(regex, "岁");
-						params.put("age", age);
-					}else{
-						params.put("age", age);
-					}
-					continue;
-				}
-
 				params.put(next.getKey(), next.getValue());
 			}
 
@@ -355,12 +344,15 @@ public class TravelersController extends BaseContorller {
 
 		List resultList = new ArrayList();
 		for (TravelersRequireBo travelersRequireBo : list) {
+			//TODO
+			travelersRequireBo = (TravelersRequireBo) CommonUtil.vo_format(travelersRequireBo, TravelersRequireBo.class);
 			UserBo user = userService.getUser(travelersRequireBo.getCreateuid());
 			ShowResultVo showResult = new ShowResultVo();
 			showResult.setId(travelersRequireBo.getId());
 
 			if (user != null) {
 				showResult.setMyself(user.getId().equals(userBo.getId()));
+				showResult.setUid(user.getId());
 				// 设置昵称
 				if (user.getUserName() != null) {
 					showResult.setNickName(user.getUserName());
@@ -387,6 +379,15 @@ public class TravelersController extends BaseContorller {
 					showResult.setHobbys(JSON.toJSONString(hobbys));
 				} else {
 					showResult.setHobbys("[]");
+				}
+				
+				String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
+				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+					showResult.setFriend(false);
+					showResult.setChannelId("");
+				}else{
+					showResult.setFriend(true);
+					showResult.setChannelId(channelId);
 				}
 
 			} else {
@@ -419,6 +420,7 @@ public class TravelersController extends BaseContorller {
 			} else {
 				showResult.setType("");
 			}
+			
 			resultList.add(JSON.toJSONString(showResult));
 		}
 		map.put("ret", 0);
@@ -442,7 +444,17 @@ public class TravelersController extends BaseContorller {
 
 		if (requireBo != null) {
 			ShowResultVo showResult = getShowResultVo(userBo, requireBo);
-
+			
+			String channelId = CommonUtil.getChannelId(userBo.getId(), requireBo.getCreateuid(), friendsService, chatroomService, userService);
+			if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+				showResult.setFriend(false);
+				showResult.setChannelId("");
+			}else{
+				showResult.setFriend(true);
+				showResult.setChannelId(channelId);
+			}
+			
+			// TODO
 			map.put("ret", 0);
 			map.put("result", showResult);
 
@@ -454,8 +466,8 @@ public class TravelersController extends BaseContorller {
 			long endTime = Long.valueOf(format.format(timesArr.get(timesArr.size() - 1)).replaceAll("-", ""));
 			long nowTime = Long.valueOf(format.format(new Date()).replaceAll("-", ""));
 			travelersRequireVo.setExpired(nowTime > endTime ? 1 : 0);
-
 			BeanUtils.copyProperties(requireBo, travelersRequireVo);
+			travelersRequireVo = (TravelersRequireVo) CommonUtil.vo_format(travelersRequireVo, TravelersRequireVo.class);
 			// 设置返回时间
 			String voDate = "";
 			for (int i = 0; i < timesArr.size(); i++) {
@@ -466,18 +478,6 @@ public class TravelersController extends BaseContorller {
 				}
 			}
 			travelersRequireVo.setTimes(voDate);
-
-			String regex = "\\D+";
-			String age = travelersRequireVo.getAge();
-			if (age.equals("17岁-100岁")) {
-				age = "不限";
-			} else if (age.contains("-100岁")) {
-				age = age.replaceAll("-100岁", "") + "及以上";
-			} else if (age.contains("17岁-")) {
-				age = age.replaceAll("17岁-", "") + "及以下";
-			}
-			travelersRequireVo.setAge(age);
-
 			map.put("require", JSON.toJSONString(travelersRequireVo));
 		} else {
 			map.put("ret", -1);
@@ -524,6 +524,7 @@ public class TravelersController extends BaseContorller {
 			travelersRequireVo.setExpired(nowTime > endTime ? 1 : 0);
 
 			BeanUtils.copyProperties(travelersRequireBo, travelersRequireVo);
+			travelersRequireVo = (TravelersRequireVo) CommonUtil.vo_format(travelersRequireVo, TravelersRequireVo.class);
 			list.add(travelersRequireVo);
 		}
 
@@ -543,12 +544,6 @@ public class TravelersController extends BaseContorller {
 		map.put("hobbys", JSON.toJSONString(hobbys));
 		map.put("result", list);
 		map.put("headPictureName", userBo.getHeadPictureName());
-		
-		Logger logger = LoggerFactory.getLogger(TravelersController.class);
-		DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		
-		logger.error("======={Date:"+format.format(new Date())+"},Data:"+JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}")+"===");
-		
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 
@@ -566,7 +561,7 @@ public class TravelersController extends BaseContorller {
 	public String insertPublish(@RequestParam String requireDate, HttpServletRequest request,
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-
+		requireDate = CommonUtil.fl_format(requireDate);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -609,23 +604,7 @@ public class TravelersController extends BaseContorller {
 		if (requireBo.getImages() == null) {
 			requireBo.setImages(new ArrayList<String>());
 		}
-		// 处理年龄
-		String regex = "\\D+";
-		String age = requireBo.getAge();
-		if (age.contains("及以上")) {
-			age = age.replaceAll(regex, "岁") + "-100岁";
-			requireBo.setAge(age);
-		}
-		if (age.contains("及以下")) {
-			age = "17岁-" + age.replaceAll(regex, "岁");
-			requireBo.setAge(age);
-		}
-		if (age.equals("不限")) {
-			requireBo.setAge("17岁-100岁");
-		}
-
 		travelersService.insert(requireBo);
-
 		Map<String, Object> map2 = new HashMap<>();
 		map2.put("ret", 0);
 		map2.put("requireId", requireBo.getId());
@@ -633,7 +612,7 @@ public class TravelersController extends BaseContorller {
 	}
 
 	private ShowResultVo getShowResultVo(UserBo userBo, TravelersRequireBo requireBo) {
-
+		requireBo = (TravelersRequireBo) CommonUtil.vo_format(requireBo, TravelersRequireBo.class);
 		ShowResultVo showResult = new ShowResultVo();
 
 		if (requireBo.getCreateuid() != null) {
@@ -703,6 +682,17 @@ public class TravelersController extends BaseContorller {
 				} else {
 					showResult.setHobbys(new ArrayList<>());
 				}
+				
+				
+				String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
+				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+					showResult.setFriend(false);
+					showResult.setChannelId("");
+				}else{
+					showResult.setFriend(true);
+					showResult.setChannelId(channelId);
+				}
+				
 
 			} else {
 				showResult.setErrorMsg("当前发布的发布者不存在或已注销账号");
