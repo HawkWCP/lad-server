@@ -1,10 +1,9 @@
 package com.lad.service;
 
+import java.util.List;
+
 import com.lad.bo.CityBo;
 import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-
-import java.util.List;
 
 /**
  * 功能描述：

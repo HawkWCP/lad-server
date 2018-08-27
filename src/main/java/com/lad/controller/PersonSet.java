@@ -35,6 +35,9 @@ public class PersonSet extends BaseContorller {
 
 	@Autowired
 	private ICircleService circleService;
+	
+	@Autowired
+	private IPictureService pictureService;
 
 	@ApiOperation("修改个人用户名称")
 	@PostMapping("/username")
@@ -148,6 +151,8 @@ public class PersonSet extends BaseContorller {
 		if (locationBo != null) {
 			infoVo.setPostion(locationBo.getPosition());
 		}
+		LinkedList<String> wall = CommonUtil.getWall(pictureService,userBo.getId());
+		infoVo.setPicTop4(wall==null?new LinkedList<String>():wall);
 		List<CircleBo> circleBos = circleService.findMyCircles(userBo.getId(), 1, 4);
 		List<CircleBaseVo> circles = new LinkedList<>();
 		for (CircleBo circleBo : circleBos) {
@@ -181,6 +186,8 @@ public class PersonSet extends BaseContorller {
 		for (UserBo item : list) {
 			UserBaseVo vo = new UserBaseVo();
 			BeanUtils.copyProperties(item, vo);
+			LinkedList<String> wall = CommonUtil.getWall(pictureService, item.getId());
+			vo.setPicTop4(wall);
 			userVoList.add(vo);
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -208,6 +215,8 @@ public class PersonSet extends BaseContorller {
 		UserBo temp = userService.getUserByPhone(phone);
 		UserBaseVo vo = new UserBaseVo();
 		BeanUtils.copyProperties(temp, vo);
+		LinkedList<String> wall = CommonUtil.getWall(pictureService, temp.getId());
+		vo.setPicTop4(wall);	
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("user", vo);
@@ -229,6 +238,8 @@ public class PersonSet extends BaseContorller {
 		UserBo temp = userService.getUser(userid);
 		UserBaseVo vo = new UserBaseVo();
 		BeanUtils.copyProperties(temp, vo);
+		LinkedList<String> wall = CommonUtil.getWall(pictureService, userid);
+		vo.setPicTop4(wall);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("user", vo);
@@ -286,14 +297,7 @@ public class PersonSet extends BaseContorller {
 		updateUserSession(request, userService);
 		return Constant.COM_RESP;
 	}
-
-
-
-
-
-
-
-
+	
 	private void bo2vo(UserBo userBo, UserInfoVo infoVo){
 		BeanUtils.copyProperties(userBo, infoVo);
 		UserTasteBo tasteBo = userService.findByUserId(userBo.getId());

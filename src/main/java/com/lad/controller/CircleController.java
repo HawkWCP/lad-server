@@ -2459,13 +2459,27 @@ public class CircleController extends BaseContorller {
 	}
 
 	private void seveKeys(String value) {
-		SearchBo searchBo = searchService.findByKeyword(value, 0);
+		SearchBo searchBo = searchService.findByKeyword(value, 4);
 		if (searchBo == null) {
-			searchBo = new SearchBo();
-			searchBo.setKeyword(value);
-			searchBo.setType(4);
-			searchBo.setTimes(1);
-			searchService.insert(searchBo);
+			// 如果多线程同时调用findByKeyword方法并返回null,则加锁前都判断下一步进行存储
+			RLock lock = redisServer.getRLock("seveKeys");
+			try{
+				searchBo = searchService.findByKeyword(value, 0);
+				if(searchBo == null){
+					lock.lock(3, TimeUnit.SECONDS);
+					searchBo = new SearchBo();
+					searchBo.setKeyword(value);
+					searchBo.setType(4);
+					searchBo.setTimes(1);
+					searchService.insert(searchBo);
+				}else{
+					searchService.update(searchBo.getId());
+				}
+			}catch(Exception e){
+				logger.info("com.lad.controller.seveKeys failed---keyword is "+value+",description:"+e);
+			}finally{
+				lock.unlock();
+			}
 		} else {
 			searchService.update(searchBo.getId());
 		}
@@ -3302,6 +3316,7 @@ public class CircleController extends BaseContorller {
 			HashSet<String> refuses) {
 		RLock lock = redisServer.getRLock(cirlceid + "add");
 		try {
+			// TODO
 			lock.lock(3, TimeUnit.SECONDS);
 			if (type == 0) {
 				circleService.updateUsers(cirlceid, users);

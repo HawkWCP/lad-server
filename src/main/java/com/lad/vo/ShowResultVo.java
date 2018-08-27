@@ -1,5 +1,6 @@
 package com.lad.vo;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import lombok.Getter;
@@ -31,4 +32,5 @@ public class ShowResultVo {
 	private String birthday;
 	private boolean myself;
 	private String channelId;
+	private LinkedList<String> picTop4;
 }

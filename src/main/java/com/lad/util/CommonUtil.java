@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -33,9 +34,12 @@ import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.FriendsBo;
+import com.lad.bo.PictureBo;
+import com.lad.bo.PictureWallBo;
 import com.lad.bo.UserBo;
 import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
+import com.lad.service.IPictureService;
 import com.lad.service.IUserService;
 
 import net.sf.json.JSONObject;
@@ -679,9 +683,6 @@ public class CommonUtil {
 			return null;
 		}
 		UserBo friend = userService.getUser(friendsBo.getFriendid());
-		if(userBo == null){
-			return "idWrong";
-		}
 		if (chatroomBo == null) {
 			chatroomBo = chatroomService.selectByUserIdAndFriendid(fid, uid);
 			if (chatroomBo == null) {
@@ -714,5 +715,20 @@ public class CommonUtil {
 		// 返回结果idWrong,传入id错误
 		// 返回结果id字符串,正确
 		return chatroomBo.getId();
+	}
+	
+	// 获取照片墙
+	public static LinkedList<String> getWall(IPictureService pictureService,String uid) {
+		LinkedList<String> result = new LinkedList<>();
+		PictureWallBo wallBo = pictureService.getWallByUid(uid);
+		if (wallBo != null && wallBo.getPictures().size() > 0) {
+			result = wallBo.getPictures();
+		} else {
+			List<PictureBo> top4 = pictureService.getTop4ByUid(uid);
+			for (PictureBo pictureBo : top4) {
+				result.addLast(pictureBo.getUrl());
+			}
+		}
+		return result;
 	}
 }

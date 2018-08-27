@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ import com.lad.bo.UserTasteBo;
 import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IOldFriendService;
+import com.lad.service.IPictureService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
@@ -58,7 +60,8 @@ public class OldFriendController extends BaseContorller {
 	private IFriendsService friendsService;
 	@Autowired
 	private IChatroomService chatroomService;
-
+	@Autowired
+	private IPictureService pictureService;
 
 	/**
 	 * 匹配推荐
@@ -91,11 +94,12 @@ public class OldFriendController extends BaseContorller {
 				Map resultOne = new HashMap<>();
 				OldFriendRequireBo resultBo = (OldFriendRequireBo) recMap.get("requireBo");
 				ShowResultVo showResultVo = getShowResultVo(resultBo);
-				String channelId = CommonUtil.getChannelId(userBo.getId(), resultBo.getCreateuid(), friendsService, chatroomService, userService);
-				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+				String channelId = CommonUtil.getChannelId(userBo.getId(), resultBo.getCreateuid(), friendsService,
+						chatroomService, userService);
+				if (channelId == null || IMUtil.FINISH.equals(channelId) || "idWrong".equals(channelId)) {
 					showResultVo.setFriend(false);
 					showResultVo.setChannelId("");
-				}else{
+				} else {
 					showResultVo.setFriend(true);
 					showResultVo.setChannelId(channelId);
 				}
@@ -187,16 +191,17 @@ public class OldFriendController extends BaseContorller {
 					showResult.setAddress(user.getCity());
 				} else {
 					showResult.setAddress("未填写");
-				}				
-				String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
-				if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+				}
+				String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService,
+						chatroomService, userService);
+				if (channelId == null || IMUtil.FINISH.equals(channelId) || "idWrong".equals(channelId)) {
 					showResult.setFriend(false);
 					showResult.setChannelId("");
-				}else{
+				} else {
 					showResult.setFriend(true);
 					showResult.setChannelId(channelId);
 				}
-				
+
 				showResult.setUid(user.getId());
 				resultList.add(showResult);
 			}
@@ -361,11 +366,12 @@ public class OldFriendController extends BaseContorller {
 			}
 			result.setUid(user.getId());
 			result.setAddress(user.getAddress());
-			String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService, userService);
-			if(channelId == null || IMUtil.FINISH.equals(channelId)||"idWrong".equals(channelId)){
+			String channelId = CommonUtil.getChannelId(userBo.getId(), user.getId(), friendsService, chatroomService,
+					userService);
+			if (channelId == null || IMUtil.FINISH.equals(channelId) || "idWrong".equals(channelId)) {
 				result.setFriend(false);
 				result.setChannelId("");
-			}else{
+			} else {
 				result.setFriend(true);
 				result.setChannelId(channelId);
 			}
@@ -374,7 +380,9 @@ public class OldFriendController extends BaseContorller {
 			UserTasteVo hobbysVo = new UserTasteVo();
 			BeanUtils.copyProperties(hobbysBo, hobbysVo);
 			result.setHobbys(hobbysVo);
-			result.setMyself(requireBo.getCreateuid().equals(userBo.getId()));			
+			result.setMyself(requireBo.getCreateuid().equals(userBo.getId()));
+			LinkedList<String> wall = CommonUtil.getWall(pictureService, user.getId());
+			result.setPicTop4(wall);
 			map.put("ret", 0);
 			map.put("baseData", result);
 		} else {

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.LinkedList;
 
 /**
  * 功能描述：
@@ -35,4 +36,5 @@ public class UserBaseVo implements Serializable {
     
     private String address;
 
+    private LinkedList<String> picTop4;
 }
