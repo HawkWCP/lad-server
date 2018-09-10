@@ -1,7 +1,12 @@
 package com.lad.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -173,11 +179,12 @@ public class CommonUtil {
 		try {
 			message = URLEncoder.encode(message, "GBK");
 		} catch (UnsupportedEncodingException ex) {
+			logger.error("com.lad.util.CommonUtil.sendSMS2-----:"+ex);
 		}
 		String url = "http://sms-gw.bjedu.cloud:9888/smsservice/SendSMS?UserId=100535&Password=ttlyyl_2017&Mobiles="
 				+ mobile + "&Content=" + message + "&ExtNo=35";
 		String responseString = HttpClientUtil.getInstance().doGetRequest(url);
-		logger.error("{} : =====message send result : {}", mobile, responseString);
+		logger.info("com.lad.util.CommonUtil.sendSMS2-----:{} : =====message send result : {}", mobile, responseString);
 		if (responseString.trim().equals(Constant.RESPONSE)) {
 			return 0;
 		}
@@ -569,11 +576,11 @@ public class CommonUtil {
 		return find;
 	}
 
-	public static String fl_format(String json) {		
+	public static String fl_format(String json) {
 		String regex = "\\D+";
 		com.alibaba.fastjson.JSONObject object = JSON.parseObject(json);
 		Set<String> keySet = object.keySet();
-		
+
 		for (String key : keySet) {
 			String value = object.getString(key);
 			if ("salary".equals(key)) {
@@ -591,9 +598,9 @@ public class CommonUtil {
 				if (value.equals("不限")) {
 					value = "17岁-100岁";
 				} else if (value.contains("及以上")) {
-					value = value.replaceAll(regex, "岁")+"-100岁";
+					value = value.replaceAll(regex, "岁") + "-100岁";
 				} else if (value.contains("及以下")) {
-					value = "17岁-"+value.replaceAll(regex, "岁");
+					value = "17岁-" + value.replaceAll(regex, "岁");
 				}
 				object.put(key, value);
 				continue;
@@ -602,20 +609,20 @@ public class CommonUtil {
 				if (value.equals("不限")) {
 					value = "100厘米-250厘米";
 				} else if (value.contains("及以上")) {
-					value = value.replaceAll(regex, "厘米")+"-250厘米";
+					value = value.replaceAll(regex, "厘米") + "-250厘米";
 				} else if (value.contains("及以下")) {
-					value = "100厘米-"+value.replaceAll(regex, "厘米");
+					value = "100厘米-" + value.replaceAll(regex, "厘米");
 				}
 				object.put(key, value);
 			}
 		}
 		return object.toJSONString();
 	}
-	
-	public static Object vo_format(Object json,Class clazz) {		
+
+	public static Object vo_format(Object json, Class clazz) {
 		com.alibaba.fastjson.JSONObject object = JSON.parseObject(JSON.toJSONString(json));
 		Set<String> keySet = object.keySet();
-		
+
 		for (String key : keySet) {
 			String value = object.getString(key);
 			if ("salary".equals(key)) {
@@ -635,7 +642,7 @@ public class CommonUtil {
 				} else if (value.contains("100岁")) {
 					value = value.replaceAll("-100岁", "及以上");
 				} else if (value.contains("17岁")) {
-					value =value.replaceAll("17岁-", "")+"及以下";
+					value = value.replaceAll("17岁-", "") + "及以下";
 				}
 				object.put(key, value);
 				continue;
@@ -646,24 +653,24 @@ public class CommonUtil {
 				} else if (value.contains("250厘米")) {
 					value = value.replaceAll("-250厘米", "及以上");
 				} else if (value.contains("100厘米")) {
-					value =value.replaceAll("100厘米-", "")+"及以下";
+					value = value.replaceAll("100厘米-", "") + "及以下";
 				}
 				object.put(key, value);
 			}
 		}
-		
+
 		return JSON.parseObject(JSON.toJSONString(object), clazz);
 	}
-	
-	
-//	@Autowired
-//	private IFriendsService friendsService;
-//	@Autowired
-//	private IChatroomService chatroomService;
-//	@Autowired
-//	private IUserService userService;
+
+	// @Autowired
+	// private IFriendsService friendsService;
+	// @Autowired
+	// private IChatroomService chatroomService;
+	// @Autowired
+	// private IUserService userService;
 	/**
 	 * 获取聊天室id
+	 * 
 	 * @param uid
 	 * @param fid
 	 * @param friendsService
@@ -671,15 +678,15 @@ public class CommonUtil {
 	 * @param userService
 	 * @return
 	 */
-	public static String getChannelId(String uid,String fid,IFriendsService friendsService,IChatroomService chatroomService,IUserService userService){
-		ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(uid,
-				fid);
+	public static String getChannelId(String uid, String fid, IFriendsService friendsService,
+			IChatroomService chatroomService, IUserService userService) {
+		ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(uid, fid);
 		UserBo userBo = userService.getUser(uid);
-		if(userBo == null){
+		if (userBo == null) {
 			return "idWrong";
 		}
 		FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(uid, fid);
-		if(friendsBo == null){
+		if (friendsBo == null) {
 			return null;
 		}
 		UserBo friend = userService.getUser(friendsBo.getFriendid());
@@ -693,7 +700,7 @@ public class CommonUtil {
 				chatroomBo.setUserid(userBo.getId());
 				chatroomBo.setFriendid(friend.getId());
 				chatroomService.insert(chatroomBo);
-				
+
 				HashSet<String> userChatrooms = userBo.getChatrooms();
 				HashSet<String> friendChatrooms = friend.getChatrooms();
 				userChatrooms.add(chatroomBo.getId());
@@ -702,7 +709,7 @@ public class CommonUtil {
 				friend.setChatrooms(friendChatrooms);
 				userService.updateChatrooms(userBo);
 				userService.updateChatrooms(friend);
-				
+
 				// 首次创建聊天室，需要输入名称
 				String res = IMUtil.subscribe(0, chatroomBo.getId(), uid, friend.getId());
 				if (!res.equals(IMUtil.FINISH)) {
@@ -716,9 +723,9 @@ public class CommonUtil {
 		// 返回结果id字符串,正确
 		return chatroomBo.getId();
 	}
-	
+
 	// 获取照片墙
-	public static LinkedList<String> getWall(IPictureService pictureService,String uid) {
+	public static LinkedList<String> getTop4(IPictureService pictureService, String uid) {
 		LinkedList<String> result = new LinkedList<>();
 		PictureWallBo wallBo = pictureService.getWallByUid(uid);
 		if (wallBo != null && wallBo.getPictures().size() > 0) {
@@ -729,6 +736,14 @@ public class CommonUtil {
 				result.addLast(pictureBo.getUrl());
 			}
 		}
+		return result;
+	}
+
+	// 获取照片墙
+	public static LinkedList<String> getWall(IPictureService pictureService, String uid) {
+		LinkedList<String> result = new LinkedList<>();
+		PictureWallBo wallBo = pictureService.getWallByUid(uid);
+		result = wallBo == null ? new LinkedList<>() : wallBo.getPictures();
 		return result;
 	}
 }

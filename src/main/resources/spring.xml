@@ -48,11 +48,12 @@
         <constructor-arg name="databaseName" value="${mongo.databaseName}" />
     </bean>
 
-    <!-- 咨询信息的数据源配置 -->
+    <!-- 资讯信息的数据源配置 -->
     <bean id="mongoTemplateTwo" class="org.springframework.data.mongodb.core.MongoTemplate">
         <constructor-arg ref="mongo" />
         <constructor-arg name="databaseName" value="${mongo.databaseName2}" />
     </bean>
+    
 	<!-- redis相关配置 -->
     <bean id="jedisPoolConfig"  class="redis.clients.jedis.JedisPoolConfig">
     </bean>

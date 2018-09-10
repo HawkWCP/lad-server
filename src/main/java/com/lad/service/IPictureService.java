@@ -41,5 +41,7 @@ public interface IPictureService {
 
 	List<PictureBo> getPicturesByList(List<String> asList, String id);
 
+	long getPicSizeByUid(String id);
+
 
 }

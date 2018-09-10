@@ -74,7 +74,7 @@ public class InitProgram {
 							List<InforBo> lst = mongoTemplateTwo.find(query, InforBo.class);
 							for (InforBo healthBo : lst) {
 								healthBo.setId(null);
-
+								// 遍历exp库,如果有相同title的数据则跳过
 								ExposeBo find = mongoTemplate.findOne(new Query(Criteria.where("title")
 										.is(healthBo.getTitle()).and("deleted").is(Constant.ACTIVITY)), ExposeBo.class);
 								if (find == null) {

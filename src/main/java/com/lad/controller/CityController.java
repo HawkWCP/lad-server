@@ -24,7 +24,6 @@ import com.lad.service.ICityService;
 import com.lad.util.Constant;
 import com.lad.util.PinyinComparator;
 import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

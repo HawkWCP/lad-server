@@ -87,11 +87,9 @@ public class JPushUtil {
 	}
 
 
-	public static void push(String title, String content, String path,
-								  String... alias) {
+	public static void push(String title, String content, String path,String... alias) {
 		try {
-			JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY, null,
-					ClientConfig.getInstance());
+			JPushClient jpushClient = new JPushClient(MASTER_SECRET, APP_KEY, null,ClientConfig.getInstance());
 			logger.info("push alias {},  push title : {},  pushInfo  : {}", alias,  title,  content);
 			PushPayload payload = buildPushObject_to_alias_alert(title, content, path, alias);
 			PushResult result = jpushClient.sendPush(payload);
@@ -161,23 +159,27 @@ public class JPushUtil {
 	 * @param alias  推送人
 	 * @return
 	 */
-	public static PushPayload buildPushObject_to_alias_alert(String title, String content, String path,
-															 String... alias) {
-		return PushPayload.newBuilder().setPlatform(Platform.all())
-				.setAudience(Audience.alias(alias))
-				.setNotification(Notification.newBuilder().
-						setAlert(content)
-						.addPlatformNotification(AndroidNotification.newBuilder()
+	public static PushPayload buildPushObject_to_alias_alert(String title, String content, String path,String... alias) {
+		return PushPayload.newBuilder()
+					.setPlatform(Platform.all())
+					.setAudience(Audience.alias(alias))
+					.setNotification(
+							Notification.newBuilder()
 								.setAlert(content)
+								.addPlatformNotification(
+										AndroidNotification.newBuilder().setAlert(content)
+											.setTitle(title)
+											.addExtra("path", path)
+										.build()
+										)
+							.build())
+					.setMessage(
+							Message.newBuilder()
+								.setMsgContent(content)
 								.setTitle(title)
-								.addExtra("path", path).build())
-						.build())
-				.setMessage(Message.newBuilder()
-						.setMsgContent(content)
-						.setTitle(title)
-						.addExtra("path", path).build())
-				.setOptions(Options.newBuilder()
-						.setTimeToLive(432000).build())
+								.addExtra("path", path)
+							.build())
+					.setOptions(Options.newBuilder().setTimeToLive(432000).build())
 				.build();
 	}
 

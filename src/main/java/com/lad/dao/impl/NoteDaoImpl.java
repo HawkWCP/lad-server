@@ -1,14 +1,14 @@
 package com.lad.dao.impl;
 
-import com.lad.bo.NoteBo;
-import com.lad.dao.INoteDao;
-import com.lad.util.CommonUtil;
-import com.lad.util.Constant;
-import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.WriteResult;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Metrics;
@@ -25,11 +25,13 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
+import com.lad.bo.NoteBo;
+import com.lad.dao.INoteDao;
+import com.lad.util.CommonUtil;
+import com.lad.util.Constant;
+import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
+import com.mongodb.WriteResult;
 
 @Repository("noteDao")
 public class NoteDaoImpl implements INoteDao {
@@ -232,8 +234,10 @@ public class NoteDaoImpl implements INoteDao {
 		query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
 		Update update = new Update();
 		if (type == Constant.NOTE_TOP) {
+			update.set("topUpdateTime", new Date());
 			update.set("top", status);
 		} else if (type == Constant.NOTE_JIAJING) {
+			update.set("essUpdateTime", new Date());
 			update.set("essence", status);
 		}
 		return mongoTemplate.updateFirst(query, update, NoteBo.class);
@@ -413,7 +417,7 @@ public class NoteDaoImpl implements INoteDao {
 
 	@Override
 	public List<NoteBo> dayNewNotes(List<String> circleids, int page, int limit) {
-
+		// TODO
 		Query query = new Query();
 		Criteria criteria = new Criteria("deleted").is(Constant.ACTIVITY);
 		if (!CommonUtil.isEmpty(circleids)) {
@@ -439,7 +443,7 @@ public class NoteDaoImpl implements INoteDao {
 		if (!StringUtils.isEmpty(circleSet)) {
 			criteria.and("circleId").in(circleSet);
 		}
-		query.with(new Sort(Sort.Direction.DESC, "temp", "createTime"));
+		query.with(new Sort(Sort.Direction.DESC, "createDate", "temp"));
 		query.addCriteria(criteria);
 		page = page < 1 ? 1 : page;
 		query.skip((page - 1) * limit);
@@ -451,8 +455,35 @@ public class NoteDaoImpl implements INoteDao {
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
 		String jsonCommand = "{geoNear:\"note\",near:{type:\"Point\",coordinates:[" + position[0] + "," + position[1]
 				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0}}";
-		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
 		
-		return executeCommand;
+		return mongoTemplate.executeCommand(jsonCommand);
 	}
+
+	@Override
+	public List<NoteBo> getTopNotesByCircleid(String circleid,int page,int limit) {
+		Query query = new Query(Criteria.where("deleted").is(Constant.ACTIVITY).and("top").is(1).and("circleId").is(circleid));
+		query.skip((page-1)*limit);
+		query.limit(limit);
+		query.with(new Sort(new Sort.Order(Direction.DESC, "topUpdateTime")));
+		return mongoTemplate.find(query, NoteBo.class);
+	}
+
+	@Override
+	public List<NoteBo> getNotesBySkipAndLimit(String circleid, int skip, int limit) {
+		Query query = new Query(Criteria.where("deleted").is(Constant.ACTIVITY).and("top").is(0).and("circleId").is(circleid));
+		query.skip(skip);
+		query.limit(limit);
+		query.with(new Sort(new Sort.Order(Direction.DESC, "_id")));
+		return mongoTemplate.find(query, NoteBo.class);
+	}
+
+	@Override
+	public List<NoteBo> joinCircleNotes(List<String> circleids, int page, int limit) {
+		// TODO
+		Query query = new Query(Criteria.where("deleted").is(Constant.ACTIVITY).and("circleId").in(circleids));
+		query.with(new Sort(Sort.Direction.DESC, "createTime", "temp"));
+		page = page < 1 ? 1 : page;
+		query.skip((page - 1) * limit);
+		query.limit(limit);
+		return mongoTemplate.find(query, NoteBo.class);	}
 }

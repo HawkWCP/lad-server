@@ -12,6 +12,9 @@ import com.lad.util.ERRORCODE;
 import com.lad.util.MyException;
 import com.lad.vo.CollectVo;
 import net.sf.json.JSONObject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -27,6 +30,8 @@ import java.util.*;
 @Controller
 @RequestMapping("/collect")
 public class CollectController extends BaseContorller {
+	
+	private static final Logger logger = LoggerFactory.getLogger(CollectController.class);
 	
 	@Autowired
 	private ICollectService collectService;
@@ -152,11 +157,16 @@ public class CollectController extends BaseContorller {
 	public String colFile(String path, int fileType, String videoPic, String userid, HttpServletRequest request,
 						  HttpServletResponse
 			response){
+		
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.CollectController.colFile-----{userName:未登录用户,path:"+
+					path+",fileType:"+fileType+",videoPic:"+videoPic+",userid:"+userid+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.CollectController.colFile-----{userName:"+userBo.getUserName()+",userId:"+userBo.getId()+",path:"+
+		path+",fileType:"+fileType+",videoPic:"+videoPic+",userid:"+userid+"}");
 		CollectBo chatBo = new CollectBo();
 		chatBo.setCreateuid(userBo.getId());
 		chatBo.setUserid(userBo.getId());

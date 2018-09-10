@@ -40,6 +40,7 @@ import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
 import com.lad.service.IHomepageService;
+import com.lad.service.IPictureService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -75,27 +76,26 @@ public class HomepageController extends BaseContorller {
 
 	@Autowired
 	private IChatroomService chatroomService;
+	
+	@Autowired
+	private IPictureService pictureService;
 
 	private int homeType = 0;
 
 	@PostMapping("/insert")
-	public String isnert(HttpServletRequest request,
-			HttpServletResponse response) {
+	public String isnert(HttpServletRequest request, HttpServletResponse response) {
 		HttpSession session = request.getSession();
 		if (session.isNew()) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (session.getAttribute("isLogin") == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		userBo = userService.getUser(userBo.getId());
@@ -108,8 +108,7 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@PostMapping("/visit-my-homepage")
-	public String visit_my_homepage(String visitor_id,
-			HttpServletRequest request, HttpServletResponse response) {
+	public String visit_my_homepage(String visitor_id, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -118,8 +117,7 @@ public class HomepageController extends BaseContorller {
 		Map<String, Object> map = new HashMap<String, Object>();
 		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
 		if (homepageBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.CONTACT_HOMEPAGE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.CONTACT_HOMEPAGE.getIndex(),
 					ERRORCODE.CONTACT_HOMEPAGE.getReason());
 		}
 		LinkedList<String> visitor_ids = homepageBo.getVisitor_ids();
@@ -148,8 +146,7 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@GetMapping("/new-visitors-count")
-	public String new_visitors_count(HttpServletRequest request,
-			HttpServletResponse response) {
+	public String new_visitors_count(HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -171,37 +168,30 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@PostMapping("/thumbsup")
-	public String thumbsup(String user_id, HttpServletRequest request,
-			HttpServletResponse response) {
+	public String thumbsup(String user_id, HttpServletRequest request, HttpServletResponse response) {
 		HttpSession session = request.getSession();
 		if (session.isNew()) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (session.getAttribute("isLogin") == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (!StringUtils.hasLength(user_id)) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.CONTACT_VISITOR.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.CONTACT_VISITOR.getIndex(),
 					ERRORCODE.CONTACT_VISITOR.getReason());
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.CONTACT_HOMEPAGE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.CONTACT_HOMEPAGE.getIndex(),
 					ERRORCODE.CONTACT_HOMEPAGE.getReason());
 		}
 		userBo = userService.getUser(userBo.getId());
 		String owner_id = userBo.getId();
-		ThumbsupBo temp = thumbsupService.getByVidAndVisitorid(owner_id,
-				user_id);
+		ThumbsupBo temp = thumbsupService.getByVidAndVisitorid(owner_id, user_id);
 		if (temp != null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.CONTACT_THUMBSUP_DUPLICATE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.CONTACT_THUMBSUP_DUPLICATE.getIndex(),
 					ERRORCODE.CONTACT_THUMBSUP_DUPLICATE.getReason());
 		}
 		HomepageBo homepageBo = homepageService.selectByUserId(user_id);
@@ -217,30 +207,26 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@PostMapping("/thumbsup-from-me")
-	public String thumbsup_from_me(int page, int limit,
-			HttpServletRequest request, HttpServletResponse response)
+	public String thumbsup_from_me(int page, int limit, HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 		HttpSession session = request.getSession();
 		if (session.isNew()) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (session.getAttribute("isLogin") == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		userBo = userService.getUser(userBo.getId());
 		String ownerId = userBo.getId();
-		List<ThumbsupBo> thumbsup_from_me = thumbsupService
-				.selectByOwnerIdPaged(page, limit, ownerId, Constant.PAGE_TYPE);
+		List<ThumbsupBo> thumbsup_from_me = thumbsupService.selectByOwnerIdPaged(page, limit, ownerId,
+				Constant.PAGE_TYPE);
 		List<ThumbsupVo> thumbsup_from_me_vo = new ArrayList<ThumbsupVo>();
 		for (ThumbsupBo item : thumbsup_from_me) {
 			ThumbsupVo vo = new ThumbsupVo();
@@ -255,34 +241,30 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@PostMapping("/thumbsup-to-me")
-	public String thumbsup_to_me(int page, int limit,
-			HttpServletRequest request, HttpServletResponse response)
+	public String thumbsup_to_me(int page, int limit, HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 		HttpSession session = request.getSession();
 		if (session.isNew()) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (session.getAttribute("isLogin") == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		userBo = userService.getUser(userBo.getId());
 		String ownerId = userBo.getId();
-		List<ThumbsupBo> thumbsup_to_me = thumbsupService
-				.selectByVisitorIdPaged(page, limit, ownerId, Constant.PAGE_TYPE);
+		List<ThumbsupBo> thumbsup_to_me = thumbsupService.selectByVisitorIdPaged(page, limit, ownerId,
+				Constant.PAGE_TYPE);
 		List<ThumbsupVo> thumbsup_to_me_vo = new ArrayList<ThumbsupVo>();
 		for (ThumbsupBo item : thumbsup_to_me) {
 			ThumbsupVo vo = new ThumbsupVo();
-			BeanUtils.copyProperties(item,vo);
+			BeanUtils.copyProperties(item, vo);
 			thumbsup_to_me_vo.add(vo);
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -339,7 +321,6 @@ public class HomepageController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	@GetMapping("/my-interest")
 	public String getMyInterest(HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
@@ -364,8 +345,7 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@PostMapping("/modify-interest")
-	public String addMyInterest(String interests, int type, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String addMyInterest(String interests, int type, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
 
 		try {
@@ -375,7 +355,7 @@ public class HomepageController extends BaseContorller {
 		}
 		UserTasteBo tasteBo = userService.findByUserId(userBo.getId());
 		LinkedHashSet<String> taste = new LinkedHashSet<>();
-		if(interests.length()>=1){
+		if (interests.length() >= 1) {
 			String[] ins = CommonUtil.getIds(interests);
 			taste.addAll(Arrays.asList(ins));
 		}
@@ -388,30 +368,29 @@ public class HomepageController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-
 	/**
 	 * 用户个人主页信息
+	 * 
 	 * @param userid
 	 * @param request
 	 * @param response
 	 * @return
 	 */
 	@PostMapping("/user-homepage")
-	public String visitUserHomepage(String userid, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String visitUserHomepage(String userid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo loginUser = getUserLogin(request);
 		UserBo userBo = userService.getUser(userid);
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
-		List<ChatroomVo> voList = new LinkedList<>();;
+		List<ChatroomVo> voList = new LinkedList<>();
+		;
 		if (loginUser != null && !userid.equals(loginUser.getId())) {
 			updateUserVisit(userid, loginUser.getId());
 			List<ChatroomBo> chatroomBos = chatroomService.haveSameChatroom(loginUser.getId(), userid);
 			for (ChatroomBo chatroomBo : chatroomBos) {
 				ChatroomVo vo = new ChatroomVo();
-				BeanUtils.copyProperties(chatroomBo,vo);
+				BeanUtils.copyProperties(chatroomBo, vo);
 				voList.add(vo);
 			}
 		}
@@ -421,7 +400,7 @@ public class HomepageController extends BaseContorller {
 		List<CircleBaseVo> circles = new LinkedList<>();
 		for (CircleBo circleBo : circleBos) {
 			CircleBaseVo circleBaseVo = new CircleBaseVo();
-			BeanUtils.copyProperties(circleBo,circleBaseVo);
+			BeanUtils.copyProperties(circleBo, circleBaseVo);
 			circleBaseVo.setCircleid(circleBo.getId());
 			circleBaseVo.setNotesSize(circleBo.getNoteSize());
 			circleBaseVo.setUsersSize(circleBo.getTotal());
@@ -429,15 +408,19 @@ public class HomepageController extends BaseContorller {
 		}
 		Map<String, Object> map = new LinkedHashMap<>();
 		map.put("ret", 0);
+		LinkedList<String> wall = CommonUtil.getTop4(pictureService, userBo.getId());
+		infoVo.setPicTop4(wall == null ? new LinkedList<String>() : wall);
+		long picSzie = pictureService.getPicSizeByUid(userBo.getId());
+		infoVo.setPicSize(picSzie);
 		map.put("userVo", infoVo);
 		map.put("userCricles", circles);
 		map.put("chatroomVos", voList);
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	/**
 	 * 谁看过我
+	 * 
 	 * @param page
 	 * @param limit
 	 * @param request
@@ -445,15 +428,13 @@ public class HomepageController extends BaseContorller {
 	 * @return
 	 */
 	@PostMapping("/visit-to-me")
-	public String visitMyHomepage(int page, int limit, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String visitMyHomepage(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
 		updateVisitCount(userBo.getId(), 0);
-		List<UserVisitBo> visitBos =  userService.visitToMeList(userBo.getId(), homeType, page, limit);
+		List<UserVisitBo> visitBos = userService.visitToMeList(userBo.getId(), homeType, page, limit);
 		List<UserVisitVo> baseVos = new LinkedList<>();
 		visitBo2Vo(visitBos, baseVos, limit, false);
 		Map<String, Object> map = new LinkedHashMap<>();
@@ -464,6 +445,7 @@ public class HomepageController extends BaseContorller {
 
 	/**
 	 * 我看过谁
+	 * 
 	 * @param page
 	 * @param limit
 	 * @param request
@@ -471,14 +453,12 @@ public class HomepageController extends BaseContorller {
 	 * @return
 	 */
 	@PostMapping("/visit-from-me")
-	public String myVisitHomepage(int page, int limit, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String myVisitHomepage(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
-		List<UserVisitBo> visitBos =  userService.visitFromMeList(userBo.getId(), homeType, page, limit);
+		List<UserVisitBo> visitBos = userService.visitFromMeList(userBo.getId(), homeType, page, limit);
 		List<UserVisitVo> baseVos = new LinkedList<>();
 		visitBo2Vo(visitBos, baseVos, limit, true);
 		Map<String, Object> map = new LinkedHashMap<>();
@@ -487,18 +467,19 @@ public class HomepageController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	/**
 	 * 对象转换
+	 * 
 	 * @param visitBos
 	 * @param baseVos
 	 * @param limit
-	 * @param myVisit 我看过谁  true， 谁看过我false
+	 * @param myVisit
+	 *            我看过谁 true， 谁看过我false
 	 */
-	private void visitBo2Vo(List<UserVisitBo> visitBos, List<UserVisitVo> baseVos, int limit, boolean myVisit){
+	private void visitBo2Vo(List<UserVisitBo> visitBos, List<UserVisitVo> baseVos, int limit, boolean myVisit) {
 		List<String> visitids = new LinkedList<>();
 		if (limit > 50) {
-			//limit过大后，避免多次查询数据库，一次查询
+			// limit过大后，避免多次查询数据库，一次查询
 			for (UserVisitBo visitBo : visitBos) {
 				if (myVisit) {
 					visitids.add(visitBo.getOwnerid());
@@ -536,11 +517,12 @@ public class HomepageController extends BaseContorller {
 
 	/**
 	 * 用户访问信息
+	 * 
 	 * @param ownerid
 	 * @param visitid
 	 */
 	@Async
-	private void updateUserVisit(String ownerid, String visitid){
+	private void updateUserVisit(String ownerid, String visitid) {
 		UserVisitBo visitBo = new UserVisitBo();
 		visitBo.setOwnerid(ownerid);
 		visitBo.setVisitid(visitid);
@@ -551,7 +533,7 @@ public class HomepageController extends BaseContorller {
 	}
 
 	@Async
-	private void updateVisitCount(String userid, int num){
+	private void updateVisitCount(String userid, int num) {
 		HomepageBo homepageBo = homepageService.selectByUserId(userid);
 		if (homepageBo == null) {
 			homepageBo = new HomepageBo();
@@ -570,7 +552,7 @@ public class HomepageController extends BaseContorller {
 		}
 	}
 
-	private void bo2vo(UserBo userBo, UserInfoVo infoVo){
+	private void bo2vo(UserBo userBo, UserInfoVo infoVo) {
 		org.springframework.beans.BeanUtils.copyProperties(userBo, infoVo);
 		UserTasteBo tasteBo = userService.findByUserId(userBo.getId());
 		if (tasteBo == null) {

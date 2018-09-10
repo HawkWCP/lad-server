@@ -1,5 +1,6 @@
 package com.lad.dao.impl;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -46,10 +47,7 @@ public class CircleDaoImpl implements ICircleDao {
 	}
 
 	public List<CircleBo> selectByuserid(String userid) {
-		Query query = new Query();
-		query.addCriteria(new Criteria("users").is(userid));
-		query.addCriteria(new Criteria("deleted").is(0));
-		return mongoTemplate.find(query, CircleBo.class);
+		return mongoTemplate.find(new Query(Criteria.where("users").is(userid).and("deleted").is(0)), CircleBo.class);
 	}
 
 	public WriteResult updateUsers(String circleBoId, HashSet<String> users) {
@@ -215,7 +213,7 @@ public class CircleDaoImpl implements ICircleDao {
 	@Override
 	public List<CircleBo> findByType(String tag, String sub_tag, String city, int page, int limit) {
 		Query query = new Query();
-		Criteria criteria = new Criteria("deleted").is(Constant.ACTIVITY);
+		Criteria criteria = new Criteria("deleted").is(Constant.ACTIVITY).and("isOpen").is(true);
 		if (StringUtils.isNotEmpty(tag)) {
 			criteria.and("tag").is(tag);
 		}
@@ -229,11 +227,9 @@ public class CircleDaoImpl implements ICircleDao {
 			criteria.orOperator(pro, ci, dist);
 		}
 		query.addCriteria(criteria);
-		query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "hotNum")));
-		if (page <= 0) {
-			page = 1;
-		}
-		query.skip((page - 1) * limit);
+		query.with(new Sort(new Sort.Order(Direction.DESC, "hotNum")));
+		int skip = (page-1)<0?0:(page-1)*limit;
+		query.skip(skip);
 		query.limit(limit);
 		return mongoTemplate.find(query, CircleBo.class);
 	}
@@ -528,5 +524,35 @@ public class CircleDaoImpl implements ICircleDao {
 				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0}}";
 		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
 		return executeCommand;
+	}
+
+	@Override
+	public List<CircleBo> getTopsByUid(List<String> topCircles, String id) {
+		List<String> ids = new ArrayList<>();
+		ids.add(id);
+		Query query = new Query(Criteria.where("_id").in(topCircles).and("deleted").is(Constant.ACTIVITY).and("users").in(ids));
+		return mongoTemplate.find(query, CircleBo.class);
+	}
+
+	@Override
+	public CircleBo selectByIdAndUid(String circleid, String id) {
+		Query query = new Query();
+		List<String> list = new ArrayList<>();
+		list.add(id);
+		query.addCriteria(Criteria.where("_id").is(circleid).and("deleted").is(0).and("users").in(list));
+		return mongoTemplate.findOne(query, CircleBo.class);
+	}
+
+	@Override
+	public List<CircleBo> findCirclesByUid(String uid) {
+		Query query = new Query(Criteria.where("users").in(uid).and("deleted").is(0));
+		return mongoTemplate.find(query, CircleBo.class);
+	}
+
+	@Override
+	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids) {
+		Query query = new Query(Criteria.where("circleid").in(ids).and("status").is(1));
+		query.with(new Sort(new Sort.Order(Direction.DESC,"_id")));
+		return mongoTemplate.find(query, CircleAddBo.class);
 	}
 }

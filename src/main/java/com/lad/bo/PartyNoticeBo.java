@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.LinkedList;
 
 /**
- * 功能描述：
+ * 功能描述：聚会通知实体
  * Copyright: Copyright (c) 2017
  * Version: 1.0
  * Time:2017/11/24

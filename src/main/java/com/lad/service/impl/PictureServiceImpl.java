@@ -90,4 +90,9 @@ public class PictureServiceImpl implements IPictureService {
 		return pictureDao.getPicturesByList(asList, id);
 	}
 
+	@Override
+	public long getPicSizeByUid(String id) {
+		return pictureDao.getPicSizeByUid(id);
+	}
+
 }

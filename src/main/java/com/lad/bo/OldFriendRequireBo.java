@@ -1,8 +1,6 @@
 package com.lad.bo;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,7 +20,7 @@ public class OldFriendRequireBo extends BaseBo {
 	private String age;
 	private String address;
 	private Map<String,Set<String>> hobbys = new HashMap<>();// 兴趣,list
-	private List<String> images = new ArrayList<>();
+//	private List<String> images = new ArrayList<>();
 	private boolean agree = false;
 	private ObjectId uid;
 }

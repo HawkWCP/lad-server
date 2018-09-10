@@ -5,6 +5,8 @@ import com.lad.dao.IPartyNoticeDao;
 import com.lad.util.Constant;
 import com.mongodb.WriteResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -56,6 +58,7 @@ public class PartyNoticeDaoImpl implements IPartyNoticeDao {
         page = page < 1 ? 1 : page;
         query.skip((page - 1) * limit);
         query.limit(limit);
+        query.with(new Sort(new Sort.Order(Direction.DESC, "_id")));
         return mongoTemplate.find(query, PartyNoticeBo.class);
     }
 

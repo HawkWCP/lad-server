@@ -11,7 +11,8 @@ public enum ERRORCODE {
 	ACCOUNT_PHONE_NULL(10007, "手机号码为空"),
 	ACCOUNT_PHONE_EXIST(10008, "手机号未注册"),
 	ACCOUNT_OPEN_ERROR(10009, "第三方登录失败"),
-
+	ACCOUNT_PHONE_SAVED(10010, "该手机号已绑定其他老友账号，请输入新手机号"),
+	
 	USER_USERNAME(20001, "用户名错误"),
 	USER_SEX(20002, "性别错误"),
 	USER_SIGNATURE(20003, "个性签名错误"),

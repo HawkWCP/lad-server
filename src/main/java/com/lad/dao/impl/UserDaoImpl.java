@@ -221,9 +221,7 @@ public class UserDaoImpl implements IUserDao {
     }
 
     public WriteResult updateTopCircles(String userid, List<String> topCircles) {
-        Query query = new Query();
-        query.addCriteria(new Criteria("_id").is(userid));
-        query.addCriteria(new Criteria("deleted").is(0));
+        Query query = new Query(Criteria.where("_id").is(userid).and("deleted").is(0));
         Update update = new Update();
         update.set("circleTops", topCircles);
         return mongoTemplate.updateFirst(query, update, UserBo.class);

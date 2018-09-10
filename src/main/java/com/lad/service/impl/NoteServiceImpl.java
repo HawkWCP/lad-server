@@ -34,7 +34,7 @@ public class NoteServiceImpl implements INoteService {
 
 	@Override
 	public List<NoteBo> finyByCreateTime(String circleid, int page, int limit) {
-		return noteDao.finyByCreateTime(circleid,page, limit);
+		return noteDao.finyByCreateTime(circleid, page, limit);
 	}
 
 	@Override
@@ -71,7 +71,6 @@ public class NoteServiceImpl implements INoteService {
 	public WriteResult updateThumpsubCount(String noteId, long thumpsubcount) {
 		return noteDao.updateThumpsubCount(noteId, thumpsubcount);
 	}
-
 
 	@Override
 	public WriteResult addComment(String noteid, CommentBo commentBo) {
@@ -169,8 +168,8 @@ public class NoteServiceImpl implements INoteService {
 	}
 
 	@Override
-	public GeoResults<NoteBo> findNearNote(double[] position, int maxDistance, int limit,int page) {
-		return noteDao.findNearNote(position, maxDistance, limit,page);
+	public GeoResults<NoteBo> findNearNote(double[] position, int maxDistance, int limit, int page) {
+		return noteDao.findNearNote(position, maxDistance, limit, page);
 	}
 
 	@Override
@@ -179,17 +178,33 @@ public class NoteServiceImpl implements INoteService {
 	}
 
 	@Override
-	public List<NoteBo> dayHotNotes( int page, int limit) {
+	public List<NoteBo> dayHotNotes(int page, int limit) {
 		return noteDao.dayHotNotes(page, limit);
 	}
 
 	@Override
 	public List<NoteBo> dayHotNotes(Set<String> circleSet, int page, int limit) {
-		return noteDao.dayHotNotes(circleSet,page, limit);
+		return noteDao.dayHotNotes(circleSet, page, limit);
 	}
 
 	@Override
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
 		return noteDao.findNearCircleByCommond(position, i, limit, page);
 	}
+
+	@Override
+	public List<NoteBo> getTopNotesByCircleid(String circleid, int page, int limit) {
+		return noteDao.getTopNotesByCircleid(circleid, page, limit);
+	}
+
+	@Override
+	public List<NoteBo> getNotesBySkipAndLimit(String circleid, int skip, int limit) {
+		return noteDao.getNotesBySkipAndLimit(circleid, skip, limit);
+	}
+
+	@Override
+	public List<NoteBo> joinCircleNotes(List<String> circleids, int page, int limit) {
+		return noteDao.joinCircleNotes(circleids, page, limit);
+	}
+
 }

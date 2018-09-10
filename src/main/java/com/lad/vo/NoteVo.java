@@ -2,6 +2,7 @@ package com.lad.vo;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -14,9 +15,11 @@ import java.util.List;
  */
 @Getter
 @Setter
+@ToString
 public class NoteVo extends BaseVo {
 	//用户名
     private String username;
+        
     //性别
     private String sex;
     //头像
@@ -81,7 +84,7 @@ public class NoteVo extends BaseVo {
     private int fromUserLevel;
 
     private String fromUserBirth;
-
+   
     public boolean getMyThumbsup() {
         return isMyThumbsup;
     }
@@ -91,6 +94,8 @@ public class NoteVo extends BaseVo {
     }
 
     private LinkedList<String> photos = new LinkedList<>();
+    
+    private String createDate;
 
     private Date createTime;                        
 
@@ -116,4 +121,8 @@ public class NoteVo extends BaseVo {
     private List<UserNoteVo> atUsers;
 
     private double distance;
+	private double temp;
+	
+	private Date topUpdateTime;
+	private Date essUpdateTime;
 }

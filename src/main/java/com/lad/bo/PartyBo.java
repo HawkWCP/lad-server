@@ -1,11 +1,11 @@
 package com.lad.bo;
 
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.ToString;
-
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 
 /**
  * 功能描述：
@@ -26,7 +26,7 @@ public class PartyBo extends BaseBo {
     //聚会背景图片
     private String backPic;
 
-    private LinkedHashSet<String> photos;
+    private LinkedList<String> photos;
 
     private String video;
     //视频缩略图
@@ -157,11 +157,11 @@ public class PartyBo extends BaseBo {
         this.backPic = backPic;
     }
 
-    public LinkedHashSet<String> getPhotos() {
+    public LinkedList<String> getPhotos() {
         return photos;
     }
 
-    public void setPhotos(LinkedHashSet<String> photos) {
+    public void setPhotos(LinkedList<String> photos) {
         this.photos = photos;
     }
 

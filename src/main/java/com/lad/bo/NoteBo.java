@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
@@ -68,5 +69,6 @@ public class NoteBo extends BaseBo {
 
 	//发布日期
 	private String createDate;
-
+	private Date topUpdateTime;
+	private Date essUpdateTime;
 }

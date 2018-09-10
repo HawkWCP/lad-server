@@ -129,7 +129,7 @@ public class PictureDaoImpl implements IPictureDao {
 
 	@Override
 	public List<PictureBo> getTop4ByUid(String uid) {
-		Query query = new Query(Criteria.where("createuid").is(uid).and("deleted").is(Constant.ACTIVITY));
+		Query query = new Query(Criteria.where("createuid").is(uid).and("deleted").is(Constant.ACTIVITY).and("openLevel").is(4));
 		query.with(new Sort(new Order(Direction.DESC, "createTime")));
 		query.limit(4);
 		return mongoTemplate.find(query, PictureBo.class);
@@ -152,8 +152,13 @@ public class PictureDaoImpl implements IPictureDao {
 	@Override
 	public List<PictureBo> getPicturesByList(List<String> asList, String id) {
 		return mongoTemplate.find(
-				new Query(Criteria.where("createuid").is(id).and("url").in(asList).and("openLevel").is(4)),
+				new Query(Criteria.where("createuid").is(id).and("url").in(asList)),
 				PictureBo.class);
+	}
+
+	@Override
+	public long getPicSizeByUid(String id) {
+		return mongoTemplate.count(new Query(Criteria.where("createuid").is(id).and("deleted").is(0)), PictureBo.class);
 	}
 
 }

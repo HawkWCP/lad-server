@@ -272,4 +272,12 @@ public interface ICircleDao extends IBaseDao {
 
 	public CommandResult findNearCircleByCommond(String userid, double[] position, int i, int page, int limit);
 
+	public List<CircleBo> getTopsByUid(List<String> topCircles, String id);
+
+	public CircleBo selectByIdAndUid(String circleid, String id);
+
+	public List<CircleBo> findCirclesByUid(String uid);
+
+	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids);
+
 }

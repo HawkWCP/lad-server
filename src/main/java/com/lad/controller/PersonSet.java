@@ -151,8 +151,10 @@ public class PersonSet extends BaseContorller {
 		if (locationBo != null) {
 			infoVo.setPostion(locationBo.getPosition());
 		}
-		LinkedList<String> wall = CommonUtil.getWall(pictureService,userBo.getId());
+		LinkedList<String> wall = CommonUtil.getTop4(pictureService,userBo.getId());
 		infoVo.setPicTop4(wall==null?new LinkedList<String>():wall);
+		long picSzie = pictureService.getPicSizeByUid(userBo.getId());
+		infoVo.setPicSize(picSzie);
 		List<CircleBo> circleBos = circleService.findMyCircles(userBo.getId(), 1, 4);
 		List<CircleBaseVo> circles = new LinkedList<>();
 		for (CircleBo circleBo : circleBos) {
@@ -186,7 +188,7 @@ public class PersonSet extends BaseContorller {
 		for (UserBo item : list) {
 			UserBaseVo vo = new UserBaseVo();
 			BeanUtils.copyProperties(item, vo);
-			LinkedList<String> wall = CommonUtil.getWall(pictureService, item.getId());
+			LinkedList<String> wall = CommonUtil.getTop4(pictureService, item.getId());
 			vo.setPicTop4(wall);
 			userVoList.add(vo);
 		}
@@ -215,7 +217,7 @@ public class PersonSet extends BaseContorller {
 		UserBo temp = userService.getUserByPhone(phone);
 		UserBaseVo vo = new UserBaseVo();
 		BeanUtils.copyProperties(temp, vo);
-		LinkedList<String> wall = CommonUtil.getWall(pictureService, temp.getId());
+		LinkedList<String> wall = CommonUtil.getTop4(pictureService, temp.getId());
 		vo.setPicTop4(wall);	
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
@@ -238,7 +240,7 @@ public class PersonSet extends BaseContorller {
 		UserBo temp = userService.getUser(userid);
 		UserBaseVo vo = new UserBaseVo();
 		BeanUtils.copyProperties(temp, vo);
-		LinkedList<String> wall = CommonUtil.getWall(pictureService, userid);
+		LinkedList<String> wall = CommonUtil.getTop4(pictureService, userid);
 		vo.setPicTop4(wall);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);

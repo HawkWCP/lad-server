@@ -245,7 +245,7 @@ public class PartyDaoImpl implements IPartyDao {
 	@Override
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
 		String jsonCommand = "{geoNear:\"party\",near:{type:\"Point\",coordinates:[" + position[0] + "," + position[1]
-				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0}}";
+				+ "]},spherical:true,minDistance:0,maxDistance:" + i + ",query:{deleted:0},limit:500}";
 		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
 		return executeCommand;
 	}

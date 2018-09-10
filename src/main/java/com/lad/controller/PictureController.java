@@ -14,6 +14,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,17 +40,55 @@ import net.sf.json.JSONObject;
 @RestController
 @RequestMapping("picture")
 public class PictureController extends BaseContorller {
+	private static final String QualiName = "com.lad.controller.PictureController";
+	private static final Logger logger = LoggerFactory.getLogger(PictureController.class);
+	
 	@Autowired
 	private IPictureService pictureService;
-	
+
+	// 删除照片墙上的数据
+	@PostMapping("wall-picture")
+	public String setWallAndPicture(String urls, HttpServletRequest request, HttpServletResponse response) {
+		// 调用照片墙接口,如果urls包含在照片墙接口内,则跳过,不包含则上传这几张照片并且设置为照片墙
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.setWallAndPicture-----{user:未登录用户"+",urls:"+urls+"}");
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		logger.info("com.lad.controller.PictureController.setWallAndPicture-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",urls:"+urls+"}");
+
+		addPicWall(urls, request, response);
+		LinkedList<String> pictures = pictureService.getWallByUid(userBo.getId()).getPictures();
+		String[] split = urls.split(",");
+		List<PictureBo> bos = new ArrayList<>();
+		urls = "";
+		for (String url : split) {
+			if (!pictures.contains(url)) {
+				PictureBo bo = new PictureBo();
+				bo.setUrl(url);
+				bo.setOpenLevel(4);
+				bos.add(bo);
+				urls+=url+",";
+			}
+		}
+		storagePicInAlbum(JSON.toJSONString(bos), request, response);
+		addPicWall(urls, request, response);
+		Map<String,Object> map = new HashMap<>();
+		map.put("ret", 0);
+		return JSON.toJSONString(map);
+	}
+
 	// 修改照片权限-多张修改
 	@PostMapping("/opens-set")
 	public String setOpens(@RequestParam String pics, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.setOpens-----{user:未登录用户,pics:"+pics+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.PictureController.setOpens-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",pics:"+pics+"}");
 		List<PictureBo> picLst = JSON.parseArray(pics, PictureBo.class);
 		String urls = "";
 		List<PictureBo> list = new ArrayList<>();
@@ -56,11 +96,11 @@ public class PictureController extends BaseContorller {
 			list.add(pic);
 			pic.setCreateuid(userBo.getId());
 			pictureService.updateOpenLevel(pic);
-			if(pic.getOpenLevel() == 0){
-				urls = urls+pic.getUrl()+",";
+			if (pic.getOpenLevel() == 0) {
+				urls = urls + pic.getUrl() + ",";
 			}
 		}
-		deleteWall(urls,request,response);
+		deleteWall(urls, request, response);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("result", list);
@@ -72,23 +112,25 @@ public class PictureController extends BaseContorller {
 	public String deleteWall(String urls, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.setOpens-----{user:未登录用户,urls:"+urls+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.PictureController.deleteWall-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",urls:"+urls+"}");
 		if (StringUtils.isEmpty(urls)) {
 			return "参数错误";
 		}
 		String[] urlsArr = urls.split(",");
 		PictureWallBo wallBo = pictureService.getWallByUid(userBo.getId());
 		boolean removeAll = true;
-		Map<String,Object> result = new HashMap<>();
+		Map<String, Object> result = new HashMap<>();
 		if (wallBo != null) {
 			LinkedList<String> pictures = wallBo.getPictures();
 			for (String pic : urlsArr) {
-				removeAll = pictures.remove(pic)&&removeAll;
+				removeAll = pictures.remove(pic) && removeAll;
 				result.put(pic, removeAll);
 			}
-			
+
 			pictureService.updateWallById(wallBo.getId(), pictures);
 		}
 		Map<String, Object> map = new HashMap<>();
@@ -102,29 +144,37 @@ public class PictureController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 
-	@GetMapping("/wall-search")
-	public String getPicWall(HttpServletRequest request, HttpServletResponse response) {
+	@PostMapping("/wall-search")
+	public String getPicWall(@RequestParam(name="uid",required=false)String uid,HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.getPicWall-----{user:未登录用户,uid:"+uid+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
-		}		
-		PictureWallBo wallBo = pictureService.getWallByUid(userBo.getId());		
-		Map<String,Object> map = new HashMap<>();
+		}
+		logger.info("com.lad.controller.PictureController.getPicWall-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",uid:"+uid+"}");
+		if(StringUtils.isEmpty(uid)){
+			uid = userBo.getId();
+		}
+		PictureWallBo wallBo = pictureService.getWallByUid(uid);
+		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		map.put("result", wallBo==null?new LinkedList<>():wallBo.getPictures());
+		map.put("result", wallBo == null ? new LinkedList<>() : wallBo.getPictures());
 		return JSON.toJSONString(map);
 	}
-	
+
 	@GetMapping("/top4-search")
 	public String getTop4(HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.getTop4-----{user:未登录用户}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
-		}		
-		PictureWallBo wallBo = pictureService.getWallByUid(userBo.getId());
+		}
+		logger.info("com.lad.controller.PictureController.getTop4-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+"}");
 		
+		PictureWallBo wallBo = pictureService.getWallByUid(userBo.getId());
+
 		LinkedList<String> result = new LinkedList<>();
 		String source = "wall";
 		if (wallBo != null && wallBo.getPictures().size() > 0) {
@@ -136,7 +186,7 @@ public class PictureController extends BaseContorller {
 			}
 			source = "album";
 		}
-		Map<String,Object> map = new HashMap<>();
+		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("source", source);
 		map.put("result", result);
@@ -148,9 +198,12 @@ public class PictureController extends BaseContorller {
 	public String setOpen(@RequestParam String pic, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info(QualiName+".setOpen-----{user:未登录用户,pic:"+pic+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(QualiName+".setOpen-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",pic:"+pic+"}");
+
 		JSONObject jsonObj = JSONObject.fromObject(pic);
 		if (StringUtils.isEmpty(jsonObj.getString("url")) || StringUtils.isEmpty(jsonObj.getString("createuid"))
 				|| StringUtils.isEmpty(jsonObj.getString("openLevel"))) {
@@ -162,8 +215,8 @@ public class PictureController extends BaseContorller {
 			return "权限错误";
 		}
 		pictureService.updateOpenLevel(picBo);
-		if(picBo.getOpenLevel()==0){
-			deleteWall(picBo.getUrl(),request,response);
+		if (picBo.getOpenLevel() == 0) {
+			deleteWall(picBo.getUrl(), request, response);
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -175,9 +228,11 @@ public class PictureController extends BaseContorller {
 	public String deletePic(String urls, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info(QualiName+".deletePic-----{user:未登录用户,urls:"+urls+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(QualiName+".deletePic-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",urls:"+urls+"}");
 		if (StringUtils.isEmpty(urls)) {
 			return "请传入正确格式的地址";
 		}
@@ -189,15 +244,15 @@ public class PictureController extends BaseContorller {
 		if (wallBo != null) {
 			LinkedList<String> pictures = wallBo.getPictures();
 			for (String pic : urlList) {
-				if(pictures.contains(pic)){
+				if (pictures.contains(pic)) {
 					pictures.remove(pic);
 				}
 			}
-			
+
 			pictureService.updateWallById(wallBo.getId(), pictures);
 		}
-		
-		Map<String,Object> map = new HashMap<>();
+
+		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		return JSON.toJSONString(map);
 	}
@@ -208,9 +263,11 @@ public class PictureController extends BaseContorller {
 			HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info(QualiName+".getPictureByPage-----{user:未登录用户,uid:"+uid+",page:"+page+",limit:"+limit+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(QualiName+".getPictureByPage-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",uid:"+uid+",page:"+page+",limit:"+limit+"}");
 		if (StringUtils.isEmpty(uid)) {
 			uid = userBo.getId();
 		}
@@ -242,14 +299,18 @@ public class PictureController extends BaseContorller {
 	@PostMapping("wall-update")
 	public String addPicWall(String urls, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
+		
 		if (userBo == null) {
+			logger.info(QualiName+".addPicWall------{user:未登录用户,urls:"+urls+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(QualiName+".addPicWall------{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",urls:"+urls+"}");
 		String[] split = urls.split(",");
 		if (split.length < 1) {
 			return "请传入正确的图片地址";
 		}
+		// 获取当前账号的照片墙对象
 		PictureWallBo wallBo = pictureService.getWallByUid(userBo.getId());
 		if (wallBo == null) {
 			wallBo = new PictureWallBo();
@@ -258,10 +319,18 @@ public class PictureController extends BaseContorller {
 			pictureService.insertPicWall(wallBo);
 		}
 		LinkedList<String> pictures = wallBo.getPictures();
-		List<PictureBo> picLst = pictureService.getPicturesByList(Arrays.asList(split),userBo.getId());
-		for (String url : split) {
-			if (!pictures.contains(url)) {
-				pictures.addFirst(url);
+		// 根据上传的url获取相册照片
+		List<PictureBo> picLst = pictureService.getPicturesByList(Arrays.asList(split), userBo.getId());
+		for (PictureBo pic : picLst) {
+			// 如果该照片不包含在照片墙,则添加到照片墙
+			
+			if(pic.getOpenLevel()!=4){
+				pic.setOpenLevel(4);
+				setOpen(JSON.toJSONString(pic),request,response);
+			}
+			
+			if (!pictures.contains(pic.getUrl())) {
+				pictures.addFirst(pic.getUrl());
 			}
 		}
 
@@ -286,9 +355,11 @@ public class PictureController extends BaseContorller {
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.storagePicInAlbum-----{user:未登录用户,pics:"+pics+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.PictureController.storagePicInAlbum-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",pics:"+pics+"}");
 		List<PictureBo> bos = JSON.parseArray(pics, PictureBo.class);
 		AlbumBo album = createAlbum(null, userBo.getId());
 		List<PictureBo> temp = new ArrayList<>();
@@ -314,9 +385,11 @@ public class PictureController extends BaseContorller {
 	public String createAlbum(@RequestParam String json, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
+			logger.info("com.lad.controller.PictureController.createAlbum-----{user:未登录用户,json:"+json+"}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.PictureController.createAlbum-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",json:"+json+"}");
 		AlbumBo albumBo = createAlbum(json, userBo.getId());
 		Map<String, Object> result = new HashMap<>();
 		result.put("ret", 0);
@@ -325,6 +398,7 @@ public class PictureController extends BaseContorller {
 	}
 
 	private AlbumBo createAlbum(String json, String uid) {
+		logger.info("com.lad.controller.PictureController.createAlbum-----{json:"+json+",uid:"+uid+"}");
 		AlbumBo albumBo = json == null ? new AlbumBo() : JSON.parseObject(json, AlbumBo.class);
 		// 如果有名字,根据这个名字查询是否有,有则返回,没有则创建
 		String name = albumBo.getName();
@@ -344,19 +418,9 @@ public class PictureController extends BaseContorller {
 		return albumBo;
 	}
 
-	public void test() {
-		List<PictureBo> bos = new ArrayList<>();
-		for (int i = 0; i < 3; i++) {
-			PictureBo pictureBo = new PictureBo();
-			pictureBo.setUrl("aaaaa");
-			pictureBo.setOpenLevel(4);
-			bos.add(pictureBo);
-		}
-
-		String str = JSON.toJSONString(bos);
-		List<PictureBo> list = JSON.parseArray(str, PictureBo.class);
-		for (PictureBo pictureBo : list) {
-			System.out.println(pictureBo);
-		}
+	@PostMapping("/test")
+	public String test(String q) {
+		
+		return null;
 	}
 }

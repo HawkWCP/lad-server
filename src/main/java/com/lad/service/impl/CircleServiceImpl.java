@@ -396,4 +396,24 @@ public class CircleServiceImpl implements ICircleService {
 	public CommandResult findNearCircleByCommond(String userid, double[] position, int i, int page, int limit) {
 		return circleDao.findNearCircleByCommond(userid, position, i, page, limit);
 	}
+
+	@Override
+	public List<CircleBo> getTopsByUid(List<String> topCircles, String id) {
+		return circleDao.getTopsByUid(topCircles, id);
+	}
+
+	@Override
+	public CircleBo selectByIdAndUid(String circleid, String id) {
+		return circleDao.selectByIdAndUid(circleid, id);
+	}
+
+	@Override
+	public List<CircleBo> findCirclesByUid(String uid) {
+		return circleDao.findCirclesByUid(uid);
+	}
+
+	@Override
+	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids) {
+		return circleDao.findApplyCircleAddByids(ids);
+	}
 }

@@ -1,14 +1,9 @@
 package com.lad.dao.impl;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +31,6 @@ import org.springframework.stereotype.Repository;
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.OldFriendRequireBo;
 import com.lad.bo.UserBo;
-import com.lad.bo.UserTasteBo;
 import com.lad.dao.IOldFriendDao;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;

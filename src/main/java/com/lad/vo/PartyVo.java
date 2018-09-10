@@ -1,6 +1,7 @@
 package com.lad.vo;
 
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ public class PartyVo extends BaseVo {
     //聚会背景图片
     private String backPic;
 
-    private LinkedHashSet<String> photos;
+    private LinkedList<String> photos;
 
     private String video;
     //视频缩略图
@@ -138,11 +139,11 @@ public class PartyVo extends BaseVo {
         this.backPic = backPic;
     }
 
-    public LinkedHashSet<String> getPhotos() {
+    public LinkedList<String> getPhotos() {
         return photos;
     }
 
-    public void setPhotos(LinkedHashSet<String> photos) {
+    public void setPhotos(LinkedList<String> photos) {
         this.photos = photos;
     }
 

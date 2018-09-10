@@ -41,7 +41,7 @@ public class CircleBo extends BaseBo {
 	private boolean isVerify;
 	//帖子数
 	private int noteSize;
-	//总人数=圈子内总评论+总阅读+总点赞+总转发
+	//圈子内总互动数=圈子内总评论+总阅读+总点赞+总转发
 	private int total;
 	//评论数
 	private int commentNum;

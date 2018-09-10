@@ -5,6 +5,9 @@ import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
 import net.sf.json.JSONObject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
@@ -20,6 +23,9 @@ import java.util.Map;
 @Controller
 @RequestMapping("account-security")
 public class AccountSecurityController extends BaseContorller {
+	
+	private static final String AccountSecurityControllerQualiName = "com.lad.controller.AccountSecurityController";
+	private static final Logger logger = LoggerFactory.getLogger(AccountSecurityController.class);
 
 	@Autowired
 	private IUserService userService;
@@ -82,6 +88,13 @@ public class AccountSecurityController extends BaseContorller {
 	@ResponseBody
 	public String verification_send_phone(String phone, HttpServletRequest request, HttpServletResponse response) {
 		HttpSession session = request.getSession();
+		logger.info("com.lad.controller.AccountSecurityController.verification_send_phone-----phone:"+phone);
+		UserBo userByPhone = userService.getUserByPhone(phone);
+		if(userByPhone!=null){
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_PHONE_SAVED.getIndex(),
+					ERRORCODE.ACCOUNT_PHONE_SAVED.getReason());
+		}
+		
 		if (session.isNew()) {
 			return "{\"ret\":-1,\"error\":\"error session\"}";
 		}
@@ -93,7 +106,8 @@ public class AccountSecurityController extends BaseContorller {
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		String code = CommonUtil.getRandom();
-		CommonUtil.sendSMS2(phone, CommonUtil.buildCodeMsg(code));
+		int sendSMS2 = CommonUtil.sendSMS2(phone, CommonUtil.buildCodeMsg(code));
+		logger.info("com.lad.controller.AccountSecurityController.verification_send_phone-----sendSMS2:"+String.valueOf(sendSMS2));
 		session.setAttribute("account-security.verification-send-phone", code);
 		session.setAttribute("account-security.verification-send-phone-time", System.currentTimeMillis());
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -118,6 +132,8 @@ public class AccountSecurityController extends BaseContorller {
 		if (!StringUtils.hasLength(verification)) {
 			return "{\"ret\":-1,\"error\":\"verification is null\"}";
 		}
+		logger.info(AccountSecurityControllerQualiName+"phone:"+phone+",verification:"+verification);
+	
 		String verification_session = (String) session.getAttribute("account-security.verification-send-phone");
 		Map<String, Object> map = new HashMap<>();
 		long time = (long)session.getAttribute("account-security.verification-send-phone-time");

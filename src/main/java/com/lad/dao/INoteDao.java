@@ -264,4 +264,10 @@ public interface INoteDao extends IBaseDao {
 
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
 
+	public List<NoteBo> getTopNotesByCircleid(String circleid,int page,int limit);
+
+	public List<NoteBo> getNotesBySkipAndLimit(String circleid, int skip, int limit);
+
+	public List<NoteBo> joinCircleNotes(List<String> circleids, int page, int limit);
+
 }

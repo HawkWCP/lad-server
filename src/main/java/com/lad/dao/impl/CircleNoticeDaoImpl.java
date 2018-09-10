@@ -43,7 +43,7 @@ public class CircleNoticeDaoImpl implements ICircleNoticeDao {
             criteria.and("chatroomid").is(targetid);
         }
         query.addCriteria(criteria);
-        query.with(new Sort(Sort.Direction.DESC, "_id"));
+        query.with(new Sort(Sort.Direction.DESC, "updateTime"));
         query.skip((page -1) * limit);
         query.limit(limit);
         return mongoTemplate.find(query, CircleNoticeBo.class);
@@ -104,6 +104,8 @@ public class CircleNoticeDaoImpl implements ICircleNoticeDao {
         update.set("updateuid", noticeBo.getUpdateuid());
         update.set("updateTime", noticeBo.getUpdateTime());
         update.set("type", noticeBo.getType());
+        update.set("readUsers", noticeBo.getReadUsers());
+        update.set("unReadUsers", noticeBo.getUnReadUsers());
         return mongoTemplate.updateFirst(query, update, CircleNoticeBo.class);
     }
 

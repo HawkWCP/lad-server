@@ -258,5 +258,12 @@ public interface INoteService extends IBaseService {
 	public List<NoteBo> dayHotNotes(Set<String> circleSet, int page, int limit);
 
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
+
+	public List<NoteBo> getTopNotesByCircleid(String circleid,int page,int limit);
+
+	public List<NoteBo> getNotesBySkipAndLimit(String circleid, int skip, int limit);
+
+	public List<NoteBo> joinCircleNotes(List<String> circleids, int page, int limit);
+
 }
 

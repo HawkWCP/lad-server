@@ -4,7 +4,6 @@ import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,7 +21,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,6 +84,7 @@ import net.sf.json.JSONObject;
 @RequestMapping("/party")
 public class PartyController extends BaseContorller {
 
+	private static final String partyQualiName = "com.lad.controller.PartyController";
 	private static Logger logger = LogManager.getLogger(PartyController.class);
 
 	@Autowired
@@ -130,10 +129,7 @@ public class PartyController extends BaseContorller {
 	@PostMapping("/create")
 	public String create(@RequestParam String partyJson, MultipartFile backPic, MultipartFile[] photos,
 			MultipartFile video, HttpServletRequest request, HttpServletResponse response) {
-
-		org.slf4j.Logger logger2 = LoggerFactory.getLogger(PartyController.class);
-
-		logger.info("partyJson : {}", partyJson);
+		logger.info(partyQualiName+"+create-----partyJson : {}", partyJson);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -144,9 +140,6 @@ public class PartyController extends BaseContorller {
 		try {
 			JSONObject jsonObject = JSONObject.fromObject(partyJson);
 			partyBo = (PartyBo) JSONObject.toBean(jsonObject, PartyBo.class);
-
-			logger2.error("手机a创建聚会时的坐标:" + Arrays.toString(partyBo.getPosition()));
-
 		} catch (Exception e) {
 			return CommonUtil.toErrorResult(ERRORCODE.PARTY_ERROR.getIndex(), ERRORCODE.PARTY_ERROR.getReason());
 		}
@@ -255,11 +248,13 @@ public class PartyController extends BaseContorller {
 			partyBo = oldParty;
 		} else {
 			copyOld(oldParty, partyBo);
+			// 将原有照片数据与用户数据复制到新集合
 			partyBo.setPhotos(oldParty.getPhotos());
 			partyBo.setUsers(oldParty.getUsers());
 		}
 		String userId = userBo.getId();
-		LinkedHashSet<String> photo = partyBo.getPhotos();
+		// 原照片集合
+		LinkedList<String> photo = partyBo.getPhotos();
 		if (StringUtils.isNotEmpty(delPhotos)) {
 			String[] paths = CommonUtil.getIds(delPhotos);
 			for (String url : paths) {
@@ -289,12 +284,12 @@ public class PartyController extends BaseContorller {
 	private void addPicVideo(String userId, PartyBo partyBo, MultipartFile backPic, MultipartFile[] photos,
 			MultipartFile video) {
 		if (photos != null) {
-			LinkedHashSet<String> photo = new LinkedHashSet<>();
+			LinkedList<String> photo = partyBo.getPhotos() == null ? new LinkedList<>() : partyBo.getPhotos();
 			for (MultipartFile file : photos) {
 				Long time = Calendar.getInstance().getTimeInMillis();
 				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
 				String path = CommonUtil.upload(file, Constant.PARTY_PICTURE_PATH, fileName, 0);
-				photo.add(path);
+				photo.addFirst(path);
 			}
 			partyBo.setPhotos(photo);
 		}
@@ -302,7 +297,7 @@ public class PartyController extends BaseContorller {
 			try {
 				Long time = Calendar.getInstance().getTimeInMillis();
 				String fileName = String.format("%s-%d-%s", userId, time, video.getOriginalFilename());
-				logger.info("---- party file: {} ,  size: {}", video.getOriginalFilename(), video.getSize());
+				logger.info(partyQualiName+".addPicVideo---- party file: {} ,  size: {}", video.getOriginalFilename(), video.getSize());
 				String[] paths = CommonUtil.uploadVedio(video, Constant.PARTY_PICTURE_PATH, fileName, 0);
 				partyBo.setVideo(paths[0]);
 				partyBo.setVideoPic(paths[1]);
@@ -1611,98 +1606,97 @@ public class PartyController extends BaseContorller {
 	}
 
 	@ApiOperation("附近聚会列表,默认10千米范围")
-    @ApiImplicitParams({@ApiImplicitParam(name = "px", value = "当前人位置经度", required = true, paramType = "query",
-            dataType = "double"),
-            @ApiImplicitParam(name = "py", value = "当前人位置纬度",  required = true,paramType = "query",
-                    dataType = "double"),
-            @ApiImplicitParam(name = "limit", value = "显示条数",  required = true,paramType = "query",
-                    dataType = "int")})
-    @PostMapping("/near-partys")
-    public String nearPeopel(double px, double py, int limit,int page, HttpServletRequest request, HttpServletResponse
-            response) {
-        double[] position = new double[]{px, py};
-        
-        //未登录情况
-        UserBo userBo = getUserLogin(request);
-        String userid = userBo != null ? userBo.getId() : "";
-        CommandResult commanResult = partyService.findNearCircleByCommond(position,10000,limit,page);
-        BasicDBList dbList = (BasicDBList) commanResult.get("results");
-        List<PartyListVo> listVos = new LinkedList<>();
-        for (Object object : dbList) {
-        	BasicDBObject basicDBObject = (BasicDBObject)object;
-        	BasicDBObject partyBoJson = (BasicDBObject) basicDBObject.get("obj");
-        	Map<String,Object> map = partyBoJson.toMap();
-        	map.put("id", map.get("_id").toString());
-        	map.put("phone", map.get("isPhone"));
-        	map.put("open", map.get("isOpen"));
-        	PartyBo partyBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), PartyBo.class);
-        	
-        	//判断用户是否已经删除这个信息
-            PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
-            PartyListVo listVo = new PartyListVo();
-            BeanUtils.copyProperties(partyBo, listVo);
-            if (partyBo.getStatus() != 3) {
-                int status = getPartyStatus(partyBo.getStartTime(), partyBo.getAppointment());
-                //人数以报满
-                if (status == 1 && partyBo.getUserLimit() <= partyBo.getPartyUserNum() && partyBo.getUserLimit()
-                        !=0 ) {
-                    if (partyBo.getStatus() != 2) {
-                        updatePartyStatus(partyBo.getId(), 2);
-                        listVo.setStatus(2);
-                    }
-                } else if (status != partyBo.getStatus()){
-                    listVo.setStatus(status);
-                    updatePartyStatus(partyBo.getId(), status);
-                }
-            }
-            listVo.setJoin(partyBo.getUsers().contains(userid));
-            listVo.setDistance(Double.valueOf(basicDBObject.get("dis").toString()));
-            listVo.setPartyid(partyBo.getId());
-            listVo.setHasNotice(partyNoticeBo != null);
-            listVo.setUserNum(partyBo.getPartyUserNum());
-            listVos.add(listVo); 
-        }
-        Map<String, Object> map = new HashMap<>();
-        map.put("ret", 0);
-        map.put("partyListVos", listVos);
-        return JSONObject.fromObject(map).toString();
-        
-       /* GeoResults<PartyBo> partyBos = partyService.findNearParty(position, 10000, limit,page);
-        List<PartyListVo> listVos = new LinkedList<>();
-        DecimalFormat df = new DecimalFormat("###.00");
-        for(GeoResult<PartyBo> result : partyBos) {
-            PartyBo partyBo = result.getContent();
-            //判断用户是否已经删除这个信息
-            PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
-            PartyListVo listVo = new PartyListVo();
-            BeanUtils.copyProperties(partyBo, listVo);
-            if (partyBo.getStatus() != 3) {
-                int status = getPartyStatus(partyBo.getStartTime(), partyBo.getAppointment());
-                //人数以报满
-                if (status == 1 && partyBo.getUserLimit() <= partyBo.getPartyUserNum() && partyBo.getUserLimit()
-                        !=0 ) {
-                    if (partyBo.getStatus() != 2) {
-                        updatePartyStatus(partyBo.getId(), 2);
-                        listVo.setStatus(2);
-                    }
-                } else if (status != partyBo.getStatus()){
-                    listVo.setStatus(status);
-                    updatePartyStatus(partyBo.getId(), status);
-                }
-            }
-            listVo.setJoin(partyBo.getUsers().contains(userid));
-            double dis = Double.parseDouble(df.format(result.getDistance().getValue()));
-            listVo.setDistance(dis);
-            listVo.setPartyid(partyBo.getId());
-            listVo.setHasNotice(partyNoticeBo != null);
-            listVo.setUserNum(partyBo.getPartyUserNum());
-            listVos.add(listVo);
-        }
-        Map<String, Object> map = new HashMap<>();
-        map.put("ret", 0);
-        map.put("partyListVos", listVos);
-        return JSONObject.fromObject(map).toString();*/
-    }
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "px", value = "当前人位置经度", required = true, paramType = "query", dataType = "double"),
+			@ApiImplicitParam(name = "py", value = "当前人位置纬度", required = true, paramType = "query", dataType = "double"),
+			@ApiImplicitParam(name = "limit", value = "显示条数", required = true, paramType = "query", dataType = "int") })
+	@PostMapping("/near-partys")
+	public String nearPeopel(double px, double py, int limit, int page, HttpServletRequest request,
+			HttpServletResponse response) {
+		double[] position = new double[] { px, py };
+
+		// 未登录情况
+		UserBo userBo = getUserLogin(request);
+		String userid = userBo != null ? userBo.getId() : "";
+		CommandResult commanResult = partyService.findNearCircleByCommond(position, 10000, limit, page);
+		BasicDBList dbList = (BasicDBList) commanResult.get("results");
+
+		LinkedList<PartyListVo> listVos = new LinkedList<>();
+		LinkedList<PartyListVo> doing = new LinkedList<>();
+		LinkedList<PartyListVo> waite = new LinkedList<>();
+
+		for (Object object : dbList) {
+			BasicDBObject basicDBObject = (BasicDBObject) object;
+			BasicDBObject partyBoJson = (BasicDBObject) basicDBObject.get("obj");
+			Map<String, Object> map = partyBoJson.toMap();
+			map.put("id", map.get("_id").toString());
+			map.put("phone", map.get("isPhone"));
+			map.put("open", map.get("isOpen"));
+			PartyBo partyBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), PartyBo.class);
+
+			// 判断用户是否已经删除这个信息
+			PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
+			PartyListVo listVo = new PartyListVo();
+			BeanUtils.copyProperties(partyBo, listVo);
+			if (partyBo.getStatus() != 3) {
+				int status = getPartyStatus(partyBo.getStartTime(), partyBo.getAppointment());
+				// 人数以报满
+				if (status == 1 && partyBo.getUserLimit() <= partyBo.getPartyUserNum() && partyBo.getUserLimit() != 0) {
+					if (partyBo.getStatus() != 2) {
+						updatePartyStatus(partyBo.getId(), 2);
+						listVo.setStatus(2);
+					}
+				} else if (status != partyBo.getStatus()) {
+					listVo.setStatus(status);
+					updatePartyStatus(partyBo.getId(), status);
+				}
+			}
+			listVo.setJoin(partyBo.getUsers().contains(userid));
+			listVo.setDistance(Double.valueOf(basicDBObject.get("dis").toString()));
+			listVo.setPartyid(partyBo.getId());
+			listVo.setHasNotice(partyNoticeBo != null);
+			listVo.setUserNum(partyBo.getPartyUserNum());
+
+			if (listVo.getStatus() == 1) {
+				doing.addLast(listVo);
+			} else if (listVo.getStatus() == 2) {
+				waite.addLast(listVo);
+			} else {
+				listVos.addLast(listVo);
+			}
+		}
+		doing.addAll(waite);
+		doing.addAll(listVos);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("partyListVos", doing);
+		return JSONObject.fromObject(map).toString();
+
+		/*
+		 * GeoResults<PartyBo> partyBos = partyService.findNearParty(position,
+		 * 10000, limit,page); List<PartyListVo> listVos = new LinkedList<>();
+		 * DecimalFormat df = new DecimalFormat("###.00");
+		 * for(GeoResult<PartyBo> result : partyBos) { PartyBo partyBo =
+		 * result.getContent(); //判断用户是否已经删除这个信息 PartyNoticeBo partyNoticeBo =
+		 * partyService.findPartyNotice(partyBo.getId()); PartyListVo listVo =
+		 * new PartyListVo(); BeanUtils.copyProperties(partyBo, listVo); if
+		 * (partyBo.getStatus() != 3) { int status =
+		 * getPartyStatus(partyBo.getStartTime(), partyBo.getAppointment());
+		 * //人数以报满 if (status == 1 && partyBo.getUserLimit() <=
+		 * partyBo.getPartyUserNum() && partyBo.getUserLimit() !=0 ) { if
+		 * (partyBo.getStatus() != 2) { updatePartyStatus(partyBo.getId(), 2);
+		 * listVo.setStatus(2); } } else if (status != partyBo.getStatus()){
+		 * listVo.setStatus(status); updatePartyStatus(partyBo.getId(), status);
+		 * } } listVo.setJoin(partyBo.getUsers().contains(userid)); double dis =
+		 * Double.parseDouble(df.format(result.getDistance().getValue()));
+		 * listVo.setDistance(dis); listVo.setPartyid(partyBo.getId());
+		 * listVo.setHasNotice(partyNoticeBo != null);
+		 * listVo.setUserNum(partyBo.getPartyUserNum()); listVos.add(listVo); }
+		 * Map<String, Object> map = new HashMap<>(); map.put("ret", 0);
+		 * map.put("partyListVos", listVos); return
+		 * JSONObject.fromObject(map).toString();
+		 */
+	}
 
 	/**
 	 * 需要和聚会展示最新信息

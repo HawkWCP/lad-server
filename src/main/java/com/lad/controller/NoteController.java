@@ -23,7 +23,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -59,7 +58,6 @@ import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
 import com.lad.service.INoteService;
 import com.lad.service.IReadHistoryService;
-import com.lad.service.IReasonService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -87,6 +85,7 @@ import net.sf.json.JSONObject;
 @RequestMapping("note")
 public class NoteController extends BaseContorller {
 
+	private static final String NoteQualiName = "com.lad.controller.NoteController";
 	private final Logger logger = LogManager.getLogger(NoteController.class);
 
 	@Autowired
@@ -109,9 +108,6 @@ public class NoteController extends BaseContorller {
 
 	@Autowired
 	private IDynamicService dynamicService;
-
-	@Autowired
-	private IReasonService reasonService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -144,12 +140,14 @@ public class NoteController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(NoteQualiName+".criNotRead-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",page:"+page+",limit:"+limit+"}");
 		String userid = userBo.getId();
 		List<CircleBo> circleBos = circleService.selectByuserid(userid);
 		List<String> circleids = new LinkedList<>();
 		// 获取圈子id 并保存到circleids
 		circleBos.forEach(circleBo -> circleids.add(circleBo.getId()));
-		List<NoteBo> noteBos = noteService.dayNewNotes(circleids, page, limit);
+//		List<NoteBo> noteBos = noteService.dayNewNotes(circleids, page, limit);
+		List<NoteBo> noteBos = noteService.joinCircleNotes(circleids, page, limit);
 		List<NoteVo> noteVoList = new LinkedList<>();
 		for (NoteBo noteBo : noteBos) {
 			NoteVo noteVo = new NoteVo();
@@ -184,6 +182,7 @@ public class NoteController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		logger.info(NoteQualiName+".insert-----{noteJson:"+noteJson+",atUserids:"+atUserids+"}");
 		NoteBo noteBo = null;
 		try {
 			JSONObject jsonObject = JSONObject.fromObject(noteJson);
@@ -205,14 +204,13 @@ public class NoteController extends BaseContorller {
 			for (MultipartFile file : pictures) {
 				Long time = Calendar.getInstance().getTimeInMillis();
 				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
-				logger.info(fileName);
 				if ("video".equals(noteBo.getType())) {
 					String[] paths = CommonUtil.uploadVedio(file, Constant.NOTE_PICTURE_PATH, fileName, 0);
 					photos.add(paths[0]);
 					noteBo.setVideoPic(paths[1]);
 				} else {
 					String path = CommonUtil.upload(file, Constant.NOTE_PICTURE_PATH, fileName, 0);
-					logger.info("note add note pic path: {},  size: {} ", path, file.getSize());
+					logger.info(NoteQualiName+".insert-----note add note pic path: {},  size: {} ", path, file.getSize());
 					photos.add(path);
 				}
 			}
@@ -887,13 +885,15 @@ public class NoteController extends BaseContorller {
 		for (NoteBo noteBo : noteBos) {
 			noteVo = new NoteVo();
 			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
-			noteVo.setCirName(circleBo.getName());
-			noteVo.setCirNoteNum(circleBo.getNoteSize());
-			noteVo.setCirHeadPic(circleBo.getHeadPicture());
-			noteVo.setCirVisitNum(circleBo.getVisitNum());
-			boToVo(noteBo, noteVo, userBo, loginUserid);
-			noteVo.setMyThumbsup(hasThumbsup(loginUserid, noteBo.getId()));
-			noteVoList.add(noteVo);
+			if(circleBo!=null){
+				noteVo.setCirName(circleBo.getName());
+				noteVo.setCirNoteNum(circleBo.getNoteSize());
+				noteVo.setCirHeadPic(circleBo.getHeadPicture());
+				noteVo.setCirVisitNum(circleBo.getVisitNum());
+				boToVo(noteBo, noteVo, userBo, loginUserid);
+				noteVo.setMyThumbsup(hasThumbsup(loginUserid, noteBo.getId()));
+				noteVoList.add(noteVo);
+			}
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -1431,16 +1431,19 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/near-notes")
 	public String nearPeopel(double px, double py, int limit, int page, HttpServletRequest request,
 			HttpServletResponse response) {
-		
+		logger.info("com.lad.controller.NoteController.nearPeopel-----{px:"+px+",py:"+py+",page:"+page+",limit:"+limit+"}");
 		double[] position = new double[] { px, py };
-		org.slf4j.Logger logger = LoggerFactory.getLogger(NoteController.class);
-		logger.error(Arrays.toString(position));
 		// 未登录情况
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo != null ? userBo.getId() : "";
-		CommandResult commanResult = noteService.findNearCircleByCommond(position, 5000, limit, page);
+		CommandResult commanResult = noteService.findNearCircleByCommond(position, 10000, limit, page);
 		BasicDBList dbList = (BasicDBList) commanResult.get("results");
+		
+		// 分页
+		
 		List<Object> subList = new BasicDBList();
+		
+		// 顺序无误
 		int size = dbList.size();
 		int start = (page - 1) * limit;
 		int end = page * limit;
@@ -1450,6 +1453,8 @@ public class NoteController extends BaseContorller {
 		} else if (start <= size && end >= size) {
 			subList = dbList.subList(start, size);
 		}
+//		subList = dbList.subList(start, limit);
+		
 		
 		List<NoteVo> noteVoList = new LinkedList<>();
         for (Object object : subList) {
@@ -1457,9 +1462,9 @@ public class NoteController extends BaseContorller {
         	BasicDBObject obj = (BasicDBObject) basicDBObject.get("obj");
         	Map<String,Object> map = obj.toMap();
         	map.put("id", map.get("_id").toString());
-        	map.put("id", map.get("_id").toString());
         	NoteBo noteBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), NoteBo.class);
         	NoteVo noteVo = new NoteVo();
+        	// 此前无误
 			if (noteBo.getCreateuid().equals(userid)) {
 				boToVo(noteBo, noteVo, userBo, userid);
 			} else {
@@ -1476,6 +1481,22 @@ public class NoteController extends BaseContorller {
 			}
 			noteVoList.add(noteVo);
 		}
+        
+        if(noteVoList.size()>=2){
+            for (int i = 0; i < noteVoList.size()-1; i++) {
+            	for (int j = i+1; j < noteVoList.size(); j++) {
+            		NoteVo z = null;
+            		long xTime = Long.valueOf(noteVoList.get(i).getCreateDate().replaceAll("-", ""));    		
+            		long yTime = Long.valueOf(noteVoList.get(j).getCreateDate().replaceAll("-", ""));
+            		if(xTime<yTime){
+            			z = noteVoList.get(i);
+            			noteVoList.set(i, noteVoList.get(j));
+            			noteVoList.set(j, z);
+            		}
+    			}
+    		}
+        }
+
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("noteVoList", noteVoList);

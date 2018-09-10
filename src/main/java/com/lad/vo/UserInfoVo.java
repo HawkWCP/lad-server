@@ -30,4 +30,6 @@ public class UserInfoVo extends UserBaseVo {
     private Date registTime;
 
     private double postion[];
+    
+    private long picSize;
 }

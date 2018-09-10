@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.GeoResult;
@@ -107,6 +108,8 @@ import net.sf.json.JSONObject;
 @RequestMapping("circle")
 public class CircleController extends BaseContorller {
 
+	private static final String CircleQualiName = "com.lad.controller.CircleController";
+
 	private static Logger logger = LogManager.getLogger(ChatroomController.class);
 
 	@Autowired
@@ -188,6 +191,12 @@ public class CircleController extends BaseContorller {
 			@RequestParam(required = true) String sub_tag, String description, String province, String city,
 			String district, boolean isOpen, MultipartFile head_picture, HttpServletRequest request,
 			HttpServletResponse response) {
+
+		org.slf4j.Logger loggers = LoggerFactory.getLogger(circleAddUserLock);
+		loggers.error("px:" + px + ",py:" + py + ",name:" + name + ",tag:" + tag + ",sub_tag:" + sub_tag
+				+ ",description:" + description + ",province:" + province + ",city:" + city + ",district:" + district
+				+ ",isOpen" + isOpen + ",head_picture:" + head_picture);
+
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -237,8 +246,9 @@ public class CircleController extends BaseContorller {
 		HashSet<String> users = new HashSet<String>();
 		users.add(userBo.getId());
 		circleBo.setUsers(users);
-		circleService.insert(circleBo);
 
+		CircleBo insert = circleService.insert(circleBo);
+		loggers.error(JSON.toJSONString(insert));
 		CircleAddBo addBo = new CircleAddBo();
 		addBo.setUserid(userId);
 		addBo.setCircleid(circleBo.getId());
@@ -939,66 +949,66 @@ public class CircleController extends BaseContorller {
 			return e.getMessage();
 		}
 		// 置顶的圈子id
-		List<String> topCircles = userBo.getCircleTops();
-
-		if (page < 1 || limit < 0) {
-			return Constant.COM_FAIL_RESP;
-		}
-		// 放入合集的置顶圈子
-		int current = 0;
+		List<String> topCircles = userBo.getCircleTops() == null ? new LinkedList<>() : userBo.getCircleTops();
 		List<CircleVo> voList = new LinkedList<>();
-		if (!topCircles.isEmpty() && page <= 1) {
-			List<CircleBo> tops = circleService.findCirclesInList(topCircles);
-			// 因置顶圈子不能再数据库实现分页，
-			// 遍历个人中心里的指定圈子id
-			for (String top : topCircles) {
-				// 由于mongo查询结果不是按照list的顺序，在程序中再次处理顺序
-				// top = topCricleId
-				for (CircleBo circleBo : tops) {
-					// 嵌套循环,如果用户中心的置顶圈子id在查询出来的id中
-					if (top.equals(circleBo.getId())) {
-						if (circleBo.getTotal() == 0) {
-							int number = noteService.selectPeopleNum(circleBo.getId());
-							circleBo.setTotal(number);
-							circleService.updateTotal(circleBo.getId(), number);
-						}
-						current++;
-						voList.add(bo2vo(circleBo, userBo, 1));
-						tops.remove(circleBo);
-						break;
-					}
-				}
-			}
-		}
-		if (current < limit || page > 1) {
-			List<CircleAddBo> addBoArr = circleService.findApplyCircleAddByUid(userBo.getId());
-			List<CircleBo> circleBos = new ArrayList<>();
-			for (CircleAddBo circleAddBo : addBoArr) {
-				// circleAddBo.getCircleid();
-				CircleBo selectById = circleService.selectById(circleAddBo.getCircleid());
-				if (!org.springframework.util.StringUtils.isEmpty(selectById)) {
-					circleBos.add(selectById);
-				}
 
+		List<CircleBo> tops = circleService.getTopsByUid(topCircles, userBo.getId());
+		for (CircleBo circleBo : tops) {
+			// 嵌套循环,如果用户中心的置顶圈子id在查询出来的id中
+			if (circleBo.getTotal() == 0) {
+				int number = noteService.selectPeopleNum(circleBo.getId());
+				circleBo.setTotal(number);
+				circleService.updateTotal(circleBo.getId(), number);
 			}
-			// List<CircleBo> circleBos =
-			// circleService.findMyCircles(userBo.getId(), page, limit);
-			// 筛选出置顶的圈子
-			for (CircleBo circleBo : circleBos) {
-				if (topCircles.contains(circleBo.getId())) {
-					continue;
+			voList.add(bo2vo(circleBo, userBo, 1));
+		}
+
+		// 查看所有该用户加入的圈子
+		List<CircleBo> circles = circleService.findCirclesByUid(userBo.getId());
+		List<String> ids = new ArrayList<>();
+		for (CircleBo circleBo : circles) {
+			ids.add(circleBo.getId());
+		}
+		// 查看加入圈子的记录
+		List<CircleAddBo> addBoArr = circleService.findApplyCircleAddByids(ids);
+
+		// 根据历史记录顺序进行排序
+		List<CircleBo> circleBos = new ArrayList<>();
+		for (CircleBo circleBo : circles) {
+			for (CircleAddBo circleAddBo : addBoArr) {
+				if (circleBo.getId().equals(circleAddBo.getCircleid()) && !circleBos.contains(circleBo)) {
+					circleBos.add(circleBo);
 				}
-				if (circleBo.getTotal() == 0) {
-					int number = noteService.selectPeopleNum(circleBo.getId());
-					circleBo.setTotal(number);
-					circleService.updateTotal(circleBo.getId(), number);
-				}
-				voList.add(bo2vo(circleBo, userBo, 0));
 			}
 		}
+
+		// 筛选出置顶的圈子
+		for (CircleBo circleBo : circleBos) {
+			if (topCircles.contains(circleBo.getId())) {
+				continue;
+			}
+			if (circleBo.getTotal() == 0) {
+				int number = noteService.selectPeopleNum(circleBo.getId());
+				circleBo.setTotal(number);
+				circleService.updateTotal(circleBo.getId(), number);
+			}
+			voList.add(bo2vo(circleBo, userBo, 0));
+		}
+
+		
+		
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("circleVoList", voList);
+		List<Map<String,Object>> logList = new ArrayList<>();
+		
+		for (CircleVo circleVo : voList) {
+			Map<String,Object> logMap = new HashMap<>();
+			logMap.put("circleName", circleVo.getName());
+			logMap.put("unReadNum", circleVo.getUnReadNum());
+			logList.add(logMap);
+		}
+		logger.info(JSON.toJSONString(logList));
 		return JSONObject.fromObject(map).toString();
 	}
 
@@ -1254,6 +1264,8 @@ public class CircleController extends BaseContorller {
 	@PostMapping("/get-by-type")
 	public String getByType(String tag, String sub_tag, String city, int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
+		logger.info("com.lad.controller.CircleController.getByType----"+
+			"{tag:"+tag+",sub_tag:"+sub_tag+",city:"+city+",page:"+page+",limit:"+limit+"}");
 		List<CircleBo> circleBos = circleService.findByType(tag, sub_tag, city, page, limit);
 		if (StringUtils.isNotEmpty(sub_tag)) {
 			saveKeyword(sub_tag);
@@ -1274,7 +1286,7 @@ public class CircleController extends BaseContorller {
 			circleVo.setUsersSize(circleBo.getUsers().size());
 			if (isLogin) {
 				CircleAddBo addBo = circleService.findHisByUserAndCircle(userBo.getId(), circleBo.getId());
-				if (null != addBo) {
+				if (addBo != null) {
 					circleVo.setUserAdd(addBo.getStatus());
 				}
 			}
@@ -1450,13 +1462,14 @@ public class CircleController extends BaseContorller {
 	@PostMapping("/near-circle")
 	public String nearPeopel(double px, double py, int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
+		logger.info("com.lad.controller.CircleController.nearPeopel-----{px:"+px+",py:"+py+",page:"+page+",limit:"+limit+"}");
 		double[] position = new double[] { px, py };
 		// 未登录情况
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo != null ? userBo.getId() : "";
 
 		// 通过命令获取结果
-		CommandResult commanResult = circleService.findNearCircleByCommond(userid, position, 10000, page, limit);
+		CommandResult commanResult = circleService.findNearCircleByCommond(userid, position, 100000, page, limit);
 		// 将结果转为json对象
 		JSONObject jsonEntity = JSONObject.fromObject(commanResult.toJson());
 		// 获取对象中的有用实体,是一个list
@@ -1468,9 +1481,10 @@ public class CircleController extends BaseContorller {
 			// {"dis":2145252,"obj":{"name":"zhangsa","position":[13423,215]}}
 			Map<String, Object> entryMap = (Map<String, Object>) map.get("obj");
 			CircleBo circleBo = new CircleBo();
-			if (JSONArray.toCollection((JSONArray) entryMap.get("users")).contains(userid)) {
-				continue;
-			}
+			/*
+			 * if (JSONArray.toCollection((JSONArray)
+			 * entryMap.get("users")).contains(userid)) { continue; }
+			 */
 			for (Entry<String, Object> entry : entryMap.entrySet()) {
 				// 这是id 获取id
 				if ("_id".equals(entry.getKey())) {
@@ -1562,7 +1576,7 @@ public class CircleController extends BaseContorller {
 				if ("usersApply".equals(entry.getKey())) {
 					if (entry.getValue().getClass().toString().equals("class net.sf.json.JSONNull")) {
 						circleBo.setUsersApply(new HashSet<String>());
-					}else{
+					} else {
 						JSONArray jsonArray = (JSONArray) entry.getValue();
 						HashSet<String> users = new HashSet<String>(JSONArray.toCollection(jsonArray));
 						circleBo.setUsersApply(users);
@@ -1573,7 +1587,7 @@ public class CircleController extends BaseContorller {
 				if ("usersRefuse".equals(entry.getKey())) {
 					if (entry.getValue().getClass().toString().equals("class net.sf.json.JSONNull")) {
 						circleBo.setUsersRefuse(new HashSet<String>());
-					}else{
+					} else {
 						JSONArray jsonArray = (JSONArray) entry.getValue();
 						HashSet<String> users = new HashSet<String>(JSONArray.toCollection(jsonArray));
 						circleBo.setUsersRefuse(users);
@@ -2029,6 +2043,8 @@ public class CircleController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(CircleQualiName + "-----{user:"+userBo.getUserName()+",circleid:" + circleid + ",title:" + title + ",content:" + content
+				+ ",images:" + JSON.toJSONString(images) + "}");
 		String userid = userBo.getId();
 		CircleBo circleBo = circleService.selectById(circleid);
 		if (circleBo == null) {
@@ -2061,6 +2077,7 @@ public class CircleController extends BaseContorller {
 				}
 				noticeBo.setImages(files);
 			}
+			noticeBo.setUpdateTime(new Date());
 			circleService.addNotice(noticeBo);
 		} else {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_MASTER_NULL.getIndex(),
@@ -2087,6 +2104,8 @@ public class CircleController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info(CircleQualiName + "-----{user:"+userBo.getUserName()+",noticeid:" + noticeid + ",title:" + title + ",content:" + content
+				+ ",addImages:" + JSON.toJSONString(addImages) + ",delImages:" + JSON.toJSONString(delImages) + "}");
 		String userid = userBo.getId();
 		CircleNoticeBo noticeBo = circleService.findNoticeById(noticeid);
 		if (noticeBo == null) {
@@ -2126,6 +2145,17 @@ public class CircleController extends BaseContorller {
 				files.remove(url);
 			}
 		}
+		
+		// 发布人默认阅读
+		LinkedHashSet<String> readUsers = new LinkedHashSet<>();
+		readUsers.add(userid);
+		noticeBo.setReadUsers(readUsers);
+		HashSet<String> users = circleBo.getUsers();
+		users.remove(userid);
+		LinkedHashSet<String> unReadUsers = new LinkedHashSet<>();
+		unReadUsers.addAll(users);
+		noticeBo.setUnReadUsers(unReadUsers);
+		
 		circleService.updateNotice(noticeBo);
 		return Constant.COM_RESP;
 	}
@@ -2162,7 +2192,7 @@ public class CircleController extends BaseContorller {
 		map.put("noticeid", noticeBo.getId());
 		map.put("noticeTitle", noticeBo.getTitle());
 		map.put("notice", noticeBo.getContent());
-		map.put("noticeTime", noticeBo.getCreateTime());
+		map.put("noticeTime", noticeBo.getUpdateTime()==null?noticeBo.getCreateTime():noticeBo.getUpdateTime());
 		map.put("readNum", readNum);
 		map.put("image", noticeBo.getImages());
 		if (userBo != null) {
@@ -2263,16 +2293,21 @@ public class CircleController extends BaseContorller {
 				jsonObject.put("noticeid", noticeBo.getId());
 				jsonObject.put("noticeTitle", noticeBo.getTitle());
 				jsonObject.put("notice", noticeBo.getContent());
-				jsonObject.put("noticeTime", noticeBo.getCreateTime());
+				jsonObject.put("noticeTime", noticeBo.getUpdateTime()==null?noticeBo.getCreateTime():noticeBo.getUpdateTime());
 				jsonObject.put("image", noticeBo.getImages());
 				jsonObject.put("readNum", noticeBo.getReadUsers().size());
-				UserBo userBo = userService.getUser(noticeBo.getCreateuid());
-				if (userBo != null) {
+				UserBo CreateUser = userService.getUser(noticeBo.getCreateuid());
+				if (CreateUser != null) {
 					UserBaseVo userBaseVo = new UserBaseVo();
-					BeanUtils.copyProperties(userBo, userBaseVo);
-					int role = getUserCircleRole(circleBo, userBo.getId());
+					BeanUtils.copyProperties(CreateUser, userBaseVo);
+					int role = getUserCircleRole(circleBo, CreateUser.getId());
 					userBaseVo.setRole(role);
 					jsonObject.put("noticeUser", userBaseVo);
+					
+				}
+				UserBo userBo = getUserLogin(request);
+				if(userBo!=null){
+					jsonObject.put("read", noticeBo.getReadUsers().contains(userBo.getId())|| !noticeBo.getUnReadUsers().contains(userBo.getId()));
 				}
 				array.add(jsonObject);
 			}
@@ -2463,21 +2498,21 @@ public class CircleController extends BaseContorller {
 		if (searchBo == null) {
 			// 如果多线程同时调用findByKeyword方法并返回null,则加锁前都判断下一步进行存储
 			RLock lock = redisServer.getRLock("seveKeys");
-			try{
+			try {
 				searchBo = searchService.findByKeyword(value, 0);
-				if(searchBo == null){
+				if (searchBo == null) {
 					lock.lock(3, TimeUnit.SECONDS);
 					searchBo = new SearchBo();
 					searchBo.setKeyword(value);
 					searchBo.setType(4);
 					searchBo.setTimes(1);
 					searchService.insert(searchBo);
-				}else{
+				} else {
 					searchService.update(searchBo.getId());
 				}
-			}catch(Exception e){
-				logger.info("com.lad.controller.seveKeys failed---keyword is "+value+",description:"+e);
-			}finally{
+			} catch (Exception e) {
+				logger.info("com.lad.controller.seveKeys failed---keyword is " + value + ",description:" + e);
+			} finally {
 				lock.unlock();
 			}
 		} else {
@@ -2601,7 +2636,6 @@ public class CircleController extends BaseContorller {
 			for (FriendsBo friendsBo : friendsBos) {
 				FriendsVo vo = new FriendsVo();
 				BeanUtils.copyProperties(friendsBo, vo);
-				String friendid = friendsBo.getFriendid();
 				UserBo friend = userService.getUser(friendsBo.getFriendid());
 				if (friend == null) {
 					continue;
@@ -3065,10 +3099,31 @@ public class CircleController extends BaseContorller {
 	@PostMapping("/new-situation")
 	public String circleNews(String circleid, int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
-		List<NoteBo> noteBos = noteService.finyByCreateTime(circleid, page, limit);
-		List<NoteVo> noteVos = new LinkedList<>();
+
+		logger.info("com.lad.controller.CircleController.circleNews-----circleid:" + circleid + ",page:" + page + ",limit:" + limit);
+
+		LinkedList<NoteVo> noteVos = new LinkedList<>();
+
+		List<NoteBo> tops = noteService.getTopNotesByCircleid(circleid, page, limit);
+		List<NoteBo> noteBos = new ArrayList<>();
+
+		int topSize = tops.size();
+		if (page * limit <= topSize) {
+			noteBos = tops;
+		} else if (page * limit > topSize && (page - 1) * limit - topSize <= 0) {
+			// page = 1; limit = 10; topSize = 3
+			noteBos.addAll(tops);
+			int skip = 0;
+			limit = page * limit - topSize;
+			noteBos.addAll(noteService.getNotesBySkipAndLimit(circleid, skip, limit));
+		} else if (page * limit > topSize && (page - 1) * limit - topSize > 0) {
+			int skip = (page - 1) * limit - topSize;
+			noteBos = noteService.getNotesBySkipAndLimit(circleid, skip, limit);
+		}
+
 		UserBo loginUser = getUserLogin(request);
 		String loginUserid = loginUser == null ? "" : loginUser.getId();
+
 		for (NoteBo noteBo : noteBos) {
 			NoteVo noteVo = new NoteVo();
 			if (noteBo.getCreateuid().equals(loginUserid)) {
@@ -3081,6 +3136,7 @@ public class CircleController extends BaseContorller {
 			noteVo.setMyThumbsup(thumbsupBo != null);
 			noteVos.add(noteVo);
 		}
+
 		Map<String, Object> map = new LinkedHashMap<String, Object>();
 		map.put("ret", 0);
 		if (loginUser != null) {
@@ -3316,7 +3372,6 @@ public class CircleController extends BaseContorller {
 			HashSet<String> refuses) {
 		RLock lock = redisServer.getRLock(cirlceid + "add");
 		try {
-			// TODO
 			lock.lock(3, TimeUnit.SECONDS);
 			if (type == 0) {
 				circleService.updateUsers(cirlceid, users);
@@ -3401,7 +3456,7 @@ public class CircleController extends BaseContorller {
 					break;
 				case Constant.INFOR_SECRITY:
 					SecurityBo securityBo = inforService.findSecurityById(noteBo.getSourceid());
-					if (securityBo == null) {
+					if (securityBo != null) {
 						noteVo.setSubject(securityBo.getTitle());
 						noteVo.setVisitCount((long) securityBo.getVisitNum());
 						noteVo.setInforTypeName(securityBo.getNewsType());
@@ -3409,7 +3464,7 @@ public class CircleController extends BaseContorller {
 					break;
 				case Constant.INFOR_RADIO:
 					BroadcastBo broadcastBo = inforService.findBroadById(noteBo.getSourceid());
-					if (broadcastBo == null) {
+					if (broadcastBo != null) {
 						noteVo.setSubject(broadcastBo.getTitle());
 						noteVo.setInforUrl(broadcastBo.getBroadcast_url());
 						noteVo.setVisitCount((long) broadcastBo.getVisitNum());
@@ -3418,7 +3473,7 @@ public class CircleController extends BaseContorller {
 					break;
 				case Constant.INFOR_VIDEO:
 					VideoBo videoBo = inforService.findVideoById(noteBo.getSourceid());
-					if (videoBo == null) {
+					if (videoBo != null) {
 						noteVo.setSubject(videoBo.getTitle());
 						noteVo.setInforUrl(videoBo.getUrl());
 						noteVo.setVideoPic(videoBo.getPoster());

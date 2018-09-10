@@ -17,6 +17,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.beanutils.BeanComparator;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -108,6 +110,7 @@ public class OldFriendController extends BaseContorller {
 				OldFriendRequireVo resultVo = new OldFriendRequireVo();
 				BeanUtils.copyProperties(resultBo, resultVo);
 				resultVo = (OldFriendRequireVo) CommonUtil.vo_format(resultVo, OldFriendRequireVo.class);
+				resultVo.setImages(CommonUtil.getWall(pictureService, resultBo.getCreateuid()));
 				resultOne.put("require", resultVo);
 				result.add(resultOne);
 			}
@@ -294,6 +297,7 @@ public class OldFriendController extends BaseContorller {
 				showResult.setAddress("");
 			}
 			showResult.setMyself(user.getId().equals(userBo.getId()));
+			showResult.setImages(CommonUtil.getWall(pictureService, requireBo.getCreateuid()));
 			resultList.add(showResult);
 		}
 		if (resultList.size() >= 1) {
@@ -381,8 +385,7 @@ public class OldFriendController extends BaseContorller {
 			BeanUtils.copyProperties(hobbysBo, hobbysVo);
 			result.setHobbys(hobbysVo);
 			result.setMyself(requireBo.getCreateuid().equals(userBo.getId()));
-			LinkedList<String> wall = CommonUtil.getWall(pictureService, user.getId());
-			result.setPicTop4(wall);
+			result.setImages(CommonUtil.getWall(pictureService, user.getId()));
 			map.put("ret", 0);
 			map.put("baseData", result);
 		} else {
@@ -444,14 +447,6 @@ public class OldFriendController extends BaseContorller {
 			if ("hobbys".equals(entity.getKey())) {
 				params.put(entity.getKey(), entity.getValue());
 				continue;
-			}
-			if ("images".equals(entity.getKey())) {
-				List newlist = (List) entity.getValue();
-				if (newlist.size() == oldRequireBo.getImages().size() && newlist.containsAll(oldRequireBo.getImages())
-						&& oldRequireBo.getImages().containsAll(newlist)) {
-					continue;
-				}
-				params.put(entity.getKey(), entity.getValue());
 			}
 		}
 
@@ -565,7 +560,7 @@ public class OldFriendController extends BaseContorller {
 		if (requireBo.isAgree() == false) {
 			return CommonUtil.toErrorResult(ERRORCODE.USER_AGREEMENT_FALSE.getIndex(),
 					ERRORCODE.USER_AGREEMENT_FALSE.getReason());
-		}
+		}		
 		requireBo.setCreateuid(userBo.getId());
 		requireBo.setUpdateTime(new Date());
 		requireBo.setUpdateuid(userBo.getId());
@@ -672,14 +667,8 @@ public class OldFriendController extends BaseContorller {
 		UserTasteVo hobbysVo = new UserTasteVo();
 		BeanUtils.copyProperties(hobbysBo, hobbysVo);
 		result.setHobbys(hobbysVo);
-		if (requireBo.getImages() != null) {
-			result.setImages(requireBo.getImages());
-		} else {
-			List list = new ArrayList<>();
-			result.setImages(list);
-		}
-
 		result.setId(requireBo.getId());
+		result.setImages(CommonUtil.getWall(pictureService, userBo.getId()));
 
 		Map map = new HashMap<>();
 		map.put("ret", 0);

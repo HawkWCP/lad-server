@@ -1,14 +1,15 @@
 package com.lad.controller;
 
-import com.lad.bo.UserBo;
-import com.lad.service.IFriendsService;
-import com.lad.service.IUserService;
-import com.lad.util.CommonUtil;
-import com.lad.util.Constant;
-import com.lad.util.ERRORCODE;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiOperation;
-import net.sf.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +19,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.util.*;
+import com.lad.bo.UserBo;
+import com.lad.service.IFriendsService;
+import com.lad.service.IUserService;
+import com.lad.util.CommonUtil;
+import com.lad.util.Constant;
+import com.lad.util.ERRORCODE;
+
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiOperation;
+import net.sf.json.JSONObject;
 
 @RestController
 @RequestMapping("upload")
@@ -59,6 +66,7 @@ public class UploadController extends BaseContorller {
 		friendsService.updateUsernameByFriend(userId, "", path);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
+		logger.info("user("+userBo.getUserName()+",id is:"+userBo.getId()+") set head-picture:"+path);
 		map.put("path", path);
 		return JSONObject.fromObject(map).toString();
 	}
@@ -120,13 +128,13 @@ public class UploadController extends BaseContorller {
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(), ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("com.lad.controller.UploadController.imfile===== {user:"+userBo.getUserName()+",userId:"+userBo.getId()+"}");
 		if (imfile != null) {
 			long time = Calendar.getInstance().getTimeInMillis();
 			String fileName = String.format("%s-%d-%s",userBo.getId(), time, imfile.getOriginalFilename());
-			logger.info("===== start upload  imfile name : {}, imfile size: {}" , fileName, imfile.getSize());
+			logger.info("com.lad.controller.UploadController.imfile ===== start upload  imfile name : {}, imfile size: {}" , fileName, imfile.getSize());
 			String path = CommonUtil.upload(imfile, Constant.IMFILE_PATH, fileName, 0);
-			logger.info("===== end upload  imfile path : {}, update time : {}" , path,
-					(System.currentTimeMillis()- time));
+			logger.info("com.lad.controller.UploadController.imfile ===== end upload imfile path : {}, update time : {}" , path,(System.currentTimeMillis()- time));
 			Map<String, Object> map = new HashMap<String, Object>();
 			map.put("ret", 0);
 			map.put("path", path);
@@ -151,7 +159,10 @@ public class UploadController extends BaseContorller {
 			for (MultipartFile file : images) {
 				long time = Calendar.getInstance().getTimeInMillis();
 				String fileName = String.format("%s-%d-%s",userBo.getId(), time, file.getOriginalFilename());
+				logger.info("com.lad.controller.UploadController.uploadPics ===== start upload  imfile name : {}" , fileName);
 				String path = CommonUtil.upload(file, Constant.FEEDBACK_PICTURE_PATH, fileName, 0);
+				logger.info("com.lad.controller.UploadController.uploadPics ===== end upload  imfile path : {}, update time : {}" , path,
+						(System.currentTimeMillis()- time));
 				paths.add(path);
 			}
 			map.put("paths", paths);
