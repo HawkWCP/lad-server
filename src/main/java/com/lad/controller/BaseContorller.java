@@ -1,6 +1,7 @@
 package com.lad.controller;
 
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.*;
 import com.lad.redis.RedisServer;
 import com.lad.service.*;
@@ -9,6 +10,8 @@ import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.MyException;
 import org.redisson.api.RLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.ui.ModelMap;
 
@@ -128,6 +131,7 @@ public abstract class BaseContorller {
 			CircleHistoryBo circleHistoryBo = circleService.findByUserIdAndCircleId(userid,circleid);
 			// 获取个人的地址信息
 			LocationBo locationBo = locationService.getLocationBoByUserid(userid);
+
 			if (circleHistoryBo == null) {
 				circleHistoryBo = new CircleHistoryBo();
 				circleHistoryBo.setCircleid(circleid);

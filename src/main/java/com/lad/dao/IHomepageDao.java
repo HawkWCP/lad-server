@@ -1,5 +1,7 @@
 package com.lad.dao;
 
+import java.util.HashSet;
+
 import com.lad.bo.HomepageBo;
 import com.mongodb.WriteResult;
 
@@ -15,5 +17,9 @@ public interface IHomepageDao extends IBaseDao {
 	public HomepageBo selectByUserId(String userId);
 
 	WriteResult updateNewCount(String id, int num);
+
+	public WriteResult update_not_push_set(String hid, HashSet<String> not_push_set);
+
+	public WriteResult update_hide_record_set(String hid, HashSet<String> hide_record_set);
 	
 }

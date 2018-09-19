@@ -4,6 +4,7 @@ import com.lad.bo.DynamicNumBo;
 import com.mongodb.WriteResult;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 功能描述：
@@ -27,5 +28,7 @@ public interface IDynamicNumDao {
 
 
     WriteResult updateNumbersZero(String userid);
+
+
 
 }

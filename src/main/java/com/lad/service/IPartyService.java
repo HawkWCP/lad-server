@@ -263,4 +263,6 @@ public interface IPartyService {
     GeoResults<PartyBo> findNearParty(double[] position, int maxDistance, int limit,int page);
 
 	CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
+
+	WriteResult updateShareNum(String partyid);
 }

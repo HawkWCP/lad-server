@@ -1,6 +1,9 @@
 package com.lad.dao.impl;
 
 import com.mongodb.WriteResult;
+
+import java.util.HashSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -67,6 +70,22 @@ public class HomepageDaoImpl implements IHomepageDao {
 			update.inc("new_visitors_count", num);
 			update.inc("total_visitors_count", num);
 		}
+		return mongoTemplate.updateFirst(query, update, HomepageBo.class);
+	}
+
+	@Override
+	public WriteResult update_not_push_set(String hid, HashSet<String> not_push_set) {
+		Query query = new Query(Criteria.where("_id").is(hid).and("deleted").is(0));
+		Update update = new Update();
+		update.set("not_push_set", not_push_set);
+		return mongoTemplate.updateFirst(query, update, HomepageBo.class);
+	}
+
+	@Override
+	public WriteResult update_hide_record_set(String hid, HashSet<String> hide_record_set) {
+		Query query = new Query(Criteria.where("_id").is(hid).and("deleted").is(0));
+		Update update = new Update();
+		update.set("hide_record_set", hide_record_set);
 		return mongoTemplate.updateFirst(query, update, HomepageBo.class);
 	}
 }

@@ -280,4 +280,6 @@ public interface ICircleDao extends IBaseDao {
 
 	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids);
 
+	public List<CircleBo> findCirclesByUid(String id, List<String> topCircles);
+
 }

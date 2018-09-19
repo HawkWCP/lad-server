@@ -3,6 +3,9 @@ package com.lad.dao.impl;
 import com.lad.bo.CircleAddBo;
 import com.lad.dao.ICircleAddDao;
 import com.mongodb.WriteResult;
+
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -43,6 +46,7 @@ public class CircleAddDaoImpl implements ICircleAddDao {
         query.addCriteria(new Criteria("_id").is(id));
         Update update = new Update();
         update.set("status", status);
+        update.set("updateTime", new Date());
         return mongoTemplate.updateFirst(query, update, CircleAddBo.class);
     }
 }

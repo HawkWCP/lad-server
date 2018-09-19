@@ -460,5 +460,7 @@ public interface ICircleService extends IBaseService {
 	public List<CircleBo> findCirclesByUid(String uid);
 
 	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids);
+
+	public List<CircleBo> findCirclesByUid(String id, List<String> topCircles);
 	
 }

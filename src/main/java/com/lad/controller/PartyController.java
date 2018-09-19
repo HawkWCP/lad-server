@@ -33,7 +33,6 @@ import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleBo;
-import com.lad.bo.CircleShowBo;
 import com.lad.bo.CollectBo;
 import com.lad.bo.CommentBo;
 import com.lad.bo.DynamicBo;
@@ -69,6 +68,7 @@ import com.lad.vo.PartyVo;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
+import com.mongodb.WriteResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -85,7 +85,7 @@ import net.sf.json.JSONObject;
 public class PartyController extends BaseContorller {
 
 	private static final String partyQualiName = "com.lad.controller.PartyController";
-	private static Logger logger = LogManager.getLogger(PartyController.class);
+	private static Logger logger = LogManager.getLogger(PartyController.class.getName());
 
 	@Autowired
 	private IPartyService partyService;
@@ -129,7 +129,7 @@ public class PartyController extends BaseContorller {
 	@PostMapping("/create")
 	public String create(@RequestParam String partyJson, MultipartFile backPic, MultipartFile[] photos,
 			MultipartFile video, HttpServletRequest request, HttpServletResponse response) {
-		logger.info(partyQualiName+"+create-----partyJson : {}", partyJson);
+		logger.info(partyQualiName + "+create-----partyJson : {}", partyJson);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -222,8 +222,8 @@ public class PartyController extends BaseContorller {
 	public String update(@RequestParam String partyid, String partyJson, String delPhotos, MultipartFile backPic,
 			MultipartFile[] photos, MultipartFile video, HttpServletRequest request, HttpServletResponse response) {
 
-		logger.info("update partyJson : {}", partyJson);
-		logger.info("update delPhotos : {}", delPhotos);
+		logger.info("{}=====[@RequestMapping:{},partyid:{},partyJson:{},delPhotos:{},backPic:{},photos:{}]",
+				logger.getName() + "update", "/update", partyid, partyJson, delPhotos, backPic, photos);
 
 		UserBo userBo;
 		try {
@@ -272,58 +272,17 @@ public class PartyController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 图片及视频文件添加
-	 * 
-	 * @param userId
-	 * @param partyBo
-	 * @param backPic
-	 * @param photos
-	 * @param video
-	 */
-	private void addPicVideo(String userId, PartyBo partyBo, MultipartFile backPic, MultipartFile[] photos,
-			MultipartFile video) {
-		if (photos != null) {
-			LinkedList<String> photo = partyBo.getPhotos() == null ? new LinkedList<>() : partyBo.getPhotos();
-			for (MultipartFile file : photos) {
-				Long time = Calendar.getInstance().getTimeInMillis();
-				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
-				String path = CommonUtil.upload(file, Constant.PARTY_PICTURE_PATH, fileName, 0);
-				photo.addFirst(path);
-			}
-			partyBo.setPhotos(photo);
-		}
-		if (video != null) {
-			try {
-				Long time = Calendar.getInstance().getTimeInMillis();
-				String fileName = String.format("%s-%d-%s", userId, time, video.getOriginalFilename());
-				logger.info(partyQualiName+".addPicVideo---- party file: {} ,  size: {}", video.getOriginalFilename(), video.getSize());
-				String[] paths = CommonUtil.uploadVedio(video, Constant.PARTY_PICTURE_PATH, fileName, 0);
-				partyBo.setVideo(paths[0]);
-				partyBo.setVideoPic(paths[1]);
-			} catch (Exception e) {
-				logger.error(e);
-			}
-		}
-		if (backPic != null) {
-			Long time = Calendar.getInstance().getTimeInMillis();
-			String fileName = String.format("%s-%d-%s", userId, time, backPic.getOriginalFilename());
-			String path = CommonUtil.upload(backPic, Constant.PARTY_PICTURE_PATH, fileName, 0);
-			partyBo.setBackPic(path);
-		}
-	}
-
 	@ApiOperation("聚会详情信息")
 	@PostMapping("/party-info")
 	public String manageParty(@RequestParam String partyid, HttpServletRequest request, HttpServletResponse response) {
-
 		PartyBo partyBo = partyService.findById(partyid);
 		if (partyBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.PARTY_NULL.getIndex(), ERRORCODE.PARTY_NULL.getReason());
 		}
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo != null ? userBo.getId() : "";
-
+		logger.info("{}====[@RequestMapping:{},partyid:{},userid:{}]", logger.getName() + ".manageParty", "/party-info",
+				partyid, userid);
 		CircleBo circleBo = circleService.selectById(partyBo.getCircleid());
 		if (circleBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_IS_NULL.getIndex(), ERRORCODE.CIRCLE_IS_NULL.getReason());
@@ -402,12 +361,6 @@ public class PartyController extends BaseContorller {
 		map.put("ret", 0);
 		map.put("partyVo", partyVo);
 		return JSONObject.fromObject(map).toString();
-	}
-
-	private void partyUserBo2Vo(UserBo userBo, PartyUserVo userVo) {
-		userVo.setUserPic(userBo.getHeadPictureName());
-		userVo.setUsername(userBo.getUserName());
-		userVo.setUserid(userBo.getId());
 	}
 
 	/**
@@ -568,21 +521,18 @@ public class PartyController extends BaseContorller {
 	 * @param partyid
 	 * @return
 	 */
-	@PostMapping("/manage-enroll")
-	@Deprecated
-	public String getEnroll(@RequestParam String partyid, HttpServletRequest request, HttpServletResponse response) {
-		UserBo userBo;
-		try {
-			userBo = checkSession(request, userService);
-		} catch (MyException e) {
-			return e.getMessage();
-		}
-
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("partyVo", "");
-		return JSONObject.fromObject(map).toString();
-	}
+	/*
+	 * @PostMapping("/manage-enroll")
+	 * 
+	 * @Deprecated public String getEnroll(@RequestParam String partyid,
+	 * HttpServletRequest request, HttpServletResponse response) { UserBo
+	 * userBo; try { userBo = checkSession(request, userService); } catch
+	 * (MyException e) { return e.getMessage(); }
+	 * 
+	 * Map<String, Object> map = new HashMap<String, Object>(); map.put("ret",
+	 * 0); map.put("partyVo", ""); return JSONObject.fromObject(map).toString();
+	 * }
+	 */
 
 	/**
 	 * 获取我发起的聚会
@@ -600,9 +550,8 @@ public class PartyController extends BaseContorller {
 			return e.getMessage();
 		}
 		List<PartyBo> partyBos = partyService.findByCreate(userBo.getId(), page, limit);
-		System.out.println(JSON.toJSONString(partyBos));
 		List<PartyListVo> partyListVos = new ArrayList<>();
-		bo2listVo(partyBos, partyListVos, userBo);
+		bo2listVo(partyBos, partyListVos, userBo, null);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("partyListVos", partyListVos);
@@ -659,88 +608,6 @@ public class PartyController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	private void bo2listVo(List<PartyBo> partyBos, List<PartyListVo> partyListVos, UserBo userBo) {
-		for (PartyBo partyBo : partyBos) {
-			PartyListVo listVo = new PartyListVo();
-			if (partyBo.getForward() == 1) {
-				PartyBo forward = partyService.findById(partyBo.getSourcePartyid());
-				if (forward == null) {
-					continue;
-				}
-				BeanUtils.copyProperties(forward, listVo);
-				addValues(listVo, forward);
-				listVo.setPartyid(forward.getId());
-				listVo.setUserNum(forward.getPartyUserNum());
-				listVo.setSourceCirid(forward.getCircleid());
-				CircleBo circleBo = circleService.selectById(forward.getCircleid());
-				if (circleBo != null) {
-					listVo.setSourceCirName(circleBo.getName());
-				}
-				String createid = partyBo.getCreateuid();
-				listVo.setFromUserid(createid);
-				String name = "";
-				if (null != userBo) {
-					listVo.setJoin(forward.getUsers().contains(userBo.getId()));
-					if (!userBo.getId().equals(createid)) {
-						FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), createid);
-						if (friendsBo != null && StringUtils.isNotEmpty(friendsBo.getBackname())) {
-							name = friendsBo.getBackname();
-						}
-						userBo = userService.getUser(createid);
-					}
-				} else {
-					userBo = userService.getUser(createid);
-				}
-				listVo.setFromUserName("".equals(name) ? userBo.getUserName() : name);
-				listVo.setFromUserPic(userBo.getHeadPictureName());
-				listVo.setFromUserSex(userBo.getSex());
-				listVo.setFromUserSign(userBo.getPersonalizedSignature());
-				listVo.setFromUserBirth(userBo.getBirthDay());
-				listVo.setForward(true);
-				listVo.setView(partyBo.getView());
-			} else {
-				PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
-				BeanUtils.copyProperties(partyBo, listVo);
-				addValues(listVo, partyBo);
-				listVo.setPartyid(partyBo.getId());
-				listVo.setHasNotice(partyNoticeBo != null);
-				listVo.setUserNum(partyBo.getPartyUserNum());
-				listVo.setJoin(partyBo.getUsers().contains(userBo.getId()));
-			}
-			partyListVos.add(listVo);
-		}
-	}
-
-	private void addValues(PartyListVo listVo, PartyBo partyBo) {
-		LinkedHashSet<String> startTimes = partyBo.getStartTime();
-		PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
-		listVo.setHasNotice(partyNoticeBo != null);
-		BeanUtils.copyProperties(partyBo, listVo);
-		if (partyBo.getStatus() != 3) {
-			int status = getPartyStatus(startTimes, partyBo.getAppointment());
-			// 人数以报满
-			if (status == 1 && partyBo.getUserLimit() <= partyBo.getPartyUserNum() && partyBo.getUserLimit() != 0) {
-				if (partyBo.getStatus() != 2) {
-					updatePartyStatus(partyBo.getId(), 2);
-					listVo.setStatus(2);
-				}
-			} else if (status != partyBo.getStatus()) {
-				listVo.setStatus(status);
-				updatePartyStatus(partyBo.getId(), status);
-			}
-		}
-		listVo.setPartyid(partyBo.getId());
-		listVo.setUserNum(partyBo.getPartyUserNum());
-	}
-
-	private void updatePartyStatus(String partyid, int status) {
-		partyService.updatePartyStatus(partyid, status);
-		// 聚会结束,删除所有临时聊天
-		if (status == 3) {
-			chatroomService.deleteTempChat(partyid, Constant.ROOM_SINGLE);
-		}
-	}
-
 	/**
 	 * 发起群聊
 	 * 
@@ -791,30 +658,6 @@ public class PartyController extends BaseContorller {
 		updateUserChatroom(chatroomBo, useridArr);
 		partyService.updateChatroom(partyid, chatroomid);
 		return Constant.COM_RESP;
-	}
-
-	/**
-	 * 更新用户聊天室列表
-	 */
-	private void updateUserChatroom(ChatroomBo chatroomBo, String[] useridArr) {
-		LinkedHashSet<String> users = chatroomBo.getUsers();
-		for (String userid : useridArr) {
-			UserBo user = userService.getUser(userid);
-			if (null == user) {
-				continue;
-			}
-			HashSet<String> chatroom = user.getChatrooms();
-			// 个人聊天室中没有当前聊天室，则添加到个人的聊天室
-			if (!chatroom.contains(chatroomBo.getId())) {
-				chatroom.add(chatroomBo.getId());
-				user.setChatrooms(chatroom);
-				userService.updateChatrooms(user);
-			}
-			users.add(userid);
-			addChatroomUser(chatroomService, user, chatroomBo.getId(), user.getUserName());
-		}
-		chatroomBo.setUsers(users);
-		chatroomService.updateUsers(chatroomBo);
 	}
 
 	/**
@@ -1125,7 +968,7 @@ public class PartyController extends BaseContorller {
 			HttpServletResponse response) {
 		List<PartyBo> partyBos = partyService.findByCircleid(circleid, page, limit);
 		List<PartyListVo> partyListVos = new ArrayList<>();
-		bo2listVo(partyBos, partyListVos, getUserLogin(request));
+		bo2listVo(partyBos, partyListVos, getUserLogin(request), circleid);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("partyListVos", partyListVos);
@@ -1313,44 +1156,13 @@ public class PartyController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		logger.info("@RequestMapping:{},user:{},partyid:{}", "/tip-off-party", userBo.getUserName(), partyid);
 		PartyBo partyBo = partyService.findById(partyid);
 		if (partyBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.PARTY_NULL.getIndex(), ERRORCODE.PARTY_NULL.getReason());
 		}
 
 		return "";
-	}
-
-	/**
-	 * 复制参数 ,将old参数都复制到new上，如果new不存在，则复制
-	 * 
-	 * @param oldParty
-	 * @param newParty
-	 */
-	private void copyOld(PartyBo oldParty, PartyBo newParty) {
-		// 获取属性
-		try {
-			BeanInfo sourceBean = Introspector.getBeanInfo(oldParty.getClass(), java.lang.Object.class);
-			PropertyDescriptor[] sourceProperty = sourceBean.getPropertyDescriptors();
-			BeanInfo destBean = Introspector.getBeanInfo(newParty.getClass(), java.lang.Object.class);
-			PropertyDescriptor[] destProperty = destBean.getPropertyDescriptors();
-			for (int i = 0; i < sourceProperty.length; i++) {
-				for (int j = 0; j < destProperty.length; j++) {
-					PropertyDescriptor descriptors = destProperty[j];
-					if (sourceProperty[i].getName().equals(descriptors.getName())) {
-						Object value = descriptors.getReadMethod().invoke(newParty);
-						// 如果new的为空 或者
-						if (value == null) {
-							descriptors.getWriteMethod().invoke(newParty,
-									sourceProperty[i].getReadMethod().invoke(oldParty));
-						}
-						break;
-					}
-				}
-			}
-		} catch (Exception e) {
-			logger.error(e);
-		}
 	}
 
 	@ApiOperation("与聚会报名人员进行临时聊天")
@@ -1424,7 +1236,7 @@ public class PartyController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.NOTE_NOT_MASTER.getIndex(),
 					ERRORCODE.NOTE_NOT_MASTER.getReason());
 		}
-		LinkedList users = partyBo.getUsers();
+		LinkedList<String> users = partyBo.getUsers();
 		PartyNoticeBo noticeBo = new PartyNoticeBo();
 		noticeBo.setPartyid(partyid);
 		noticeBo.setContent(content);
@@ -1574,11 +1386,12 @@ public class PartyController extends BaseContorller {
 	public String forwardCircle(String partyid, String circleid, String view, String landmark,
 			HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("{}=====[@RequestMapping:{},partyid:{},circleid:{}]", logger.getName() + ".forwardCircle",
+				"/forward-circle", partyid, circleid);
 		PartyBo partyBo = partyService.findById(partyid);
 		if (null == partyBo) {
 			return CommonUtil.toErrorResult(ERRORCODE.PARTY_NULL.getIndex(), ERRORCODE.PARTY_NULL.getReason());
@@ -1594,17 +1407,20 @@ public class PartyController extends BaseContorller {
 		forward.setCreateuid(userBo.getId());
 		forward.setCircleid(circleid);
 		partyService.insert(forward);
+		partyService.updateShareNum(partyid);
 		// addCircleShow(partyBo);
 		// 用户等级
 		userService.addUserLevel(userBo.getId(), 1, Constant.PARTY_TYPE, 0);
 		// 圈子热度
 		updateCircleHot(circleService, redisServer, partyBo.getCircleid(), 1, Constant.CIRCLE_PARTY_VISIT);
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("partyid", partyBo.getId());
 		return JSONObject.fromObject(map).toString();
 	}
 
+	@SuppressWarnings("unchecked")
 	@ApiOperation("附近聚会列表,默认10千米范围")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "px", value = "当前人位置经度", required = true, paramType = "query", dataType = "double"),
@@ -1671,31 +1487,6 @@ public class PartyController extends BaseContorller {
 		map.put("ret", 0);
 		map.put("partyListVos", doing);
 		return JSONObject.fromObject(map).toString();
-
-		/*
-		 * GeoResults<PartyBo> partyBos = partyService.findNearParty(position,
-		 * 10000, limit,page); List<PartyListVo> listVos = new LinkedList<>();
-		 * DecimalFormat df = new DecimalFormat("###.00");
-		 * for(GeoResult<PartyBo> result : partyBos) { PartyBo partyBo =
-		 * result.getContent(); //判断用户是否已经删除这个信息 PartyNoticeBo partyNoticeBo =
-		 * partyService.findPartyNotice(partyBo.getId()); PartyListVo listVo =
-		 * new PartyListVo(); BeanUtils.copyProperties(partyBo, listVo); if
-		 * (partyBo.getStatus() != 3) { int status =
-		 * getPartyStatus(partyBo.getStartTime(), partyBo.getAppointment());
-		 * //人数以报满 if (status == 1 && partyBo.getUserLimit() <=
-		 * partyBo.getPartyUserNum() && partyBo.getUserLimit() !=0 ) { if
-		 * (partyBo.getStatus() != 2) { updatePartyStatus(partyBo.getId(), 2);
-		 * listVo.setStatus(2); } } else if (status != partyBo.getStatus()){
-		 * listVo.setStatus(status); updatePartyStatus(partyBo.getId(), status);
-		 * } } listVo.setJoin(partyBo.getUsers().contains(userid)); double dis =
-		 * Double.parseDouble(df.format(result.getDistance().getValue()));
-		 * listVo.setDistance(dis); listVo.setPartyid(partyBo.getId());
-		 * listVo.setHasNotice(partyNoticeBo != null);
-		 * listVo.setUserNum(partyBo.getPartyUserNum()); listVos.add(listVo); }
-		 * Map<String, Object> map = new HashMap<>(); map.put("ret", 0);
-		 * map.put("partyListVos", listVos); return
-		 * JSONObject.fromObject(map).toString();
-		 */
 	}
 
 	/**
@@ -1703,14 +1494,13 @@ public class PartyController extends BaseContorller {
 	 * 
 	 * @param partyBo
 	 */
-	private void addCircleShow(PartyBo partyBo) {
-		CircleShowBo circleShowBo = new CircleShowBo();
-		circleShowBo.setCircleid(partyBo.getCircleid());
-		circleShowBo.setTargetid(partyBo.getId());
-		circleShowBo.setType(1);
-		circleShowBo.setCreateTime(partyBo.getCreateTime());
-		circleService.addCircleShow(circleShowBo);
-	}
+	/*
+	 * private void addCircleShow(PartyBo partyBo) { CircleShowBo circleShowBo =
+	 * new CircleShowBo(); circleShowBo.setCircleid(partyBo.getCircleid());
+	 * circleShowBo.setTargetid(partyBo.getId()); circleShowBo.setType(1);
+	 * circleShowBo.setCreateTime(partyBo.getCreateTime());
+	 * circleService.addCircleShow(circleShowBo); }
+	 */
 
 	/**
 	 * 删除展示信息
@@ -1721,4 +1511,197 @@ public class PartyController extends BaseContorller {
 		circleService.deleteShow(partyid);
 	}
 
+	/**
+	 * 复制参数 ,将old参数都复制到new上，如果new不存在，则复制
+	 * 
+	 * @param oldParty
+	 * @param newParty
+	 */
+	private void copyOld(PartyBo oldParty, PartyBo newParty) {
+		// 获取属性
+		try {
+			BeanInfo sourceBean = Introspector.getBeanInfo(oldParty.getClass(), java.lang.Object.class);
+			PropertyDescriptor[] sourceProperty = sourceBean.getPropertyDescriptors();
+			BeanInfo destBean = Introspector.getBeanInfo(newParty.getClass(), java.lang.Object.class);
+			PropertyDescriptor[] destProperty = destBean.getPropertyDescriptors();
+			for (int i = 0; i < sourceProperty.length; i++) {
+				for (int j = 0; j < destProperty.length; j++) {
+					PropertyDescriptor descriptors = destProperty[j];
+					if (sourceProperty[i].getName().equals(descriptors.getName())) {
+						Object value = descriptors.getReadMethod().invoke(newParty);
+						// 如果new的为空 或者
+						if (value == null) {
+							descriptors.getWriteMethod().invoke(newParty,
+									sourceProperty[i].getReadMethod().invoke(oldParty));
+						}
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e);
+		}
+	}
+
+	/**
+	 * 图片及视频文件添加
+	 * 
+	 * @param userId
+	 * @param partyBo
+	 * @param backPic
+	 * @param photos
+	 * @param video
+	 */
+	private void addPicVideo(String userId, PartyBo partyBo, MultipartFile backPic, MultipartFile[] photos,
+			MultipartFile video) {
+		if (photos != null) {
+			LinkedList<String> photo = partyBo.getPhotos() == null ? new LinkedList<>() : partyBo.getPhotos();
+			for (MultipartFile file : photos) {
+				Long time = Calendar.getInstance().getTimeInMillis();
+				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
+				String path = CommonUtil.upload(file, Constant.PARTY_PICTURE_PATH, fileName, 0);
+				photo.addFirst(path);
+			}
+			partyBo.setPhotos(photo);
+		}
+		if (video != null) {
+			try {
+				Long time = Calendar.getInstance().getTimeInMillis();
+				String fileName = String.format("%s-%d-%s", userId, time, video.getOriginalFilename());
+				logger.info(partyQualiName + ".addPicVideo---- party file: {} ,  size: {}", video.getOriginalFilename(),
+						video.getSize());
+				String[] paths = CommonUtil.uploadVedio(video, Constant.PARTY_PICTURE_PATH, fileName, 0);
+				partyBo.setVideo(paths[0]);
+				partyBo.setVideoPic(paths[1]);
+			} catch (Exception e) {
+				logger.error(e);
+			}
+		}
+		if (backPic != null) {
+			Long time = Calendar.getInstance().getTimeInMillis();
+			String fileName = String.format("%s-%d-%s", userId, time, backPic.getOriginalFilename());
+			String path = CommonUtil.upload(backPic, Constant.PARTY_PICTURE_PATH, fileName, 0);
+			partyBo.setBackPic(path);
+		}
+	}
+
+	private void partyUserBo2Vo(UserBo userBo, PartyUserVo userVo) {
+		userVo.setUserPic(userBo.getHeadPictureName());
+		userVo.setUsername(userBo.getUserName());
+		userVo.setUserid(userBo.getId());
+	}
+
+	private void bo2listVo(List<PartyBo> partyBos, List<PartyListVo> partyListVos, UserBo userBo, String circleid) {
+		for (PartyBo partyBo : partyBos) {
+			PartyListVo listVo = new PartyListVo();
+			if (partyBo.getForward() == 1) {
+				PartyBo forward = partyService.findById(partyBo.getSourcePartyid());
+				if (forward == null) {
+					continue;
+				}
+				if (circleid == null && forward.getCreateuid().equals(userBo.getId())) {
+					continue;
+				}
+				BeanUtils.copyProperties(forward, listVo);
+				addValues(listVo, forward);
+				listVo.setPartyid(forward.getId());
+				listVo.setUserNum(forward.getPartyUserNum());
+				listVo.setSourceCirid(forward.getCircleid());
+				CircleBo circleBo = circleService.selectById(forward.getCircleid());
+				if (circleBo != null) {
+					listVo.setSourceCirName(circleBo.getName());
+				}
+				String createid = partyBo.getCreateuid();
+				listVo.setFromUserid(createid);
+				String name = "";
+				if (null != userBo) {
+					listVo.setJoin(forward.getUsers().contains(userBo.getId()));
+					if (!userBo.getId().equals(createid)) {
+						FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), createid);
+						if (friendsBo != null && StringUtils.isNotEmpty(friendsBo.getBackname())) {
+							name = friendsBo.getBackname();
+						}
+						userBo = userService.getUser(createid);
+					}
+				} else {
+					userBo = userService.getUser(createid);
+				}
+				listVo.setFromUserName("".equals(name) ? userBo.getUserName() : name);
+				listVo.setFromUserPic(userBo.getHeadPictureName());
+				listVo.setFromUserSex(userBo.getSex());
+				listVo.setFromUserSign(userBo.getPersonalizedSignature());
+				listVo.setFromUserBirth(userBo.getBirthDay());
+				listVo.setForward(true);
+				listVo.setView(partyBo.getView());
+			} else {
+				PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
+				BeanUtils.copyProperties(partyBo, listVo);
+				addValues(listVo, partyBo);
+				listVo.setPartyid(partyBo.getId());
+				listVo.setHasNotice(partyNoticeBo != null);
+				listVo.setUserNum(partyBo.getPartyUserNum());
+				if (userBo != null) {
+					listVo.setJoin(partyBo.getUsers().contains(userBo.getId()));
+				} else {
+					listVo.setJoin(false);
+				}
+
+			}
+			partyListVos.add(listVo);
+		}
+	}
+
+	private void addValues(PartyListVo listVo, PartyBo partyBo) {
+		LinkedHashSet<String> startTimes = partyBo.getStartTime();
+		PartyNoticeBo partyNoticeBo = partyService.findPartyNotice(partyBo.getId());
+		listVo.setHasNotice(partyNoticeBo != null);
+		BeanUtils.copyProperties(partyBo, listVo);
+		if (partyBo.getStatus() != 3) {
+			int status = getPartyStatus(startTimes, partyBo.getAppointment());
+			// 人数以报满
+			if (status == 1 && partyBo.getUserLimit() <= partyBo.getPartyUserNum() && partyBo.getUserLimit() != 0) {
+				if (partyBo.getStatus() != 2) {
+					updatePartyStatus(partyBo.getId(), 2);
+					listVo.setStatus(2);
+				}
+			} else if (status != partyBo.getStatus()) {
+				listVo.setStatus(status);
+				updatePartyStatus(partyBo.getId(), status);
+			}
+		}
+		listVo.setPartyid(partyBo.getId());
+		listVo.setUserNum(partyBo.getPartyUserNum());
+	}
+
+	private void updatePartyStatus(String partyid, int status) {
+		partyService.updatePartyStatus(partyid, status);
+		// 聚会结束,删除所有临时聊天
+		if (status == 3) {
+			chatroomService.deleteTempChat(partyid, Constant.ROOM_SINGLE);
+		}
+	}
+
+	/**
+	 * 更新用户聊天室列表
+	 */
+	private void updateUserChatroom(ChatroomBo chatroomBo, String[] useridArr) {
+		LinkedHashSet<String> users = chatroomBo.getUsers();
+		for (String userid : useridArr) {
+			UserBo user = userService.getUser(userid);
+			if (null == user) {
+				continue;
+			}
+			HashSet<String> chatroom = user.getChatrooms();
+			// 个人聊天室中没有当前聊天室，则添加到个人的聊天室
+			if (!chatroom.contains(chatroomBo.getId())) {
+				chatroom.add(chatroomBo.getId());
+				user.setChatrooms(chatroom);
+				userService.updateChatrooms(user);
+			}
+			users.add(userid);
+			addChatroomUser(chatroomService, user, chatroomBo.getId(), user.getUserName());
+		}
+		chatroomBo.setUsers(users);
+		chatroomService.updateUsers(chatroomBo);
+	}
 }

@@ -1791,6 +1791,7 @@ public class InforController extends BaseContorller {
         noteBo.setForward(1);
         noteBo.setCreateuid(userBo.getId());
         noteBo.setCircleId(circleid);
+		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
         noteService.insert(noteBo);
         updateInforNum(inforid, inforType, 1, Constant.SHARE_NUM);
         return Constant.COM_RESP;

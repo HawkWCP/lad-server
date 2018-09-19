@@ -249,4 +249,12 @@ public class PartyDaoImpl implements IPartyDao {
 		CommandResult executeCommand = mongoTemplate.executeCommand(jsonCommand);
 		return executeCommand;
 	}
+
+	@Override
+	public WriteResult updateShareNum(String partyid) {
+		Query query = new Query(Criteria.where("_id").is(partyid).and("deleted").is(0));
+		Update update = new Update();
+		update.inc("shareNum", 1);
+		return mongoTemplate.updateFirst(query, update, PartyBo.class);
+	}
 }

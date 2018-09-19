@@ -1,6 +1,7 @@
 package com.lad.dao.impl;
 
 import com.lad.bo.DynamicBo;
+import com.lad.bo.UserVisitBo;
 import com.lad.dao.IDynamicDao;
 import com.lad.util.Constant;
 import com.mongodb.WriteResult;
@@ -13,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 功能描述：
@@ -103,4 +105,12 @@ public class DynamicDaoImpl implements IDynamicDao {
         }
         return mongoTemplate.find(query, DynamicBo.class);
     }
+
+	@Override
+	public WriteResult updateReadToTure(String ownerid, Set<String> visitids) {
+		Query query = new Query(Criteria.where("ownerid").is(ownerid).and("visitid").in(visitids).and("read").is(false).and("deleted").is(0));
+		Update update = new Update();
+		update.set("read", true);
+		return mongoTemplate.updateMulti(query, update, UserVisitBo.class);
+	}
 }

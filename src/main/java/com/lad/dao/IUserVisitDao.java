@@ -4,6 +4,7 @@ import com.lad.bo.UserVisitBo;
 import com.mongodb.WriteResult;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -70,5 +71,9 @@ public interface IUserVisitDao {
      * @param ownerid
      * @return
      */
-    UserVisitBo findUserVisitFirst(String ownerid, int type);
+    List<UserVisitBo> findUserVisitFirst(String ownerid,HashSet<String>  not_push_set, int type);
+
+	List<UserVisitBo> visitToMeList(String ownerid, String visitid, int type);
+
+	WriteResult deleteByVisitid(String visitid, String ownerid);
 }

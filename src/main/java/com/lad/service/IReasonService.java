@@ -154,4 +154,8 @@ public interface IReasonService {
      * @return
      */
     ReasonBo findByUserAndChatroom(String userid, String chatroomid, int status);
+
+	List<ReasonBo> findByUserAndCircle(HashSet<String> users, String circleid, int status);
+
+	WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet);
 }

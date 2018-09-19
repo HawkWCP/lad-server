@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -83,11 +84,27 @@ public class UserVisitDaoImpl implements IUserVisitDao {
     }
 
     @Override
-    public UserVisitBo findUserVisitFirst(String ownerid, int type) {
+    public List<UserVisitBo> findUserVisitFirst(String ownerid, HashSet<String> not_push_set,int type) {
+    	
         Query query = new Query();
         query.addCriteria(new Criteria("ownerid").is(ownerid)
-                .and("type").is(type).and("deleted").is(Constant.ACTIVITY));
+                .and("type").is(type).and("visitid").nin(not_push_set).and("read").is(false).and("deleted").is(Constant.ACTIVITY));
         query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "_id")));
-        return mongoTemplate.findOne(query, UserVisitBo.class);
+        return mongoTemplate.find(query, UserVisitBo.class);
     }
+
+	@Override
+	public List<UserVisitBo> visitToMeList(String ownerid, String visitid, int type) {
+        Query query = new Query();
+        query.addCriteria(new Criteria("ownerid").is(ownerid).and("visitid").is(visitid).and("type").is(type).and("deleted").is(Constant.ACTIVITY));
+        query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "visitTime")));
+        return mongoTemplate.find(query, UserVisitBo.class);	}
+
+	@Override
+	public WriteResult deleteByVisitid(String visitid, String ownerid) {
+		Query query = new Query(Criteria.where("visitid").is(visitid).and("ownerid").is(ownerid).and("deleted").is(0).and("type").is(1));
+		Update update = new Update();
+		update.set("update", 1);
+		return mongoTemplate.updateMulti(query, update, UserVisitBo.class);
+	}
 }

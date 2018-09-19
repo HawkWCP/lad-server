@@ -3,6 +3,10 @@ package com.lad.bo;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -12,6 +16,9 @@ import java.util.Date;
  * Version: 1.0
  * Time:2017/12/18
  */
+@Setter
+@Getter
+@ToString
 @Document(collection = "userVisit")
 public class UserVisitBo implements Serializable {
 
@@ -27,52 +34,6 @@ public class UserVisitBo implements Serializable {
     private int type;
 
     private int deleted = 0;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getOwnerid() {
-        return ownerid;
-    }
-
-    public void setOwnerid(String ownerid) {
-        this.ownerid = ownerid;
-    }
-
-    public String getVisitid() {
-        return visitid;
-    }
-
-    public void setVisitid(String visitid) {
-        this.visitid = visitid;
-    }
-
-    public Date getVisitTime() {
-        return visitTime;
-    }
-
-    public void setVisitTime(Date visitTime) {
-        this.visitTime = visitTime;
-    }
-
-    public int getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(int deleted) {
-        this.deleted = deleted;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
+    
+    private boolean read = false;
 }

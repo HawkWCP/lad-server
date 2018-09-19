@@ -4,6 +4,7 @@ import com.lad.bo.DynamicBo;
 import com.mongodb.WriteResult;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 功能描述：
@@ -64,5 +65,7 @@ public interface IDynamicDao {
      * @return
      */
     List<DynamicBo> findAFriendsMsg(String friendid, int page, int limit);
+
+	WriteResult updateReadToTure(String ownerid, Set<String> visitids);
 
 }

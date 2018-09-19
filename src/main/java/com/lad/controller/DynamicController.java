@@ -1,17 +1,21 @@
 package com.lad.controller;
 
-import com.lad.bo.*;
-import com.lad.redis.RedisServer;
-import com.lad.service.*;
-import com.lad.util.CommonUtil;
-import com.lad.util.Constant;
-import com.lad.util.ERRORCODE;
-import com.lad.util.MyException;
-import com.lad.vo.DynamicVo;
-import com.lad.vo.UserBaseVo;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import net.sf.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -20,9 +24,32 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import com.alibaba.fastjson.JSON;
+import com.lad.bo.CircleBo;
+import com.lad.bo.DynamicBackBo;
+import com.lad.bo.DynamicBo;
+import com.lad.bo.FriendsBo;
+import com.lad.bo.HomepageBo;
+import com.lad.bo.ThumbsupBo;
+import com.lad.bo.UserBo;
+import com.lad.bo.UserVisitBo;
+import com.lad.redis.RedisServer;
+import com.lad.service.ICircleService;
+import com.lad.service.IDynamicService;
+import com.lad.service.IFriendsService;
+import com.lad.service.IHomepageService;
+import com.lad.service.IThumbsupService;
+import com.lad.service.IUserService;
+import com.lad.util.CommonUtil;
+import com.lad.util.Constant;
+import com.lad.util.ERRORCODE;
+import com.lad.util.MyException;
+import com.lad.vo.DynamicVo;
+import com.lad.vo.UserBaseVo;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import net.sf.json.JSONObject;
 
 /**
  * 功能描述：
@@ -34,6 +61,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/dynamic")
 public class DynamicController extends BaseContorller {
+	
+	private static final Logger logger = LoggerFactory.getLogger(DynamicController.class);
 
     @Autowired
     private RedisServer redisServer;
@@ -53,7 +82,161 @@ public class DynamicController extends BaseContorller {
     @Autowired
     private IFriendsService friendsService;
 
+	@Autowired
+	private IHomepageService homepageService;
+	
+    /**
+     * 设置隐身访问
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("设置访问不隐身")
+    @RequestMapping(value = "/set-not-hide", method = {RequestMethod.GET, RequestMethod.POST})
+    public String setNotHide(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        if(homepageBo == null){
+        	 return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
+                     ERRORCODE.ACCOUNT_ID.getReason());
+        }
+        HashSet<String> hide_record_set = homepageBo.getHide_record_set() == null?new HashSet<String>():homepageBo.getHide_record_set();
+        if(hide_record_set.contains(uid)){
+        	hide_record_set.remove(uid);
+        }
+        homepageService.update_hide_record_set(homepageBo.getId(),hide_record_set);
+        Map<String,Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
+	
+    /**
+     * 设置隐身访问
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("设置隐身访问")
+    @RequestMapping(value = "/set-hide-me", method = {RequestMethod.GET, RequestMethod.POST})
+    public String setHideMe(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        if(homepageBo == null){
+        	 return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
+                     ERRORCODE.ACCOUNT_ID.getReason());
+        }
+        HashSet<String> hide_record_set = homepageBo.getHide_record_set() == null?new HashSet<String>():homepageBo.getHide_record_set();
+        hide_record_set.add(uid);
+        homepageService.update_hide_record_set(homepageBo.getId(),hide_record_set);
+        Map<String,Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
 
+    /**
+     * 设置用户访问为通知
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("设置用户访问为通知")
+    @RequestMapping(value = "/set-allow-push", method = {RequestMethod.GET, RequestMethod.POST})
+    public String setAllowPush(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        if(homepageBo == null){
+        	 return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
+                     ERRORCODE.ACCOUNT_ID.getReason());
+        }
+        HashSet<String> not_push_set = homepageBo.getNot_push_set() == null?new HashSet<String>():homepageBo.getNot_push_set();
+        if(not_push_set.contains(uid)){
+        	 not_push_set.remove(uid);
+        }
+        homepageService.update_not_push_set(homepageBo.getId(),not_push_set);
+        Map<String,Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
+	
+    /**
+     * 设置用户访问不通知
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("设置用户访问不通知")
+    @RequestMapping(value = "/set-not-push", method = {RequestMethod.GET, RequestMethod.POST})
+    public String setNotPush(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        if(homepageBo == null){
+        	 return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
+                     ERRORCODE.ACCOUNT_ID.getReason());
+        }
+        HashSet<String> not_push_set = homepageBo.getNot_push_set() == null?new HashSet<String>():homepageBo.getNot_push_set();
+        not_push_set.add(uid);
+        homepageService.update_not_push_set(homepageBo.getId(),not_push_set);
+        Map<String,Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
+    
+    /**
+     * 删除来访记录
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("删除来访记录(谁看过我)")
+    @RequestMapping(value = "/delete-vzt2me-history", method = {RequestMethod.GET, RequestMethod.POST})
+    public String deleteVisit2Me(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        userService.deleteByVisitid(uid,userBo.getId());
+        Map<String, Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
+    
+    /**
+     * 删除来访记录
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("删除来访记录(谁看过我)")
+    @RequestMapping(value = "/delete-i2vzt-history", method = {RequestMethod.GET, RequestMethod.POST})
+    public String deleteMe2Visit(String uid,HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        userService.deleteByVisitid(userBo.getId(),uid);
+        Map<String, Object> map = new HashMap<>();
+        map.put("ret", 0);
+        return JSONObject.fromObject(map).toString();
+    }
+    
     /**
      * 添加动态
      * @param px
@@ -287,16 +470,28 @@ public class DynamicController extends BaseContorller {
         map.put("backPic", userBo.getDynamicPic());
         map.put("headPic", userBo.getHeadPictureName());
         map.put("signature", userBo.getPersonalizedSignature());
-        UserVisitBo userVisitBo = userService.findUserVisitFirst(userBo.getId(), 1);
-        UserBaseVo show = new UserBaseVo();
-        if (userVisitBo != null) {
-            UserBo user = userService.getUser(userVisitBo.getVisitid());
-            if (user != null) {
-                BeanUtils.copyProperties(user, show);
+        HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        HashSet<String> not_push_set = homepageBo.getNot_push_set();
+       
+        List<UserVisitBo> userVisitBos = userService.findUserVisitFirst(userBo.getId(),not_push_set, 1);
+       
+        UserBaseVo show = null;
+        for (UserVisitBo userVisitBo : userVisitBos) {
+            HomepageBo ownerHomePage = homepageService.selectByUserId(userVisitBo.getOwnerid());
+            HashSet<String> hide_record_set = ownerHomePage.getHide_record_set();
+            
+            if (userVisitBo != null && !hide_record_set.contains(userVisitBo.getOwnerid())) {
+                UserBo user = userService.getUser(userVisitBo.getVisitid());
+                show = new UserBaseVo();
+                if (user != null) {
+                    BeanUtils.copyProperties(user, show);
+                }
+                break;
             }
-        }
-        map.put("showUser", show);
-        return JSONObject.fromObject(map).toString();
+		}
+
+        map.put("showUser", show==null?"":show);
+        return JSON.toJSONString(map);
     }
 
     /**
@@ -367,19 +562,96 @@ public class DynamicController extends BaseContorller {
     @RequestMapping(value = "/visit-my-dynamic", method = {RequestMethod.GET, RequestMethod.POST})
     public String visitMyDynamics(int page, int limit,
                              HttpServletRequest request, HttpServletResponse response){
-        UserBo userBo = getUserLogin(request);
+    	UserBo userBo = getUserLogin(request);
         if (userBo == null) {
             return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
                     ERRORCODE.ACCOUNT_OFF_LINE.getReason());
         }
         List<UserVisitBo> visitBos = userService.visitToMeList(userBo.getId(), 1, page, limit);
-        List<UserBaseVo> visitUsers = new LinkedList<>();
+        List<Object> visitUsers = new LinkedList<>();
+        // 保存所有访问者的id
+        Set<String> temp = new HashSet<>();
+        
+        HomepageBo myHomepage = homepageService.selectByUserId(userBo.getId());
+        HashSet<String> not_push_set = myHomepage.getNot_push_set()==null?new HashSet<>():myHomepage.getNot_push_set();
         for (UserVisitBo visitBo : visitBos) {
             UserBo user = userService.getUser(visitBo.getVisitid());
+            // 过滤掉想要隐藏的人
+            HomepageBo selectByUserId = homepageService.selectByUserId(user.getId());
+            if(selectByUserId!=null && selectByUserId.getHide_record_set().contains(userBo.getId())){
+            	continue;
+            }
             if (user != null) {
-                UserBaseVo baseVo = new UserBaseVo();
-                BeanUtils.copyProperties(user, baseVo);
-                visitUsers.add(baseVo);
+            	if(!temp.contains(user.getId())){
+                    UserBaseVo baseVo = new UserBaseVo();
+                    BeanUtils.copyProperties(user, baseVo);
+                    List<UserVisitBo> visBos = userService.visitToMeList(userBo.getId(),user.getId(), 1);
+                    List<Date> visitTime = new ArrayList<>();
+                    for (UserVisitBo date : visBos) {
+                    	if(date!=null){
+                    		if(date.getVisitTime()!=null){
+                    			visitTime.add(date.getVisitTime());
+                    		}
+                    	}
+					}
+                    com.alibaba.fastjson.JSONObject parseObject = JSON.parseObject(JSON.toJSONString(baseVo));
+                    parseObject.put("visitTime", visitTime);
+                    parseObject.put("push", !not_push_set.contains(user.getId()));
+                    temp.add(user.getId());
+                    visitUsers.add(parseObject);
+            	}
+            }
+        }
+        
+        dynamicService.updateReadToTure(userBo.getId(),temp);
+        Map<String, Object> map = new HashMap<>();
+        map.put("ret", 0);
+        map.put("visitUserVos", visitUsers);
+        return JSONObject.fromObject(map).toString();
+    }
+    
+    /**
+     * 我看过谁的动态
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("我看过谁的动态")
+    @RequestMapping(value = "/my-visit-dynamic", method = {RequestMethod.GET, RequestMethod.POST})
+    public String myVisitDynamics(int page, int limit,
+                             HttpServletRequest request, HttpServletResponse response){
+        UserBo userBo = getUserLogin(request);
+        if (userBo == null) {
+            return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+                    ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+        }
+        List<UserVisitBo> visitBos = userService.visitFromMeList(userBo.getId(), 1, page, limit);
+        List<Object> visitUsers = new LinkedList<>();
+        Set<String> temp = new HashSet<>();
+        HomepageBo myHomepage = homepageService.selectByUserId(userBo.getId());
+        HashSet<String> hide_record_set = myHomepage.getHide_record_set()==null?new HashSet<String>():myHomepage.getHide_record_set();;
+        for (UserVisitBo visitBo : visitBos) {
+            UserBo user = userService.getUser(visitBo.getOwnerid());
+            if (user != null) {
+            	if(!temp.contains(user.getId())){
+                    UserBaseVo baseVo = new UserBaseVo();
+                    BeanUtils.copyProperties(user, baseVo);
+                    List<UserVisitBo> visBos = userService.visitToMeList(user.getId(),userBo.getId(), 1);
+                    List<Date> visitTime = new ArrayList<>();
+                    for (UserVisitBo date : visBos) {
+                    	if(date!=null){
+                    		if(date.getVisitTime()!=null){
+                    			visitTime.add(date.getVisitTime());
+                    		}
+                    	}
+					}
+                    com.alibaba.fastjson.JSONObject parseObject = JSON.parseObject(JSON.toJSONString(baseVo));
+                    parseObject.put("visitTime", visitTime);
+                    parseObject.put("hide", hide_record_set.contains(user.getId()));
+                    temp.add(user.getId());
+                    visitUsers.add(parseObject);
+            	}
+  
             }
         }
         Map<String, Object> map = new HashMap<>();
@@ -428,6 +700,10 @@ public class DynamicController extends BaseContorller {
         visitBo.setVisitid(userid);
         visitBo.setOwnerid(friendid);
         visitBo.setType(1);
+        HomepageBo selectByUserId = homepageService.selectByUserId(userid);
+        if(selectByUserId!=null&&selectByUserId.getHide_record_set().contains(friendid)){
+        	visitBo.setRead(true);
+        }
         userService.addUserVisit(visitBo);
     }
 

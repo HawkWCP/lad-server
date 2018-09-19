@@ -3,6 +3,7 @@ package com.lad.controller;
 import com.alibaba.fastjson.JSON;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
+import com.lad.util.HttpClientUtil;
 import com.lad.util.JPushUtil;
 import lombok.extern.log4j.Log4j2;
 import net.sf.json.JSONObject;
@@ -23,7 +24,15 @@ import java.util.*;
 @RestController
 @RequestMapping("test")
 public class TestController extends BaseContorller {
-
+	@GetMapping("/sendPost")
+	public String sendPost(){
+		HttpClientUtil client = HttpClientUtil.getInstance();
+		Map<String,String> params = new HashMap<>();
+		params.put("q", "你好习近平共产党蒋介石抠逼六四事件信用卡理财全民贷信用卡理财");
+		String url = "http://127.0.0.1:8090/v1/query";
+		String response = client.sendPost(url, params);
+		return response;
+	}
 
 	@GetMapping("/send")
 	public String setTag(HttpServletRequest request, HttpServletResponse response) {

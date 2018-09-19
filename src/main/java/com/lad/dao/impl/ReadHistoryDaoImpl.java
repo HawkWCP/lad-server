@@ -1,5 +1,7 @@
 package com.lad.dao.impl;
 
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -31,6 +33,7 @@ public class ReadHistoryDaoImpl implements IReadHistoryDao {
 		Query query = new Query(new Criteria("_id").is(id));
 		Update update = new Update();
 		update.set("readNum", readNum);
+		update.set("updateTime", new Date());
 		mongoTemplate.updateFirst(query, update, ReadHistoryBo.class);
 		return id;
 	}

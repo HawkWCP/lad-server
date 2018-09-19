@@ -151,4 +151,6 @@ public interface IPartyDao {
 
 	CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page);
 
+	WriteResult updateShareNum(String partyid);
+
 }

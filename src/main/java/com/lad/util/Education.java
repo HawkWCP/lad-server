@@ -71,6 +71,8 @@ public enum Education {
 	}
 	
 	class EnumException extends Exception{
+		private static final long serialVersionUID = 1L;
+
 		public EnumException(String message){
 			super(message);
 		}

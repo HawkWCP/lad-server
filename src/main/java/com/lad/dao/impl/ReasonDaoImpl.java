@@ -237,4 +237,27 @@ public class ReasonDaoImpl implements IReasonDao {
         query.addCriteria(criteria);
         return mongoTemplate.findOne(query, ReasonBo.class);
     }
+
+	@Override
+	public List<ReasonBo> findByUserAndCircle(HashSet<String> users, String circleid, int status) {
+		Query query = new Query();
+        query.addCriteria(new Criteria("createuid").in(users));
+        query.addCriteria(new Criteria("circleid").is(circleid));
+        query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
+        query.addCriteria(new Criteria("status").is(status));
+       	return mongoTemplate.find(query, ReasonBo.class);
+	}
+	
+    @Override
+    public WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet) {
+        Query query = new Query();
+        query.addCriteria(new Criteria("createuid").is(userid));
+        query.addCriteria(new Criteria("circleid").is(circleid));
+        query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
+        query.addCriteria(new Criteria("status").is(Constant.ADD_AGREE));
+        Update update = new Update();
+        update.set("unReadSet", unReadSet);
+        update.set("unReadNum", unReadSet.size());
+        return mongoTemplate.updateFirst(query, update, ReasonBo.class);
+    }
 }

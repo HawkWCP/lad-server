@@ -416,4 +416,9 @@ public class CircleServiceImpl implements ICircleService {
 	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids) {
 		return circleDao.findApplyCircleAddByids(ids);
 	}
+
+	@Override
+	public List<CircleBo> findCirclesByUid(String id, List<String> topCircles) {
+		return circleDao.findCirclesByUid(id, topCircles);
+	}
 }

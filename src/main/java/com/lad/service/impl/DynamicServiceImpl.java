@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 功能描述：
@@ -118,4 +119,9 @@ public class DynamicServiceImpl implements IDynamicService {
     public WriteResult updateNumbersZero(String userid) {
         return dynamicNumDao.updateNumbersZero(userid);
     }
+
+	@Override
+	public WriteResult updateReadToTure(String ownerid, Set<String> visitids) {
+		return dynamicDao.updateReadToTure(ownerid, visitids);
+	}
 }

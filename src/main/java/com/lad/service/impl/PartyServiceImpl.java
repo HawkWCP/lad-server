@@ -214,4 +214,9 @@ public class PartyServiceImpl implements IPartyService {
 	public CommandResult findNearCircleByCommond(double[] position, int i, int limit, int page) {
 		return partyDao.findNearCircleByCommond(position,i,limit,page);
 	}
+
+	@Override
+	public WriteResult updateShareNum(String partyid) {
+		return partyDao.updateShareNum( partyid);
+	}
 }

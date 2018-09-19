@@ -7,6 +7,7 @@ import com.mongodb.WriteResult;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 功能描述：
@@ -130,6 +131,8 @@ public interface IDynamicService {
      * @return
      */
     WriteResult updateNumbers(String id, int addNum);
+    
+	WriteResult updateReadToTure(String ownerid, Set<String> visitids);
 
 
 }

@@ -7,6 +7,8 @@ import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.IMUtil;
 import com.lad.util.JPushUtil;
+import com.mongodb.WriteResult;
+
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -799,6 +801,36 @@ public class AsyncController extends BaseContorller {
         try{
             lock.lock(3, TimeUnit.SECONDS);
             reasonService.updateUnReadNum(users, circleBo.getId());
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    /**
+     * 圈子未读信息数量添加
+     * @param pushUserid
+     * @param circleid
+     */
+    @Async
+    public void updateCircieNoteUnReadNum(String pushUserid, String circleid,String noteid){
+        CircleBo circleBo = circleService.selectById(circleid);
+        if (circleBo == null) {
+            return;
+        }
+        HashSet<String> users = circleBo.getUsers();
+        if (users.contains(pushUserid)) {
+            users.remove(pushUserid);
+        }
+        logger.info(" circle {} note unRead update, users {}", circleid, users);
+        RLock lock = redisServer.getRLock(circleid + "UnReadNumLock");
+        try{
+            lock.lock(4, TimeUnit.SECONDS);
+            List<ReasonBo> reas = reasonService.findByUserAndCircle(users, circleid, 1);
+            for (ReasonBo reasonBo : reas) {
+            	HashSet<String> unReadSet = reasonBo.getUnReadSet()==null?new HashSet<>():reasonBo.getUnReadSet();
+            	unReadSet.add(noteid);
+            	reasonService.updateUnReadSet(reasonBo.getCreateuid(), circleBo.getId(),unReadSet);
+			}
         } finally {
             lock.unlock();
         }

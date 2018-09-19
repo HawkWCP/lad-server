@@ -16,10 +16,11 @@ import java.util.List;
 
 /**
  * 用户service
+ * 
  * @author huweijun
  */
 @Service("userService")
-public class UserServiceImpl implements IUserService{
+public class UserServiceImpl implements IUserService {
 
 	@Autowired
 	private IUserDao userDao;
@@ -39,41 +40,41 @@ public class UserServiceImpl implements IUserService{
 	@Autowired
 	private IUserVisitDao userVisitDao;
 
-	public UserBo save(UserBo userBo){
+	public UserBo save(UserBo userBo) {
 		userBo = userDao.save(userBo);
 		return userBo;
 	}
 
-	public UserBo updatePassword(UserBo userBo){
+	public UserBo updatePassword(UserBo userBo) {
 		userBo = userDao.updatePassword(userBo);
 		return userBo;
 	}
 
-	public WriteResult updatePhone(UserBo userBo){
+	public WriteResult updatePhone(UserBo userBo) {
 		return userDao.updatePhone(userBo);
 	}
 
-	public WriteResult updateHeadPictureName(UserBo userBo){
+	public WriteResult updateHeadPictureName(UserBo userBo) {
 		return userDao.updateHeadPictureName(userBo);
 	}
 
-	public WriteResult updateUserName(UserBo userBo){
+	public WriteResult updateUserName(UserBo userBo) {
 		return userDao.updateUserName(userBo);
 	}
 
-	public WriteResult updateBirthDay(UserBo userBo){
+	public WriteResult updateBirthDay(UserBo userBo) {
 		return userDao.updateBirthDay(userBo);
 	}
 
-	public WriteResult updateSex(UserBo userBo){
+	public WriteResult updateSex(UserBo userBo) {
 		return userDao.updateSex(userBo);
 	}
 
-	public WriteResult updatePersonalizedSignature(UserBo userBo){
+	public WriteResult updatePersonalizedSignature(UserBo userBo) {
 		return userDao.updatePersonalizedSignature(userBo);
 	}
 
-	public Pager selectPage(UserBo userBo,Pager pager){
+	public Pager selectPage(UserBo userBo, Pager pager) {
 		return userDao.selectPage(userBo, pager);
 	}
 
@@ -101,12 +102,11 @@ public class UserServiceImpl implements IUserService{
 		return userDao.updateLocation(phone, locationid);
 	}
 
-
-	public List<RedstarBo> findRedUserTotal(String circleId){
+	public List<RedstarBo> findRedUserTotal(String circleId) {
 		return redstarDao.findRedTotal(circleId);
 	}
 
-	public List<RedstarBo> findRedUserWeek(String circleId,int weekNo, int year){
+	public List<RedstarBo> findRedUserWeek(String circleId, int weekNo, int year) {
 		return redstarDao.findRedWeek(circleId, weekNo, year);
 	}
 
@@ -154,57 +154,57 @@ public class UserServiceImpl implements IUserService{
 		if (userLevelBo == null) {
 			userLevelBo = new UserLevelBo();
 			userLevelBo.setUserid(userid);
-			switch (type){
-				case Constant.LEVEL_HOUR:
-					userLevelBo.setOnlineHours(hours);
-					break;
-				case Constant.LEVEL_PARTY:
-					userLevelBo.setLaunchPartys((int) num);
-					break;
-				case Constant.LEVEL_NOTE:
-					userLevelBo.setNoteNum((int) num);
-					break;
-				case Constant.LEVEL_COMMENT:
-					userLevelBo.setCommentNum((int) num);
-					break;
-				case Constant.LEVEL_TRANS:
-					userLevelBo.setTransmitNum((int) num);
-					break;
-				case Constant.LEVEL_SHARE:
-					userLevelBo.setShareNum((int) num);
-					break;
-				case Constant.LEVEL_CIRCLE:
-					userLevelBo.setCircleNum((int) num);
-					break;
-				default:
-					break;
+			switch (type) {
+			case Constant.LEVEL_HOUR:
+				userLevelBo.setOnlineHours(hours);
+				break;
+			case Constant.LEVEL_PARTY:
+				userLevelBo.setLaunchPartys((int) num);
+				break;
+			case Constant.LEVEL_NOTE:
+				userLevelBo.setNoteNum((int) num);
+				break;
+			case Constant.LEVEL_COMMENT:
+				userLevelBo.setCommentNum((int) num);
+				break;
+			case Constant.LEVEL_TRANS:
+				userLevelBo.setTransmitNum((int) num);
+				break;
+			case Constant.LEVEL_SHARE:
+				userLevelBo.setShareNum((int) num);
+				break;
+			case Constant.LEVEL_CIRCLE:
+				userLevelBo.setCircleNum((int) num);
+				break;
+			default:
+				break;
 			}
 			userLevelDao.insert(userLevelBo);
 		} else {
-			switch (type){
-				case Constant.LEVEL_HOUR:
-					userLevelBo.setOnlineHours(userLevelBo.getOnlineHours() + hours);
-					break;
-				case Constant.LEVEL_PARTY:
-					userLevelBo.setLaunchPartys(userLevelBo.getLaunchPartys() + (int)num);
-					break;
-				case Constant.LEVEL_NOTE:
-					userLevelBo.setNoteNum(userLevelBo.getNoteNum() + (int) num);
-					break;
-				case Constant.LEVEL_COMMENT:
-					userLevelBo.setCommentNum(userLevelBo.getCommentNum () + (int) num);
-					break;
-				case Constant.LEVEL_TRANS:
-					userLevelBo.setTransmitNum(userLevelBo.getTransmitNum() + (int) num);
-					break;
-				case Constant.LEVEL_SHARE:
-					userLevelBo.setShareNum(userLevelBo.getShareNum() + (int) num);
-					break;
-				case Constant.LEVEL_CIRCLE:
-					userLevelBo.setCircleNum(userLevelBo.getShareNum()+ (int) num);
-					break;
-				default:
-					break;
+			switch (type) {
+			case Constant.LEVEL_HOUR:
+				userLevelBo.setOnlineHours(userLevelBo.getOnlineHours() + hours);
+				break;
+			case Constant.LEVEL_PARTY:
+				userLevelBo.setLaunchPartys(userLevelBo.getLaunchPartys() + (int) num);
+				break;
+			case Constant.LEVEL_NOTE:
+				userLevelBo.setNoteNum(userLevelBo.getNoteNum() + (int) num);
+				break;
+			case Constant.LEVEL_COMMENT:
+				userLevelBo.setCommentNum(userLevelBo.getCommentNum() + (int) num);
+				break;
+			case Constant.LEVEL_TRANS:
+				userLevelBo.setTransmitNum(userLevelBo.getTransmitNum() + (int) num);
+				break;
+			case Constant.LEVEL_SHARE:
+				userLevelBo.setShareNum(userLevelBo.getShareNum() + (int) num);
+				break;
+			case Constant.LEVEL_CIRCLE:
+				userLevelBo.setCircleNum(userLevelBo.getShareNum() + (int) num);
+				break;
+			default:
+				break;
 			}
 			userLevelDao.update(userLevelBo.getId(), num, type);
 			level = getLevel(userLevelBo);
@@ -214,8 +214,7 @@ public class UserServiceImpl implements IUserService{
 		}
 	}
 
-
-	private int getLevel(UserLevelBo userLevelBo){
+	private int getLevel(UserLevelBo userLevelBo) {
 
 		double hours = userLevelBo.getOnlineHours();
 
@@ -231,25 +230,23 @@ public class UserServiceImpl implements IUserService{
 
 		int circles = userLevelBo.getCircleNum();
 
-
-		if (hours >= 300 && partys >= 30 && notes >= 150
-				&& comments >= 200 && trans >=200 && shares >= 300 && circles > 1 ) {
+		if (hours >= 300 && partys >= 30 && notes >= 150 && comments >= 200 && trans >= 200 && shares >= 300
+				&& circles > 1) {
 			return 6;
 		}
-		if (hours >= 150 && partys >= 20 && notes >= 100
-				&& comments >= 150 && trans >=150 && shares >= 200 && circles > 0  ) {
+		if (hours >= 150 && partys >= 20 && notes >= 100 && comments >= 150 && trans >= 150 && shares >= 200
+				&& circles > 0) {
 			return 5;
 		}
-		if (hours >= 100 && partys >= 10 && notes >= 50
-				&& comments >= 80 && trans >=100 && shares >= 150 && circles > 0 ) {
+		if (hours >= 100 && partys >= 10 && notes >= 50 && comments >= 80 && trans >= 100 && shares >= 150
+				&& circles > 0) {
 			return 4;
 		}
-		if (hours >= 60 && partys >= 3 && notes >= 30
-				&& comments >= 50 && trans >=60 && shares >= 100 && circles > 0 ) {
+		if (hours >= 60 && partys >= 3 && notes >= 30 && comments >= 50 && trans >= 60 && shares >= 100
+				&& circles > 0) {
 			return 3;
 		}
-		if (hours >= 30 && partys >= 1 && notes >= 10
-				&& comments >= 20 && trans >=30 && shares >= 50 ) {
+		if (hours >= 30 && partys >= 1 && notes >= 10 && comments >= 20 && trans >= 30 && shares >= 50) {
 			return 2;
 		}
 		return 1;
@@ -268,25 +265,25 @@ public class UserServiceImpl implements IUserService{
 	@Override
 	public WriteResult updateUserTaste(String id, LinkedHashSet<String> tastes, int type) {
 
-		switch (type){
-			case Constant.ONE:
-				return userTasteDao.updateSport(id, tastes);
-			case Constant.TWO:
-				return userTasteDao.updateMusic(id, tastes);
-			case Constant.THREE:
-				return userTasteDao.updateLife(id, tastes);
-			case Constant.FOUR:
-				return userTasteDao.updateTrip(id, tastes);
-			default:
-				break;
+		switch (type) {
+		case Constant.ONE:
+			return userTasteDao.updateSport(id, tastes);
+		case Constant.TWO:
+			return userTasteDao.updateMusic(id, tastes);
+		case Constant.THREE:
+			return userTasteDao.updateLife(id, tastes);
+		case Constant.FOUR:
+			return userTasteDao.updateTrip(id, tastes);
+		default:
+			break;
 		}
 		return null;
 
 	}
 
 	@Override
-	public List<UserBo> getUserByPhoneAndTime(List<String> phones,Date timestamp) {
-		return userDao.getUserByPhoneAndTime(phones,timestamp);
+	public List<UserBo> getUserByPhoneAndTime(List<String> phones, Date timestamp) {
+		return userDao.getUserByPhoneAndTime(phones, timestamp);
 	}
 
 	@Override
@@ -305,12 +302,12 @@ public class UserServiceImpl implements IUserService{
 	}
 
 	@Override
-	public List<UserVisitBo> visitFromMeList(String userid,int type, int page, int limit) {
+	public List<UserVisitBo> visitFromMeList(String userid, int type, int page, int limit) {
 		return userVisitDao.visitFromMeList(userid, type, page, limit);
 	}
 
 	@Override
-	public List<UserVisitBo> visitToMeList(String userid, int type,int page, int limit) {
+	public List<UserVisitBo> visitToMeList(String userid, int type, int page, int limit) {
 		return userVisitDao.visitToMeList(userid, type, page, limit);
 	}
 
@@ -330,8 +327,8 @@ public class UserServiceImpl implements IUserService{
 	}
 
 	@Override
-	public UserVisitBo findUserVisitFirst(String ownerid, int type) {
-		return userVisitDao.findUserVisitFirst(ownerid, type);
+	public List<UserVisitBo> findUserVisitFirst(String ownerid,HashSet<String>  not_push_set,int type) {
+		return userVisitDao.findUserVisitFirst(ownerid, not_push_set,type);
 	}
 
 	@Override
@@ -348,7 +345,6 @@ public class UserServiceImpl implements IUserService{
 	public WriteResult updateUserInfo(UserBo userBo) {
 		return userDao.updateUserInfo(userBo);
 	}
-
 
 	@Override
 	public UserBo findByOpenid(String openid) {
@@ -376,8 +372,8 @@ public class UserServiceImpl implements IUserService{
 	}
 
 	@Override
-	public WriteResult updateQQUserInfor(String id, String accessToken, String nickname, String userPic, String
-			gender) {
+	public WriteResult updateQQUserInfor(String id, String accessToken, String nickname, String userPic,
+			String gender) {
 		return userDao.updateQQUserInfor(id, accessToken, nickname, userPic, gender);
 	}
 
@@ -399,5 +395,15 @@ public class UserServiceImpl implements IUserService{
 	@Override
 	public List<UserBo> findAllUser() {
 		return userDao.findAllUser();
+	}
+
+	@Override
+	public List<UserVisitBo> visitToMeList(String ownerid, String visitid, int type) {
+		return userVisitDao.visitToMeList(ownerid, visitid, type);
+	}
+
+	@Override
+	public WriteResult deleteByVisitid(String visitid, String ownerid) {
+		return userVisitDao.deleteByVisitid(visitid, ownerid);
 	}
 }

@@ -209,7 +209,7 @@ public interface IUserService extends IBaseService {
 	 * @param ownerid
 	 * @return
 	 */
-	UserVisitBo findUserVisitFirst(String ownerid, int type);
+	List<UserVisitBo> findUserVisitFirst(String ownerid, HashSet<String>  not_push_set,int type);
 
 	/**
 	 * 查找集合中的用户信息
@@ -296,4 +296,8 @@ public interface IUserService extends IBaseService {
 	 * @return
 	 */
 	public List<UserBo> findAllUser();
+
+	public List<UserVisitBo> visitToMeList(String ownerid, String visitid, int type);
+
+	public WriteResult deleteByVisitid(String visitid, String ownerid);
 }

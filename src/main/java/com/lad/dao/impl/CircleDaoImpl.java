@@ -228,7 +228,7 @@ public class CircleDaoImpl implements ICircleDao {
 		}
 		query.addCriteria(criteria);
 		query.with(new Sort(new Sort.Order(Direction.DESC, "hotNum")));
-		int skip = (page-1)<0?0:(page-1)*limit;
+		int skip = (page - 1) < 0 ? 0 : (page - 1) * limit;
 		query.skip(skip);
 		query.limit(limit);
 		return mongoTemplate.find(query, CircleBo.class);
@@ -327,6 +327,7 @@ public class CircleDaoImpl implements ICircleDao {
 		return mongoTemplate.updateFirst(query, update, CircleBo.class);
 	}
 
+	// TODO
 	@Override
 	public WriteResult updateCircleHot(String circleid, int num, int type) {
 		Query query = new Query();
@@ -530,7 +531,8 @@ public class CircleDaoImpl implements ICircleDao {
 	public List<CircleBo> getTopsByUid(List<String> topCircles, String id) {
 		List<String> ids = new ArrayList<>();
 		ids.add(id);
-		Query query = new Query(Criteria.where("_id").in(topCircles).and("deleted").is(Constant.ACTIVITY).and("users").in(ids));
+		Query query = new Query(
+				Criteria.where("_id").in(topCircles).and("deleted").is(Constant.ACTIVITY).and("users").in(ids));
 		return mongoTemplate.find(query, CircleBo.class);
 	}
 
@@ -552,7 +554,14 @@ public class CircleDaoImpl implements ICircleDao {
 	@Override
 	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids) {
 		Query query = new Query(Criteria.where("circleid").in(ids).and("status").is(1));
-		query.with(new Sort(new Sort.Order(Direction.DESC,"_id")));
+		query.with(new Sort(Sort.Direction.DESC, "updateTime", "_id"));
+		// query.with(new Sort(new Sort.Order(Direction.DESC,"updateTime")));
 		return mongoTemplate.find(query, CircleAddBo.class);
+	}
+
+	@Override
+	public List<CircleBo> findCirclesByUid(String id, List<String> topCircles) {
+		Query query = new Query(Criteria.where("users").in(id).and("_id").nin(topCircles).and("deleted").is(0));
+		return mongoTemplate.find(query, CircleBo.class);
 	}
 }

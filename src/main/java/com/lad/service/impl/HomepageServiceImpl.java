@@ -1,6 +1,9 @@
 package com.lad.service.impl;
 
 import com.mongodb.WriteResult;
+
+import java.util.HashSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,5 +40,15 @@ public class HomepageServiceImpl implements IHomepageService {
 	@Override
 	public WriteResult updateNewCount(String id, int num) {
 		return homepageDao.updateNewCount(id, num);
+	}
+
+	@Override
+	public WriteResult update_not_push_set(String hid, HashSet<String> not_push_set) {
+		return homepageDao.update_not_push_set(hid, not_push_set);
+	}
+
+	@Override
+	public WriteResult update_hide_record_set(String hid, HashSet<String> hide_record_set) {
+		return homepageDao.update_hide_record_set(hid, hide_record_set);
 	}
 }

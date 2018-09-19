@@ -2,6 +2,7 @@ package com.lad.dao;
 
 import com.lad.bo.Pager;
 import com.lad.bo.UserBo;
+import com.lad.bo.UserVisitBo;
 import com.mongodb.WriteResult;
 
 import java.util.Date;

@@ -224,6 +224,7 @@ public class UserDaoImpl implements IUserDao {
         Query query = new Query(Criteria.where("_id").is(userid).and("deleted").is(0));
         Update update = new Update();
         update.set("circleTops", topCircles);
+        update.set("circleTops", topCircles);
         return mongoTemplate.updateFirst(query, update, UserBo.class);
     }
 

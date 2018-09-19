@@ -3,7 +3,6 @@ package com.lad.controller;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -41,6 +40,7 @@ import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.NoteBo;
 import com.lad.bo.ReadHistoryBo;
+import com.lad.bo.ReasonBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
@@ -58,6 +58,7 @@ import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
 import com.lad.service.INoteService;
 import com.lad.service.IReadHistoryService;
+import com.lad.service.IReasonService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -127,8 +128,20 @@ public class NoteController extends BaseContorller {
 	@Autowired
 	private IReadHistoryService readHistoryService;
 
+	@Autowired
+	private IReasonService reasonService;
+
 	private String pushTitle = "互动通知";
 
+	/**
+	 * 获取我加入的所有圈子中所有帖子,并标注这些帖子是否已读
+	 * 
+	 * @param page
+	 * @param limit
+	 * @param request
+	 * @param response
+	 * @return
+	 */
 	@ApiOperation("我圈子的新帖")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "page", value = "页码", required = true, paramType = "query", dataType = "int"),
@@ -140,26 +153,29 @@ public class NoteController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info(NoteQualiName+".criNotRead-----{user:"+userBo.getUserName()+",userId:"+userBo.getId()+",page:"+page+",limit:"+limit+"}");
+		logger.info(NoteQualiName + ".criNotRead-----{user:" + userBo.getUserName() + ",userId:" + userBo.getId()
+				+ ",page:" + page + ",limit:" + limit + "}");
 		String userid = userBo.getId();
 		List<CircleBo> circleBos = circleService.selectByuserid(userid);
 		List<String> circleids = new LinkedList<>();
 		// 获取圈子id 并保存到circleids
 		circleBos.forEach(circleBo -> circleids.add(circleBo.getId()));
-//		List<NoteBo> noteBos = noteService.dayNewNotes(circleids, page, limit);
+		// List<NoteBo> noteBos = noteService.dayNewNotes(circleids, page,
+		// limit);
 		List<NoteBo> noteBos = noteService.joinCircleNotes(circleids, page, limit);
 		List<NoteVo> noteVoList = new LinkedList<>();
 		for (NoteBo noteBo : noteBos) {
 			NoteVo noteVo = new NoteVo();
-			//获取创建者消息
-			String createuid = noteBo.getCreateuid()==null?"":noteBo.getCreateuid();
+			// 获取创建者消息
+			String createuid = noteBo.getCreateuid() == null ? "" : noteBo.getCreateuid();
 			UserBo createUser = userService.getUser(createuid);
 			boToVo(noteBo, noteVo, createUser, userid);
+			// 是否阅读需要重写
 			ReadHistoryBo historyBo = readHistoryService.getHistoryByUseridAndNoteId(userid, noteBo.getId());
 			noteVo.setRead(historyBo != null);
 			noteVo.setMyThumbsup(hasThumbsup(userid, noteBo.getId()));
 			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
-			noteVo.setCirName(circleBo != null ? circleBo.getName() : "");			
+			noteVo.setCirName(circleBo != null ? circleBo.getName() : "");
 			noteVoList.add(noteVo);
 		}
 		Map<String, Object> map = new HashMap<>();
@@ -168,6 +184,16 @@ public class NoteController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
+	/**
+	 * 发表帖子 1.检查用户登录状态 2.更新圈子访问记录信息
+	 * 
+	 * @param noteJson
+	 * @param atUserids
+	 * @param pictures
+	 * @param request
+	 * @param response
+	 * @return
+	 */
 	@ApiOperation("发表帖子")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "noteJson", value = "帖子信息json数据", required = true, paramType = "query", dataType = "string"),
@@ -175,14 +201,15 @@ public class NoteController extends BaseContorller {
 			@ApiImplicitParam(name = "pictures", value = "图片或视频文件流", dataType = "file") })
 	@PostMapping("/insert")
 	public String insert(String noteJson, String atUserids, MultipartFile[] pictures, HttpServletRequest request,
-			HttpServletResponse response) {		
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		logger.info(NoteQualiName+".insert-----{noteJson:"+noteJson+",atUserids:"+atUserids+"}");
+		String userId = userBo.getId();
+		logger.info(NoteQualiName + ".insert-----{noteJson:" + noteJson + ",atUserids:" + atUserids + "}");
 		NoteBo noteBo = null;
 		try {
 			JSONObject jsonObject = JSONObject.fromObject(noteJson);
@@ -192,14 +219,17 @@ public class NoteController extends BaseContorller {
 		}
 
 		String circleid = noteBo.getCircleId();
-		updateHistory(userBo.getId(), circleid, locationService, circleService);
+		updateHistory(userId, circleid, locationService, circleService);
+		// 设置访问人数为1
 		noteBo.setVisitcount(1);
-		noteBo.setCreateuid(userBo.getId());
-		noteBo.setVisitcount(1);
+		// 设置创建者为当前登录者
+		noteBo.setCreateuid(userId);
+		// 设置热度为1
 		noteBo.setTemp(1);
+		// 设置创日期
 		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
+		// 检查并上传图片
 		LinkedList<String> photos = new LinkedList<>();
-		String userId = userBo.getId();
 		if (pictures != null) {
 			for (MultipartFile file : pictures) {
 				Long time = Calendar.getInstance().getTimeInMillis();
@@ -210,12 +240,14 @@ public class NoteController extends BaseContorller {
 					noteBo.setVideoPic(paths[1]);
 				} else {
 					String path = CommonUtil.upload(file, Constant.NOTE_PICTURE_PATH, fileName, 0);
-					logger.info(NoteQualiName+".insert-----note add note pic path: {},  size: {} ", path, file.getSize());
+					logger.info(NoteQualiName + ".insert-----note add note pic path: {},  size: {} ", path,
+							file.getSize());
 					photos.add(path);
 				}
 			}
 		}
 		noteBo.setPhotos(photos);
+		// 设置@的用户列表
 		String[] useridArr = null;
 		if (!StringUtils.isEmpty(atUserids)) {
 			useridArr = CommonUtil.getIds(atUserids);
@@ -223,19 +255,33 @@ public class NoteController extends BaseContorller {
 			Collections.addAll(atUsers, useridArr);
 			noteBo.setAtUsers(atUsers);
 		}
-		noteService.insert(noteBo);
+		// 将设置好的帖子实体添加进入数据库
+		NoteBo insert = noteService.insert(noteBo);
+		// 向@的人发送push信息
 		if (useridArr != null) {
 			String path = String.format("/note/note-info.do?noteid=%s&type=%s", noteBo.getId(), noteBo.getType());
 			String content = "有人刚刚在帖子提到了您，快去看看吧!";
 			JPushUtil.push(pushTitle, content, path, useridArr);
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
+		// 设置当前用户访问该帖子的历史
+		if (insert != null) {
+			ReadHistoryBo historyBo = new ReadHistoryBo();
+			historyBo.setReaderId(insert.getCreateuid());
+			historyBo.setBeReaderId(insert.getId());
+			historyBo.setType(0);
+			historyBo.setReadNum(1);
+			readHistoryService.addReadHistory(historyBo);
+		}
+		// 圈子表演?
 		addCircleShow(noteBo);
+		// 圈子帖子数量+1
 		asyncController.updateCircieNoteSize(circleid, 1);
+		// 如果设置了同步则同步状态
 		if (noteBo.isAsync()) {
 			DynamicBo dynamicBo = new DynamicBo();
 			dynamicBo.setTitle(noteBo.getSubject());
-			dynamicBo.setView("我发表了帖子");
+			dynamicBo.setView("");
 			dynamicBo.setCreateuid(userId);
 			dynamicBo.setMsgid(noteBo.getId());
 			dynamicBo.setOwner(noteBo.getCreateuid());
@@ -256,11 +302,17 @@ public class NoteController extends BaseContorller {
 			dynamicBo.setCreateuid(userBo.getId());
 			dynamicService.addDynamic(dynamicBo);
 		}
+		// ?
 		updateDynamicNums(userId, 1, dynamicService, redisServer);
+		// 用户等级设置
 		userService.addUserLevel(userBo.getId(), 1, Constant.LEVEL_NOTE, 0);
+		// 更新圈子热度
 		updateCircleHot(circleService, redisServer, circleid, 1, Constant.CIRCLE_NOTE);
 		updateCircleHot(circleService, redisServer, circleid, 1, Constant.CIRCLE_NOTE_VISIT);
-		asyncController.updateCircieNoteUnReadNum(userId, circleid);
+
+		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
+		asyncController.updateCircieNoteUnReadNum(userId, circleid, insert.getId());
+		// 返回结果
 		NoteVo noteVo = new NoteVo();
 		boToVo(noteBo, noteVo, userBo, userId);
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -304,7 +356,6 @@ public class NoteController extends BaseContorller {
 	}
 
 	@ApiOperation("帖子点赞")
-	@ApiImplicitParam(name = "noteid", value = "帖子id", required = true, dataType = "string", paramType = "query")
 	@PostMapping("/thumbsup")
 	public String thumbsup(String noteid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
@@ -313,19 +364,20 @@ public class NoteController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		String uid = userBo.getId();
 		NoteBo noteBo = noteService.selectById(noteid);
 		if (noteBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.NOTE_IS_NULL.getIndex(), ERRORCODE.NOTE_IS_NULL.getReason());
 		}
-		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(noteid, userBo.getId());
+		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(noteid, uid);
 		boolean isThumsup = false;
 		if (null == thumbsupBo) {
 			thumbsupBo = new ThumbsupBo();
 			thumbsupBo.setType(Constant.NOTE_TYPE);
 			thumbsupBo.setOwner_id(noteid);
 			thumbsupBo.setImage(userBo.getHeadPictureName());
-			thumbsupBo.setVisitor_id(userBo.getId());
-			thumbsupBo.setCreateuid(userBo.getId());
+			thumbsupBo.setVisitor_id(uid);
+			thumbsupBo.setCreateuid(uid);
 			thumbsupService.insert(thumbsupBo);
 			isThumsup = true;
 		} else {
@@ -334,6 +386,7 @@ public class NoteController extends BaseContorller {
 				isThumsup = true;
 			}
 		}
+		userReasonHander(uid, noteBo.getCircleId(), noteid);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_THUMP);
 		if (isThumsup) {
 			updateCount(noteid, Constant.THUMPSUB_NUM, 1);
@@ -342,8 +395,8 @@ public class NoteController extends BaseContorller {
 		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
 		String path = "/note/note-info.do?noteid=" + noteid;
 		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
-		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(),
-				userBo.getId(), noteBo.getCreateuid());
+		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(), uid,
+				noteBo.getCreateuid());
 		return Constant.COM_RESP;
 	}
 
@@ -412,25 +465,19 @@ public class NoteController extends BaseContorller {
 		if (null == noteBo) {
 			return CommonUtil.toErrorResult(ERRORCODE.NOTE_IS_NULL.getIndex(), ERRORCODE.NOTE_IS_NULL.getReason());
 		}
+		logger.info("com.lad.controller.NoteController.noteInfo-----{noteid:" + noteid + "}");
 		UserBo userBo = getUserLogin(request);
 		NoteVo noteVo = new NoteVo();
 		String userid = "";
 		if (userBo != null) {
 			userid = userBo.getId();
+			logger.info("com.lad.controller.NoteController.noteInfo-----{user:" + userBo.getUserName() + ",userid:"
+					+ userid + "}");
+			// 处理圈子访问历史
 			updateHistory(userBo.getId(), noteBo.getCircleId(), locationService, circleService);
-			ReadHistoryBo historyByUseridAndNoteId = readHistoryService.getHistoryByUseridAndNoteId(noteid, noteid);
-			if (historyByUseridAndNoteId == null) {
-				// 添加帖子阅读历史
-				ReadHistoryBo historyBo = new ReadHistoryBo();
-				historyBo.setReaderId(userid);
-				historyBo.setBeReaderId(noteid);
-				historyBo.setType(0);
-				historyBo.setReadNum(1);
-				readHistoryService.addReadHistory(historyBo);
-			} else {
-				int readNum = historyByUseridAndNoteId.getReadNum() + 1;
-				readHistoryService.updateReadNum(historyByUseridAndNoteId.getId(), readNum);
-			}
+
+			// 处理是否已读
+			userReasonHander(userid, noteBo.getCircleId(), noteBo.getId());
 
 			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(noteid, userid);
 			// 这个帖子自己是否点赞
@@ -438,6 +485,8 @@ public class NoteController extends BaseContorller {
 			CollectBo collectBo = collectService.findByUseridAndTargetid(userid, noteid);
 			noteVo.setCollect(collectBo != null);
 		}
+
+		// 热度处理
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_VISIT);
 		updateCount(noteid, Constant.VISIT_NUM, 1);
 		boToVo(noteBo, noteVo, userService.getUser(noteBo.getCreateuid()), userid);
@@ -756,17 +805,20 @@ public class NoteController extends BaseContorller {
 		for (BasicDBObject object : objects) {
 			String id = object.get("noteid").toString();
 			NoteBo noteBo = noteService.selectById(id);
-
-			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
-			NoteVo noteVo = new NoteVo();
-			noteVo.setCirName(circleBo.getName());
-			noteVo.setCirHeadPic(circleBo.getHeadPicture());
-			noteVo.setCirNoteNum(circleBo.getNoteSize());
-			noteVo.setCirVisitNum(circleBo.getVisitNum());
-			UserBo author = userService.getUser(noteBo.getCreateuid());
-			boToVo(noteBo, noteVo, author, userid);
-			noteVo.setMyThumbsup(hasThumbsup(userid, noteBo.getId()));
-			noteVoList.add(noteVo);
+			if(noteBo!=null){
+				CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
+				if(circleBo!=null){
+					NoteVo noteVo = new NoteVo();
+					noteVo.setCirName(circleBo.getName());
+					noteVo.setCirHeadPic(circleBo.getHeadPicture());
+					noteVo.setCirNoteNum(circleBo.getNoteSize());
+					noteVo.setCirVisitNum(circleBo.getVisitNum());
+					UserBo author = userService.getUser(noteBo.getCreateuid());
+					boToVo(noteBo, noteVo, author, userid);
+					noteVo.setMyThumbsup(hasThumbsup(userid, noteBo.getId()));
+					noteVoList.add(noteVo);
+				}
+			}
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -874,8 +926,14 @@ public class NoteController extends BaseContorller {
 			@ApiImplicitParam(name = "limit", value = "每页数量", dataType = "int", paramType = "query") })
 	@PostMapping("/my-notes")
 	public String myNotes(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
-		UserBo userBo = getUserLogin(request);
-		String loginUserid = userBo != null ? userBo.getId() : "";
+		UserBo userBo;
+		// TODO
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		String loginUserid = userBo.getId();
 		List<NoteBo> noteBos = noteService.selectMyNotes(userBo.getId(), page, limit);
 		if (noteBos != null && !noteBos.isEmpty()) {
 			updateHistory(userBo.getId(), noteBos.get(0).getCircleId(), locationService, circleService);
@@ -885,13 +943,14 @@ public class NoteController extends BaseContorller {
 		for (NoteBo noteBo : noteBos) {
 			noteVo = new NoteVo();
 			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
-			if(circleBo!=null){
+			if (circleBo != null) {
 				noteVo.setCirName(circleBo.getName());
 				noteVo.setCirNoteNum(circleBo.getNoteSize());
 				noteVo.setCirHeadPic(circleBo.getHeadPicture());
 				noteVo.setCirVisitNum(circleBo.getVisitNum());
 				boToVo(noteBo, noteVo, userBo, loginUserid);
 				noteVo.setMyThumbsup(hasThumbsup(loginUserid, noteBo.getId()));
+				noteVo.setRead(true);
 				noteVoList.add(noteVo);
 			}
 		}
@@ -1125,6 +1184,7 @@ public class NoteController extends BaseContorller {
 		dynamicService.addDynamic(dynamicBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
 		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
+		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicid", dynamicBo.getId());
@@ -1178,6 +1238,7 @@ public class NoteController extends BaseContorller {
 			chatBo.setSourceType(5);
 		}
 		collectService.insert(chatBo);
+		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 		updateCount(noteid, Constant.COLLECT_NUM, 1);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -1240,6 +1301,7 @@ public class NoteController extends BaseContorller {
 		noteService.insert(noteBo);
 		addCircleShow(noteBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
+		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 		NoteVo noteVo = new NoteVo();
 		boToVo(noteBo, noteVo, userBo, userid);
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -1292,6 +1354,7 @@ public class NoteController extends BaseContorller {
 		noteService.insert(noteBo);
 		addCircleShow(noteBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
+		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 		NoteVo noteVo = new NoteVo();
 		boToVo(noteBo, noteVo, userBo, userid);
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -1431,40 +1494,23 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/near-notes")
 	public String nearPeopel(double px, double py, int limit, int page, HttpServletRequest request,
 			HttpServletResponse response) {
-		logger.info("com.lad.controller.NoteController.nearPeopel-----{px:"+px+",py:"+py+",page:"+page+",limit:"+limit+"}");
+		logger.info("com.lad.controller.NoteController.nearPeopel-----{px:" + px + ",py:" + py + ",page:" + page
+				+ ",limit:" + limit + "}");
 		double[] position = new double[] { px, py };
 		// 未登录情况
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo != null ? userBo.getId() : "";
 		CommandResult commanResult = noteService.findNearCircleByCommond(position, 10000, limit, page);
 		BasicDBList dbList = (BasicDBList) commanResult.get("results");
-		
-		// 分页
-		
-		List<Object> subList = new BasicDBList();
-		
-		// 顺序无误
-		int size = dbList.size();
-		int start = (page - 1) * limit;
-		int end = page * limit;
 
-		if (start <= size && end <= size) {
-			subList = dbList.subList(start, end);
-		} else if (start <= size && end >= size) {
-			subList = dbList.subList(start, size);
-		}
-//		subList = dbList.subList(start, limit);
-		
-		
 		List<NoteVo> noteVoList = new LinkedList<>();
-        for (Object object : subList) {
-        	BasicDBObject basicDBObject = (BasicDBObject)object;
-        	BasicDBObject obj = (BasicDBObject) basicDBObject.get("obj");
-        	Map<String,Object> map = obj.toMap();
-        	map.put("id", map.get("_id").toString());
-        	NoteBo noteBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), NoteBo.class);
-        	NoteVo noteVo = new NoteVo();
-        	// 此前无误
+		for (Object object : dbList) {
+			BasicDBObject basicDBObject = (BasicDBObject) object;
+			BasicDBObject obj = (BasicDBObject) basicDBObject.get("obj");
+			Map<String, Object> map = obj.toMap();
+			map.put("id", map.get("_id").toString());
+			NoteBo noteBo = com.alibaba.fastjson.JSONObject.parseObject(JSON.toJSONString(map), NoteBo.class);
+			NoteVo noteVo = new NoteVo();
 			if (noteBo.getCreateuid().equals(userid)) {
 				boToVo(noteBo, noteVo, userBo, userid);
 			} else {
@@ -1481,58 +1527,49 @@ public class NoteController extends BaseContorller {
 			}
 			noteVoList.add(noteVo);
 		}
-        
-        if(noteVoList.size()>=2){
-            for (int i = 0; i < noteVoList.size()-1; i++) {
-            	for (int j = i+1; j < noteVoList.size(); j++) {
-            		NoteVo z = null;
-            		long xTime = Long.valueOf(noteVoList.get(i).getCreateDate().replaceAll("-", ""));    		
-            		long yTime = Long.valueOf(noteVoList.get(j).getCreateDate().replaceAll("-", ""));
-            		if(xTime<yTime){
-            			z = noteVoList.get(i);
-            			noteVoList.set(i, noteVoList.get(j));
-            			noteVoList.set(j, z);
-            		}
-    			}
-    		}
-        }
 
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("noteVoList", noteVoList);
-		return JSONObject.fromObject(map).toString();
-		
-		
-		
-		
-		/*GeoResults<NoteBo> noteBos = noteService.findNearNote(position, 5000, limit, page);
-		DecimalFormat df = new DecimalFormat("###.00");
-		List<NoteVo> noteVoList = new LinkedList<>();
-		for (GeoResult<NoteBo> result : noteBos) {
-			NoteBo noteBo = result.getContent();
-			NoteVo noteVo = new NoteVo();
-			if (noteBo.getCreateuid().equals(userid)) {
-				boToVo(noteBo, noteVo, userBo, userid);
-			} else {
-				UserBo user = userService.getUser(noteBo.getCreateuid());
-				boToVo(noteBo, noteVo, user, userid);
+		// 排序
+		if (noteVoList.size() >= 2) {
+			for (int i = 0; i < noteVoList.size() - 1; i++) {
+				for (int j = i + 1; j < noteVoList.size(); j++) {
+					NoteVo p1 = noteVoList.get(i);
+					int p1t = Integer.valueOf(p1.getCreateDate().replaceAll("-", ""));
+					NoteVo p2 = noteVoList.get(j);
+					int p2t = Integer.valueOf(p2.getCreateDate().replaceAll("-", ""));
+					if (p1t < p2t) {
+						NoteVo temp = noteVoList.get(i);
+						noteVoList.set(i, p2);
+						noteVoList.set(j, temp);
+					} else if (p1t == p2t && p1.getDistance() > p2.getDistance()) {
+						NoteVo temp = noteVoList.get(i);
+						noteVoList.set(i, p2);
+						noteVoList.set(j, temp);
+					} else if (p1t == p2t && p1.getDistance() == p2.getDistance()
+							&& p1.getCreateTime().getTime() < p2.getCreateTime().getTime()) {
+						NoteVo temp = noteVoList.get(i);
+						noteVoList.set(i, p2);
+						noteVoList.set(j, temp);
+					}
+				}
 			}
-			double dis = Double.parseDouble(df.format(result.getDistance().getValue()));
-			noteVo.setDistance(dis);
-			noteVo.setMyThumbsup(hasThumbsup(userid, noteBo.getId()));
-			CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
-			if (circleBo != null && circleBo.getName() != null) {
-				noteVo.setCirName(circleBo.getName());
-			} else {
-				noteVo.setCirName("未知的圈子");
-			}
-			noteVoList.add(noteVo);
 		}
+		// 分页
+		List<NoteVo> subList = new LinkedList<>();
+		// 顺序无误
+		int size = noteVoList.size();
+		int start = (page - 1) * limit;
+		int end = page * limit;
+
+		if (start <= size && end <= size) {
+			subList = noteVoList.subList(start, end);
+		} else if (start <= size && end >= size) {
+			subList = noteVoList.subList(start, size);
+		}
+
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		map.put("noteVoList", noteVoList);
-		return JSONObject.fromObject(map).toString();*/
-
+		map.put("noteVoList", subList);
+		return JSONObject.fromObject(map).toString();
 	}
 
 	@ApiOperation("我的新帖子")
@@ -1601,18 +1638,19 @@ public class NoteController extends BaseContorller {
 			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		String userid = userBo == null ? "" : userBo.getId();
-
+		// 根据城市筛选热门圈子,并将id封装到cricleSet
 		List<CircleBo> circleBoList = circleService.findHotCircles(city, 1, 10240);
 		Set<String> circleSet = new HashSet<>();
 		for (CircleBo circleBo : circleBoList) {
 			circleSet.add(circleBo.getId());
 		}
-		List<NoteBo> noteBos = noteService.dayHotNotes(circleSet,page, limit);
+		
+		List<NoteBo> noteBos = noteService.dayHotNotes(circleSet, page, limit);
 		List<NoteVo> noteVoList = new LinkedList<>();
 		for (NoteBo noteBo : noteBos) {
 			NoteVo noteVo = new NoteVo();
-			//获取创建者消息
-			String createuid = noteBo.getCreateuid()==null?"":noteBo.getCreateuid();
+			// 获取创建者消息
+			String createuid = noteBo.getCreateuid() == null ? "" : noteBo.getCreateuid();
 			UserBo createUser = userService.getUser(createuid);
 			boToVo(noteBo, noteVo, createUser, userid);
 			ReadHistoryBo historyBo = readHistoryService.getHistoryByUseridAndNoteId(userid, noteBo.getId());
@@ -1646,6 +1684,8 @@ public class NoteController extends BaseContorller {
 				boToVo(noteBo, noteVo, userBo, loginUserid);
 			}
 			noteVo.setMyThumbsup(hasThumbsup(loginUserid, noteBo.getId()));
+			ReadHistoryBo historyBo = readHistoryService.getHistoryByUseridAndNoteId(loginUserid, noteBo.getId());
+			noteVo.setRead(historyBo != null);
 			noteVoList.add(noteVo);
 		}
 	}
@@ -1680,7 +1720,7 @@ public class NoteController extends BaseContorller {
 					break;
 				case Constant.INFOR_SECRITY:
 					SecurityBo securityBo = inforService.findSecurityById(noteBo.getSourceid());
-					if (securityBo == null) {
+					if (securityBo != null) {
 						noteVo.setSubject(securityBo.getTitle());
 						noteVo.setVisitCount((long) securityBo.getVisitNum());
 						noteVo.setInforTypeName(securityBo.getNewsType());
@@ -1688,7 +1728,7 @@ public class NoteController extends BaseContorller {
 					break;
 				case Constant.INFOR_RADIO:
 					BroadcastBo broadcastBo = inforService.findBroadById(noteBo.getSourceid());
-					if (broadcastBo == null) {
+					if (broadcastBo != null) {
 						noteVo.setSubject(broadcastBo.getTitle());
 						noteVo.setInforUrl(broadcastBo.getBroadcast_url());
 						noteVo.setVisitCount((long) broadcastBo.getVisitNum());
@@ -1697,7 +1737,7 @@ public class NoteController extends BaseContorller {
 					break;
 				case Constant.INFOR_VIDEO:
 					VideoBo videoBo = inforService.findVideoById(noteBo.getSourceid());
-					if (videoBo == null) {
+					if (videoBo != null) {
 						noteVo.setSubject(videoBo.getTitle());
 						noteVo.setInforUrl(videoBo.getUrl());
 						noteVo.setVideoPic(videoBo.getPoster());
@@ -1716,8 +1756,8 @@ public class NoteController extends BaseContorller {
 					noteVo.setPhotos(sourceNote.getPhotos());
 					noteVo.setVideoPic(sourceNote.getVideoPic());
 					addNoteAtUsers(sourceNote, noteVo, userid);
-					creatBo = userService.getUser(sourceNote.getCreateuid());
-					UserBo from = userService.getUser(noteBo.getCreateuid());
+//					creatBo = userService.getUser(sourceNote.getCreateuid());
+					UserBo from = userService.getUser(sourceNote.getCreateuid());
 					if (from != null) {
 						noteVo.setFromUserid(from.getId());
 						noteVo.setFromUserName(from.getUserName());
@@ -1725,6 +1765,8 @@ public class NoteController extends BaseContorller {
 							FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userid, from.getId());
 							if (friendsBo != null && !StringUtils.isEmpty(friendsBo.getBackname())) {
 								noteVo.setFromUserName(friendsBo.getBackname());
+							}else {
+								noteVo.setFromUserName(from.getUserName());
 							}
 						}
 						noteVo.setFromUserPic(from.getHeadPictureName());
@@ -1809,19 +1851,20 @@ public class NoteController extends BaseContorller {
 		try {
 			lock.lock(2, TimeUnit.SECONDS);
 			switch (type) {
-			case Constant.VISIT_NUM:
+
+			case Constant.VISIT_NUM:// 访问
 				noteService.updateVisitCount(noteid);
 				break;
-			case Constant.COMMENT_NUM:
+			case Constant.COMMENT_NUM:// 评论
 				noteService.updateCommentCount(noteid, num);
 				break;
-			case Constant.THUMPSUB_NUM:
+			case Constant.THUMPSUB_NUM:// 点赞
 				noteService.updateThumpsubCount(noteid, num);
 				break;
-			case Constant.SHARE_NUM:
+			case Constant.SHARE_NUM:// 分享
 				noteService.updateTransCount(noteid, num);
 				break;
-			case Constant.COLLECT_NUM:
+			case Constant.COLLECT_NUM:// 收藏
 				noteService.updateCollectCount(noteid, num);
 				break;
 			default:
@@ -1855,4 +1898,30 @@ public class NoteController extends BaseContorller {
 		circleService.deleteShow(noteid);
 	}
 
+	private void userReasonHander(String userid, String circleId, String noteId) {
+		// 处理是否已读
+		ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, circleId, 1);
+		if (reasonBo != null) {
+			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>()
+					: reasonBo.getUnReadSet();
+			unReadSet.remove(noteId);
+			reasonService.updateUnReadSet(userid, circleId, unReadSet);
+		}
+		updateNoteReadHistory(userid, noteId);
+	}
+
+	private void updateNoteReadHistory(String userid, String noteid) {
+		ReadHistoryBo historyByUseridAndNoteId = readHistoryService.getHistoryByUseridAndNoteId(noteid, noteid);
+		if (historyByUseridAndNoteId == null) {
+			ReadHistoryBo historyBo = new ReadHistoryBo();
+			historyBo.setReaderId(userid);
+			historyBo.setBeReaderId(noteid);
+			historyBo.setType(0);
+			historyBo.setReadNum(1);
+			readHistoryService.addReadHistory(historyBo);
+		} else {
+			int readNum = historyByUseridAndNoteId.getReadNum() + 1;
+			readHistoryService.updateReadNum(historyByUseridAndNoteId.getId(), readNum);
+		}
+	}
 }

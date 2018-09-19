@@ -48,4 +48,6 @@ public class CircleVo extends BaseVo {
 
 	//圈子是否承接演出
 	private boolean takeShow;
+	
+	private long partyNum;
 }

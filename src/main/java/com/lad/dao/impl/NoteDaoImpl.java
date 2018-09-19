@@ -443,7 +443,7 @@ public class NoteDaoImpl implements INoteDao {
 		if (!StringUtils.isEmpty(circleSet)) {
 			criteria.and("circleId").in(circleSet);
 		}
-		query.with(new Sort(Sort.Direction.DESC, "createDate", "temp"));
+		query.with(new Sort(Sort.Direction.DESC, "createDate", "temp","createTime"));
 		query.addCriteria(criteria);
 		page = page < 1 ? 1 : page;
 		query.skip((page - 1) * limit);
