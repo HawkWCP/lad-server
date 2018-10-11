@@ -842,11 +842,20 @@ public class FriendsController extends BaseContorller {
 				BeanUtils.copyProperties(friendsBo, vo);
 				String friendid = friendsBo.getFriendid();
 				vo.setPicture(friendsBo.getFriendHeadPic());
+				UserBo friend = userService.getUser(friendid);
 				if (StringUtils.isEmpty(friendsBo.getBackname())) {
-					UserBo friend = userService.getUser(friendid);
 					vo.setBackname(friend.getUserName());
 					vo.setUsername(friend.getUserName());
 				}
+				
+				vo.setSex(friend.getSex()==null?"男":friend.getSex());
+				vo.setLevel(friend.getLevel());
+				if(StringUtils.isEmpty(friend.getBirthDay())){
+					vo.setAge(0);
+				}else{
+					vo.setAge(CommonUtil.getAge(friend.getBirthDay()));
+				}
+				
 				vo.setChannelId(friendsBo.getChatroomid());
 				double dis = Double.parseDouble(df.format(disMap.get(friendid)));
 				vo.setDistance(dis);

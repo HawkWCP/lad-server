@@ -10,4 +10,5 @@ import lombok.ToString;
 public class OptionVo extends BaseVo {
 	private String field;
 	private String supId;
+	private String value;
 }

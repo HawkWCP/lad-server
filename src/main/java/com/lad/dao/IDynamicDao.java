@@ -3,6 +3,7 @@ package com.lad.dao;
 import com.lad.bo.DynamicBo;
 import com.mongodb.WriteResult;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -67,5 +68,9 @@ public interface IDynamicDao {
     List<DynamicBo> findAFriendsMsg(String friendid, int page, int limit);
 
 	WriteResult updateReadToTure(String ownerid, Set<String> visitids);
+
+	long findDynamicNotReadNum(String id);
+
+	WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend);
 
 }

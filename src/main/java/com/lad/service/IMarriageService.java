@@ -92,4 +92,6 @@ public interface IMarriageService extends IBaseService {
 
 	public WaiterBo findWaiterByNickName(String nickName, String uid);
 
+	public List<OptionBo> getYlOptions();
+
 }

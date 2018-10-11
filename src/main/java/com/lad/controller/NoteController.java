@@ -76,9 +76,11 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lad.scrapybo.BroadcastBo;
+import lad.scrapybo.DailynewsBo;
 import lad.scrapybo.InforBo;
 import lad.scrapybo.SecurityBo;
 import lad.scrapybo.VideoBo;
+import lad.scrapybo.YanglaoBo;
 import net.sf.json.JSONObject;
 
 @Api(value = "NoteController", description = "帖子相关接口")
@@ -300,6 +302,8 @@ public class NoteController extends BaseContorller {
 				dynamicBo.setPhotos(new LinkedHashSet<>(noteBo.getPhotos()));
 			}
 			dynamicBo.setCreateuid(userBo.getId());
+			List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+			dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
 			dynamicService.addDynamic(dynamicBo);
 		}
 		// ?
@@ -489,7 +493,7 @@ public class NoteController extends BaseContorller {
 
 			// 热度处理
 			updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_VISIT);
-			
+
 			updateCount(noteid, Constant.VISIT_NUM, 1);
 			boToVo(noteBo, noteVo, userService.getUser(noteBo.getCreateuid()), userid);
 			CircleBo circleBo = circleService.selectByIdIgnoreDel(noteBo.getCircleId());
@@ -1184,6 +1188,9 @@ public class NoteController extends BaseContorller {
 			dynamicBo.setSourceid(circleBo.getId());
 		}
 		dynamicBo.setCreateuid(userBo.getId());
+
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
 		dynamicService.addDynamic(dynamicBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
 		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
@@ -1302,7 +1309,10 @@ public class NoteController extends BaseContorller {
 		noteBo.setSourceid(noteid);
 		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
 		noteBo.setForward(1);
-		noteService.insert(noteBo);
+		NoteBo insert = noteService.insert(noteBo);
+		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
+		asyncController.updateCircieNoteUnReadNum(userid, circleid, insert.getId());
+		
 		addCircleShow(noteBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
@@ -1360,10 +1370,10 @@ public class NoteController extends BaseContorller {
 		addCircleShow(noteBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
 		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
-		
+
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_COMMENT);
-		
+
 		NoteVo noteVo = new NoteVo();
 		boToVo(noteBo, noteVo, userBo, userid);
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -1725,7 +1735,7 @@ public class NoteController extends BaseContorller {
 						noteVo.setSubject(inforBo.getTitle());
 						noteVo.setVisitCount((long) inforBo.getVisitNum());
 						noteVo.setInforTypeName(inforBo.getModule());
-						noteVo.setClassName(inforBo.getClassName()==null?"":inforBo.getClassName());
+						noteVo.setClassName(inforBo.getClassName() == null ? "" : inforBo.getClassName());
 					}
 					break;
 				case Constant.INFOR_SECRITY:
@@ -1743,7 +1753,7 @@ public class NoteController extends BaseContorller {
 						noteVo.setInforUrl(broadcastBo.getBroadcast_url());
 						noteVo.setVisitCount((long) broadcastBo.getVisitNum());
 						noteVo.setInforTypeName(broadcastBo.getModule());
-						noteVo.setClassName(broadcastBo.getClassName()==null?"":broadcastBo.getClassName());
+						noteVo.setClassName(broadcastBo.getClassName() == null ? "" : broadcastBo.getClassName());
 					}
 					break;
 				case Constant.INFOR_VIDEO:
@@ -1754,7 +1764,28 @@ public class NoteController extends BaseContorller {
 						noteVo.setVideoPic(videoBo.getPoster());
 						noteVo.setVisitCount((long) videoBo.getVisitNum());
 						noteVo.setInforTypeName(videoBo.getModule());
-						noteVo.setClassName(videoBo.getClassName()==null?"":videoBo.getClassName());
+						noteVo.setClassName(videoBo.getClassName() == null ? "" : videoBo.getClassName());
+					}
+					break;
+				case Constant.INFOR_DAILY:
+					DailynewsBo dailyNewsBo = inforService.findDailynewsById(noteBo.getSourceid());
+					logger.error("INFOR_DAILY=====Data:{}", JSON.toJSONString(dailyNewsBo));
+					if (dailyNewsBo != null) {
+						noteVo.setSubject(dailyNewsBo.getTitle());
+						noteVo.setVisitCount((long) dailyNewsBo.getVisitNum());
+						noteVo.setContent(dailyNewsBo.getText());
+						noteVo.setInforTypeName(dailyNewsBo.getModule());
+						noteVo.setClassName(dailyNewsBo.getClassName() == null ? "" : dailyNewsBo.getClassName());
+					}
+					break;
+				case Constant.INFOR_YANGLAO:
+					YanglaoBo yaolaoBo = inforService.findByYanglaoId(noteBo.getSourceid());
+					if (yaolaoBo != null) {
+						noteVo.setSubject(yaolaoBo.getTitle());
+						noteVo.setVisitCount((long) yaolaoBo.getVisitNum());
+						noteVo.setContent(yaolaoBo.getText());
+						noteVo.setInforTypeName(yaolaoBo.getModule());
+						noteVo.setClassName(yaolaoBo.getClassName() == null ? "" : yaolaoBo.getClassName());
 					}
 					break;
 				default:

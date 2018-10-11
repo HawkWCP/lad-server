@@ -511,4 +511,6 @@ public interface IInforService {
      */
     List<YanglaoBo> findYanglaosKeyword(String keywrod, int page, int limit);
 
+	DailynewsBo findDailynewsById(String sourceid);
+
 }

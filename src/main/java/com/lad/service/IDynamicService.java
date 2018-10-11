@@ -6,6 +6,7 @@ import com.lad.bo.DynamicNumBo;
 import com.mongodb.WriteResult;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -133,6 +134,8 @@ public interface IDynamicService {
     WriteResult updateNumbers(String id, int addNum);
     
 	WriteResult updateReadToTure(String ownerid, Set<String> visitids);
+	long findDynamicNotReadNum(String id);
+	WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend);
 
 
 }

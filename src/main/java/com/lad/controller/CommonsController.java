@@ -1,5 +1,6 @@
 package com.lad.controller;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +12,9 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,6 +54,9 @@ import net.sf.json.JSONObject;
 @RequestMapping("common")
 @SuppressWarnings("all")
 public class CommonsController extends BaseContorller {
+	
+	private Logger logger = LogManager.getLogger();
+	
 	@Autowired
 	public IMarriageService marriageService;
 
@@ -66,6 +73,18 @@ public class CommonsController extends BaseContorller {
 	private IShowService showService;
 
 
+	@GetMapping("getYlOptions")
+	public String getYlOptions() {
+		List<OptionBo> ylOptions = marriageService.getYlOptions();
+		List<OptionVo> resultList = new ArrayList<>(); 
+		if(ylOptions!=null && ylOptions.size()>0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
 
 	@GetMapping("getHobOptions")
 	public String getHobbysOptions() {
@@ -175,4 +194,17 @@ public class CommonsController extends BaseContorller {
 		return JSON.toJSONString(salOptions);
 	}
 	
+	private void getVoList(List<OptionBo> boList,List<OptionVo> voList){
+		
+		try {
+			for (OptionBo optionBo : boList) {
+				OptionVo optionVo = new OptionVo();
+				BeanUtils.copyProperties(optionBo, optionVo);
+				voList.add(optionVo);
+			} 
+		}catch (Exception e) {
+			logger.error(e);
+			e.printStackTrace();
+		} 
+	}
 }

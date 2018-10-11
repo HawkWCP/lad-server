@@ -262,7 +262,6 @@ public class Constant {
 	 * 聚会评论
 	 */
 	public static final int CIRCLE_PARTY_COMMENT = 12;
-	
 
 	/**
 	 * 帖子发布
@@ -329,7 +328,13 @@ public class Constant {
 	 * 视频
 	 */
 	public static final int INFOR_VIDEO = 4;
+	/**
+	 * 每日新闻
+	 */
 	public static final int INFOR_DAILY = 5;
+	/**
+	 * 养老政策
+	 */
 	public static final int INFOR_YANGLAO = 6;
 
 	public static final int VISIT_NUM = 1;
@@ -423,4 +428,77 @@ public class Constant {
 	// 天天老友
 	public static final String APP_NAME = "天天老友";
 
+	/* ==================养老院======================= */
+	
+	// 无
+	public static final String NONE = "无";
+
+	// 其他
+	public static final String OTHER = "其他";
+	
+	// 养老院-特色服务-医保定点
+	public static final String YL_TS_DD = "医保定点";
+
+	// 养老院-特色服务-医保定点
+	public static final String YL_TS_ED = "可接收异地老人";
+	
+	// 收住对象: 全部、 自理、 半自理/介助、 不能自理/介护、 特护
+	
+	// 养老院-服务级别-自理
+	public static final String YL_SL_ZL = "自理";
+
+	// 养老院-服务级别-半自理/介助
+	public static final String YL_SL_BZL = "半自理/介助";
+
+	// 养老院-服务级别-不能自理/介护
+	public static final String YL_SL_NZL = "半自理/介助";
+
+	// 养老院-服务级别-特护
+	public static final String YL_SL_TH = "半自理/介助";
+	
+	// 机构类型:全部 、养老院、 敬老院 、福利院、 疗养院 、老年公寓 、老人院 、护理院、 养老社区、 养老照料中心 、其它
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_YLY = "养老院";	
+
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_JLY = "敬老院 ";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_FLY = "福利院";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_LYY = "疗养院 ";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_LNGY = "老年公寓 ";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_LRY = "老人院 ";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_HLY = "护理院";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_YLSQ = "养老社区";	
+	
+	// 养老院-机构类型-养老院
+	public static final String YL_TP_ZLZX = "养老照料中心";
+	
+	// 机构性质:国营机构 、民营机构 、社会团体 、公办民营、 公助民办 、其它
+	
+	// 养老院-机构性质-养老院
+	public static final String YL_PP_GY = "国营机构";
+	
+	// 养老院-机构性质-养老院
+	public static final String YL_PP_MY = "民营机构";
+	
+	// 养老院-机构性质-养老院
+	public static final String YL_PP_ST = "社会团体";
+	
+	// 养老院-机构性质-养老院
+	public static final String YL_PP_GB = "公办民营";
+	
+	// 养老院-机构性质-养老院
+	public static final String YL_PP_GZ = "公助民办";
 }

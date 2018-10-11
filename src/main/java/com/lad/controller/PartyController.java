@@ -1364,6 +1364,10 @@ public class PartyController extends BaseContorller {
 		if (circleBo != null) {
 			dynamicBo.setSourceName(circleBo.getName());
 		}
+		
+		List<String> friends = CommonUtil.deleteBack(dynamicService,friendsService,userBo);	
+		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
+		
 		dynamicService.addDynamic(dynamicBo);
 		partyService.updateShare(partyid, 1);
 		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);

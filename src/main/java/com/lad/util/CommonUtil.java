@@ -34,11 +34,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
+import com.lad.bo.DynamicBackBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.PictureBo;
 import com.lad.bo.PictureWallBo;
 import com.lad.bo.UserBo;
 import com.lad.service.IChatroomService;
+import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IPictureService;
 import com.lad.service.IUserService;
@@ -546,6 +548,37 @@ public class CommonUtil {
 		}
 		return age;
 	}
+	
+	/**
+	 * 根据生日计算年龄
+	 * 
+	 * @param birth
+	 * @return
+	 */
+	public static int getAge(String birth) {
+		String regex = "\\D+";
+		String[] split = birth.split(regex);
+		if(split.length<3){
+			return 0;
+		}
+		int birthYear = Integer.valueOf(split[0]);
+		int birthMonth = Integer.valueOf(split[1]);
+		int birthDay = Integer.valueOf(split[2]);
+
+		Calendar now = Calendar.getInstance();
+		int nowYear = now.get(Calendar.YEAR);
+		int nowMonth = now.get(Calendar.MONTH) + 1;
+		int nowDay = now.get(Calendar.DAY_OF_MONTH);
+
+		int age = 0;
+		// System.out.println(nowYear+" "+birthYear);
+		if (nowMonth - birthMonth >= 0 && nowDay - birthDay >= 0) {
+			age = nowYear - birthYear;
+		} else {
+			age = nowYear - birthYear - 1;
+		}
+		return age;
+	}
 
 	public static <T> List<T> randomQuery(MongoTemplate mongoTemplate, Query query, Class<T> clazz) {
 		// 统计数据库长度
@@ -614,6 +647,7 @@ public class CommonUtil {
 		return object.toJSONString();
 	}
 
+	
 	public static Object vo_format(Object json, Class clazz) {
 		com.alibaba.fastjson.JSONObject object = JSON.parseObject(JSON.toJSONString(json));
 		Set<String> keySet = object.keySet();
@@ -742,7 +776,13 @@ public class CommonUtil {
 		return result;
 	}
 	
-	
+	/**
+	 * 获取敏感词坐标
+	 * 
+	 * @param source
+	 * @param key
+	 * @return
+	 */
 	public static Map<String, List<Integer>> getIndex(String source,String key) {
 		int formIndex = 0;
 		Map<String, List<Integer>> position = new HashMap<>();
@@ -765,5 +805,42 @@ public class CommonUtil {
 			}
 		}
 		return position;
+	}
+	
+	public static List<String> deleteBack(IDynamicService dynamicService,IFriendsService friendsService,UserBo userBo) {
+		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
+		List<String> friends = new LinkedList<>();
+		for (FriendsBo friendsBo : friendsBos) {
+			friends.add(friendsBo.getFriendid());
+		}
+		// 去除我拉黑的对象
+		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
+		if (null != backBo) {
+			HashSet<String> noSees = backBo.getNotSeeBacks();
+			friends.removeAll(noSees);
+		}
+		// 去除拉黑我的对象
+		List<DynamicBackBo> backBos = dynamicService.findWhoBackMe(userBo.getId());
+		if (backBos != null && !backBos.isEmpty()) {
+			for (DynamicBackBo bo : backBos) {
+				if (friends.contains(bo.getUserid())) {
+					friends.remove(bo.getUserid());
+				}
+			}
+		}
+		if(friends.contains(userBo.getId())) {
+			friends.remove(userBo.getId());
+		}
+		return friends;
+	}
+	
+	// 获取格式为 省-市-区格式的字符串中的市
+	public static String getCity(String area) {
+		String[] split = area.split("-");
+		if(split.length>=2) {
+			String result = split[0]+"-"+split[1];
+			return result;
+		}
+		return "";
 	}
 }

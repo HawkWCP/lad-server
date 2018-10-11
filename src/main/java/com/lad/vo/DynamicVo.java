@@ -64,8 +64,18 @@ public class DynamicVo extends BaseVo {
     private int circleNoteNum;
 
     private Date time;
+    
+    private boolean neww = false;
+    
+    public boolean isNeww() {
+		return neww;
+	}
 
-    public String getMsgid() {
+	public void setNeww(boolean neww) {
+		this.neww = neww;
+	}
+
+	public String getMsgid() {
         return msgid;
     }
 

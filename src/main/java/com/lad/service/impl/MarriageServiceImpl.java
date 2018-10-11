@@ -157,4 +157,9 @@ public class MarriageServiceImpl implements IMarriageService {
 	public WaiterBo findWaiterByNickName(String nickName, String uid) {
 		return marriageDao.findWaiterByNickName(nickName,uid);
 	}
+
+	@Override
+	public List<OptionBo> getYlOptions() {
+		return marriageDao.getYlOptions();
+	}
 }

@@ -76,4 +76,6 @@ public interface IMarriageDao {
 
 	WaiterBo findWaiterByNickName(String nickName, String uid);
 
+	List<OptionBo> getYlOptions();
+
 }

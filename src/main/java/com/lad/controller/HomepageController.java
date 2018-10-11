@@ -15,6 +15,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.springframework.beans.BeanUtils;
@@ -63,6 +65,7 @@ import net.sf.json.JSONObject;
 @RequestMapping("homepage")
 public class HomepageController extends BaseContorller {
 
+	private static final Logger logger = LogManager.getLogger(HomepageController.class);
 	@Autowired
 	private IHomepageService homepageService;
 	@Autowired
@@ -145,6 +148,7 @@ public class HomepageController extends BaseContorller {
 
 	@GetMapping("/new-visitors-count")
 	public String new_visitors_count(HttpServletRequest request, HttpServletResponse response) {
+		// TODO
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -382,7 +386,7 @@ public class HomepageController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
 		List<ChatroomVo> voList = new LinkedList<>();
-		;
+		logger.info("@PostMapping(\"/user-homepage\") =====loginUser:{}({}),user{}({})",loginUser.getUserName(),loginUser.getId(),userBo.getUserName(),userBo.getId());
 		if (loginUser != null && !userid.equals(loginUser.getId())) {
 			updateUserVisit(userid, loginUser.getId());
 			List<ChatroomBo> chatroomBos = chatroomService.haveSameChatroom(loginUser.getId(), userid);

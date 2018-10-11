@@ -16,5 +16,5 @@ public class OptionBo extends BaseBo{
 	private String supId;	// 上级id(可选,涉及多级联动的选项需要填写该字段)
 	private String template;// 使用模板(涉及范围选项需要填写该字段)
 	private int sort;	// 排序
-	private int status; // 状态,是否启用
+	private int status; // 状态,是否启用 0启用,1不启用
 }

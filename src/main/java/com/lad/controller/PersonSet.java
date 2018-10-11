@@ -11,6 +11,8 @@ import com.lad.vo.UserInfoVo;
 import io.swagger.annotations.ApiOperation;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,8 @@ import java.util.*;
 @RestController
 @RequestMapping("person-set")
 public class PersonSet extends BaseContorller {
+	
+	private static final Logger logger = LogManager.getLogger(PersonSet.class);
 
 	@Autowired
 	private IUserService userService;
@@ -146,6 +150,7 @@ public class PersonSet extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@GetMapping(\"/user-info\")=====user:{}({})",userBo.getUserName(),userBo.getId());
 		UserInfoVo infoVo = new UserInfoVo();
 		bo2vo(userBo, infoVo);
 		LocationBo locationBo = locationService.getLocationBoByUserid(userBo.getId());

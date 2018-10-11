@@ -468,4 +468,9 @@ public class InforSerivceImpl implements IInforService {
     public List<YanglaoBo> findYanglaoByModule(String module) {
         return yanglaoDao.findByModule(module, "yanglao");
     }
+
+	@Override
+	public DailynewsBo findDailynewsById(String sourceid) {
+		return dailynewsDao.findById(sourceid);
+	}
 }

@@ -158,4 +158,6 @@ public interface IReasonService {
 	List<ReasonBo> findByUserAndCircle(HashSet<String> users, String circleid, int status);
 
 	WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet);
+
+	ReasonBo findByUserAndCircle(String id, String id2, int addAgree, int reasonType);
 }

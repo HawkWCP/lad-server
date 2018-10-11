@@ -128,4 +128,9 @@ public class ReasonServiceImpl implements IReasonService {
 	public WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet) {
 		return reasonDao.updateUnReadSet(userid, circleid, unReadSet);
 	}
+
+	@Override
+	public ReasonBo findByUserAndCircle(String userid, String circleid, int status, int reasonType) {
+		return reasonDao.findByUserAndCircle(userid, circleid, status, reasonType);
+	}
 }

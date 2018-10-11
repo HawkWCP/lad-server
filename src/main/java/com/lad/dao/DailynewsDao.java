@@ -1,8 +1,6 @@
 package com.lad.dao;
 
-import com.mongodb.WriteResult;
-
-import lad.scrapybo.DailynewsBo;
+import java.util.List;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -11,7 +9,7 @@ import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import lad.scrapybo.DailynewsBo;
 
 /**
  * 功能描述：
@@ -36,5 +34,10 @@ public class DailynewsDao extends InforBaseDao<DailynewsBo> {
                 DailynewsBo.class);
         return results != null ? results.getMappedResults() : null;
     }
+
+	public DailynewsBo findDailynewsById(String sourceid) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 }

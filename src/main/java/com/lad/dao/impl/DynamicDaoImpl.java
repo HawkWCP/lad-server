@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -112,5 +113,18 @@ public class DynamicDaoImpl implements IDynamicDao {
 		Update update = new Update();
 		update.set("read", true);
 		return mongoTemplate.updateMulti(query, update, UserVisitBo.class);
+	}
+
+	@Override
+	public long findDynamicNotReadNum(String id) {
+		return mongoTemplate.count(new Query(Criteria.where("unReadFrend").in(id).and("deleted").is(0)), DynamicBo.class);
+	}
+
+	@Override
+	public WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend) {
+		Query query = new Query(Criteria.where("_id").is(id).and("deleted").is(0));
+		Update update = new Update();
+		update.set("unReadFrend", unReadFrend);
+		return mongoTemplate.updateFirst(query, update, DynamicBo.class);
 	}
 }

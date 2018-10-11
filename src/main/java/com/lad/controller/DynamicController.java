@@ -14,8 +14,8 @@ import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -59,7 +59,7 @@ import net.sf.json.JSONObject;
 @RequestMapping("/dynamic")
 public class DynamicController extends BaseContorller {
 
-	private static final Logger logger = LoggerFactory.getLogger(DynamicController.class);
+	private static final Logger logger = LogManager.getLogger(DynamicController.class);
 
 	@Autowired
 	private RedisServer redisServer;
@@ -82,6 +82,58 @@ public class DynamicController extends BaseContorller {
 	@Autowired
 	private IHomepageService homepageService;
 
+	
+	/**
+	 * 	看过我动态的人数
+	 * 
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@ApiOperation("看过我动态的人数")
+	@RequestMapping(value = "/new-visitors-count", method = { RequestMethod.GET, RequestMethod.POST })
+	public String visitMyDynamicsNum(HttpServletRequest request, HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		// TODO
+		logger.info("@RequestMapping(value = \"/new-visitors-count\")=====user:{}({})",
+				userBo.getUserName(), userBo.getId());
+
+		List<UserVisitBo> visitBos = userService.visitToMeList(userBo.getId(), 1, 1, Integer.MAX_VALUE);
+		// 保存所有访问者的id
+		Set<String> temp = new HashSet<>();
+		int new_visit_num = 0;
+		
+		for (UserVisitBo visitBo : visitBos) {
+			UserBo user = userService.getUser(visitBo.getVisitid());
+			if (user != null) {
+				// 过滤掉想要隐藏的人
+				HomepageBo selectByUserId = homepageService.selectByUserId(user.getId());
+				if (selectByUserId != null && selectByUserId.getHide_record_set().contains(userBo.getId())) {
+					continue;
+				}
+				boolean new_read = !visitBo.isRead();
+				if (!temp.contains(user.getId())) {
+					temp.add(user.getId());
+					if(new_read) {
+						new_visit_num++;
+					}
+				}
+			}
+		}
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		logger.error("temp:{}", JSON.toJSONString(temp));
+		map.put("all_visitors_count", temp.size());
+		map.put("new_visitors_count", new_visit_num);
+		return JSONObject.fromObject(map).toString();
+	}
+	
+	
 	/**
 	 * 设置隐身访问
 	 * 
@@ -97,6 +149,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/set-not-hide\")=====user:{}({}),uid:{}", userBo.getUserName(),
+				userBo.getId(), uid);
 		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
 		if (homepageBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
@@ -127,6 +181,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/set-hide-me\")=====user:{}({}),uid:{}", userBo.getUserName(),
+				userBo.getId(), uid);
 		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
 		if (homepageBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
@@ -155,6 +211,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/set-allow-push\")=====user:{}({}),uid:{}", userBo.getUserName(),
+				userBo.getId(), uid);
 		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
 		if (homepageBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
@@ -185,6 +243,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/set-not-push\")=====user:{}({}),uid:{}", userBo.getUserName(),
+				userBo.getId(), uid);
 		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
 		if (homepageBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
@@ -213,7 +273,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("@RequestMapping(value = \"/delete-vzt2me-history\"),user:{},userid:{},uid:{}",userBo.getUserName(),userBo.getId(),uid);
+		logger.info("@RequestMapping(value = \"/delete-vzt2me-history\"),user:{},userid:{},uid:{}",
+				userBo.getUserName(), userBo.getId(), uid);
 		userService.deleteByVisitid(uid, userBo.getId());
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -235,7 +296,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("@RequestMapping(value = \"/delete-i2vzt-history\"),user:{},userid:{},uid:{}",userBo.getUserName(),userBo.getId(),uid);
+		logger.info("@RequestMapping(value = \"/delete-i2vzt-history\"),user:{},userid:{},uid:{}", userBo.getUserName(),
+				userBo.getId(), uid);
 		userService.deleteByVisitid(userBo.getId(), uid);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -266,6 +328,9 @@ public class DynamicController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		logger.info(
+				"@RequestMapping(value = \"/insert\")=====user:{}({}),position:[{},{}],title:{},content:{},landmark:{},type:{}",
+				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type);
 		String userId = userBo.getId();
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(title);
@@ -315,26 +380,12 @@ public class DynamicController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		logger.info("@RequestMapping(value = \"/all-dynamics\")=====user:{}({}),page:{},limit:{}", userBo.getUserName(),
+				userBo.getId(), page, limit);
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 
-		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
-		List<String> friends = new LinkedList<>();
-		for (FriendsBo friendsBo : friendsBos) {
-			friends.add(friendsBo.getFriendid());
-		}
-		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
-		if (null != backBo) {
-			HashSet<String> noSees = backBo.getNotSeeBacks();
-			friends.removeAll(noSees);
-		}
-		List<DynamicBackBo> backBos = dynamicService.findWhoBackMe(userBo.getId());
-		if (backBos != null && !backBos.isEmpty()) {
-			for (DynamicBackBo bo : backBos) {
-				if (friends.contains(bo.getUserid())) {
-					friends.remove(bo.getUserid());
-				}
-			}
-		}
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, page, limit);
+
 		List<DynamicVo> dynamicVos = new ArrayList<>();
 		bo2vo(msgBos, dynamicVos, userBo);
 		Map<String, Object> map = new HashMap<>();
@@ -362,30 +413,17 @@ public class DynamicController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-
-		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
-		List<String> friends = new LinkedList<>();
-		for (FriendsBo friendsBo : friendsBos) {
-			friends.add(friendsBo.getFriendid());
-		}
-		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
-		if (null != backBo) {
-			HashSet<String> noSees = backBo.getNotSeeBacks();
-			friends.removeAll(noSees);
-		}
-		List<DynamicBackBo> backBos = dynamicService.findWhoBackMe(userBo.getId());
-		if (backBos != null && !backBos.isEmpty()) {
-			for (DynamicBackBo bo : backBos) {
-				if (friends.contains(bo.getUserid())) {
-					friends.remove(bo.getUserid());
-				}
-			}
-		}
+		logger.info("@RequestMapping(value = \"/all-dynamics-num\")=====user:{}({})", userBo.getUserName(),
+				userBo.getId());
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, -1, 0);
+		long notReadNum = dynamicService.findDynamicNotReadNum(userBo.getId());
+
 		int total = msgBos != null ? msgBos.size() : 0;
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicNum", total);
+		map.put("notReadNum", notReadNum);
 		return JSONObject.fromObject(map).toString();
 	}
 
@@ -406,6 +444,8 @@ public class DynamicController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		logger.info("@RequestMapping(value = \"/friend-dynamics\")=====user:{}({}),friendid:{},page:{},limit:{}",
+				userBo.getUserName(), userBo.getId(), friendid, page, limit);
 		UserBo friend = userService.getUser(friendid);
 		if (friend == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
@@ -438,13 +478,9 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/one-dynamics-num\")=====user:{}({}),friendid:{}", userBo.getUserName(),
+				userBo.getId(), friendid);
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(friendid, -1, 0);
-
-		// DynamicNumBo numBo = dynamicService.findNumByUserid(friendid);
-		// long total = 0L;
-		// if (numBo != null) {
-		// total = numBo.getNumber();
-		// }
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -463,11 +499,12 @@ public class DynamicController extends BaseContorller {
 	@RequestMapping(value = "/my-dynamics", method = { RequestMethod.GET, RequestMethod.POST })
 	public String myDynamics(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-		// TODO
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/my-dynamics\")=====user:{}({}),friendid:{},page:{},limit:{}",
+				userBo.getUserName(), userBo.getId(), page, limit);
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(userBo.getId(), page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
 		bo2vo(msgBos, dynamicVos, userBo);
@@ -515,11 +552,9 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		// DynamicNumBo numBo = dynamicService.findNumByUserid(userBo.getId());
-		// long total = 0L;
-		// if (numBo != null) {
-		// total = numBo.getNumber();
-		// }
+		logger.info("@RequestMapping(value = \"/my-dynamics-num\")=====user:{}({})", userBo.getUserName(),
+				userBo.getId());
+
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(userBo.getId(), -1, 0);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -541,6 +576,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/dynamic-not-see\")=====user:{}({}),friendid:{}", userBo.getUserName(),
+				userBo.getId(), friendid);
 		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
 		if (backBo == null) {
 			backBo = new DynamicBackBo();
@@ -572,22 +609,32 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		// TODO
+		logger.info("@RequestMapping(value = \"/visit-my-dynamic\")=====user:{}({}),page:{},limit",
+				userBo.getUserName(), userBo.getId(), page, limit);
+
+		
+		
 		List<UserVisitBo> visitBos = userService.visitToMeList(userBo.getId(), 1, page, limit);
 		List<Object> visitUsers = new LinkedList<>();
 		// 保存所有访问者的id
 		Set<String> temp = new HashSet<>();
 
+		// 获取不通知列表
 		HomepageBo myHomepage = homepageService.selectByUserId(userBo.getId());
 		HashSet<String> not_push_set = myHomepage.getNot_push_set() == null ? new HashSet<>()
 				: myHomepage.getNot_push_set();
+		
 		for (UserVisitBo visitBo : visitBos) {
 			UserBo user = userService.getUser(visitBo.getVisitid());
-			// 过滤掉想要隐藏的人
-			HomepageBo selectByUserId = homepageService.selectByUserId(user.getId());
-			if (selectByUserId != null && selectByUserId.getHide_record_set().contains(userBo.getId())) {
-				continue;
-			}
+
 			if (user != null) {
+				// 过滤掉想要隐藏的人
+				HomepageBo selectByUserId = homepageService.selectByUserId(user.getId());
+				if (selectByUserId != null && selectByUserId.getHide_record_set().contains(userBo.getId())) {
+					continue;
+				}
+				
 				if (!temp.contains(user.getId())) {
 					UserBaseVo baseVo = new UserBaseVo();
 					BeanUtils.copyProperties(user, baseVo);
@@ -612,6 +659,7 @@ public class DynamicController extends BaseContorller {
 		dynamicService.updateReadToTure(userBo.getId(), temp);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
+		logger.error("temp:{}", JSON.toJSONString(temp));
 		map.put("visitUserVos", visitUsers);
 		return JSONObject.fromObject(map).toString();
 	}
@@ -631,6 +679,8 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/my-visit-dynamic\")=====user:{}({}),page:{},limit",
+				userBo.getUserName(), userBo.getId(), page, limit);
 		List<UserVisitBo> visitBos = userService.visitFromMeList(userBo.getId(), 1, page, limit);
 		List<Object> visitUsers = new LinkedList<>();
 		Set<String> temp = new HashSet<>();
@@ -683,6 +733,9 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@RequestMapping(value = \"/update-backpic\")=====user:{}({})", userBo.getUserName(),
+				userBo.getId());
+
 		if (backPic != null) {
 			Long time = Calendar.getInstance().getTimeInMillis();
 			String fileName = String.format("%s-%d-%s", userBo.getId(), time, backPic.getOriginalFilename());
@@ -761,7 +814,18 @@ public class DynamicController extends BaseContorller {
 			dynamicVo.setTime(msgBo.getCreateTime());
 			ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(msgBo.getMsgid(), userBo.getId());
 			dynamicVo.setMyThumbsup(thumbsupBo != null);
+			
+			LinkedHashSet<String> unReadFrend = msgBo.getUnReadFrend();
+			if (unReadFrend != null && unReadFrend.contains(userBo.getId())) {
+				unReadFrend.remove(userBo.getId());
+				dynamicService.updateUnReadSet(msgBo.getId(), unReadFrend);
+				dynamicVo.setNeww(true);
+			}
+			
 			dynamicVos.add(dynamicVo);
+
+			
 		}
 	}
+
 }

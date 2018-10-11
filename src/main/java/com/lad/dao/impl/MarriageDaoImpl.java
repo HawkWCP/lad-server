@@ -561,4 +561,13 @@ public class MarriageDaoImpl implements IMarriageDao {
 				Criteria.where("nickName").is(nickName).and("createuid").is(uid).and("deleted").is(Constant.ACTIVITY)),
 				WaiterBo.class);
 	}
+
+	@Override
+	public List<OptionBo> getYlOptions() {
+		String regex = "yl.*";
+		Query query = new Query(Criteria.where("field").regex(regex));
+		query.with(new Sort(Direction.ASC,"field","sort","id"));
+		List<OptionBo> result = mongoTemplate.find(query, OptionBo.class);
+		return result;
+	}
 }

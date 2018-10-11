@@ -14,4 +14,8 @@ import lombok.Setter;
 public class FriendDisVo extends FriendsVo {
 
     private double distance;
+    
+    private int level;
+    
+    private int age;
 }

@@ -159,4 +159,6 @@ public interface IReasonDao extends IBaseDao{
 	List<ReasonBo> findByUserAndCircle(HashSet<String> users, String circleid, int status);
 
 	WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet);
+
+	ReasonBo findByUserAndCircle(String userid, String circleid, int status, int reasonType);
 }
