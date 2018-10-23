@@ -1,7 +1,5 @@
 package com.junlenet.mongodb.demo;
 
-import org.junit.Test;
-
 /**
  * 功能描述：
  * Time:2017/6/28

@@ -1,8 +1,8 @@
 package com.lad.util;
 
-import net.sourceforge.pinyin4j.PinyinHelper;
-
 import java.util.Comparator;
+
+import net.sourceforge.pinyin4j.PinyinHelper;
 
 /**
  * 功能描述：

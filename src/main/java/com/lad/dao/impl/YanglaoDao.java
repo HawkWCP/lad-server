@@ -1,10 +1,6 @@
 package com.lad.dao.impl;
 
-import com.lad.dao.InforBaseDao;
-import com.mongodb.WriteResult;
-
-import lad.scrapybo.DailynewsBo;
-import lad.scrapybo.YanglaoBo;
+import java.util.List;
 
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -13,7 +9,9 @@ import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.lad.dao.InforBaseDao;
+
+import lad.scrapybo.YanglaoBo;
 
 /**
  * 功能描述：

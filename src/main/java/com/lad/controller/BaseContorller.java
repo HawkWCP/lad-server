@@ -4,11 +4,14 @@ package com.lad.controller;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.ui.ModelMap;
@@ -29,11 +32,39 @@ import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.MiPushUtil;
 import com.lad.util.MyException;
 
 public abstract class BaseContorller {
 
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
+	
+	
+	/**
+	 * push
+	 * @param redisServer
+	 * @param title
+	 * @param message
+	 * @param description
+	 * @param path
+	 * @param aliasList
+	 * @param alias
+	 */
+	@Async
+	public void push(RedisServer redisServer,String title, String message,String description, String path,List<String> aliasList,String... alias){
+		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
+		try {
+			//3s自动解锁
+			lock.lock(3, TimeUnit.SECONDS);
+			Logger logger = LogManager.getLogger();
+			logger.info("aliasList:{}",aliasList.toString());
+			
+			MiPushUtil.sendMessageToAliases(title, message, description, path, aliasList);
+//			JPushUtil.push(title, message, path, alias);
+		} finally {
+			lock.unlock();
+		}
+	}
 
 	/**
 	 * 定向到错误页面
@@ -160,6 +191,11 @@ public abstract class BaseContorller {
 		}
 	}
 
+	
+
+
+	
+	
 	/**
 	 * 更新圈子中各种访问信息或者人气等等
 	 * @param circleService
@@ -168,7 +204,6 @@ public abstract class BaseContorller {
 	 * @param num
 	 * @param type
 	 */
-	// TODO
 	@Async
 	public void updateCircleHot(ICircleService circleService, RedisServer redisServer,
 								String circleid, int num, int type){

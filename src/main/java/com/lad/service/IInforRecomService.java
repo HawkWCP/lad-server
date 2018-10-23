@@ -1,11 +1,15 @@
 package com.lad.service;
 
-import com.lad.bo.*;
-import com.mongodb.WriteResult;
-
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
+
+import com.lad.bo.InforGroupRecomBo;
+import com.lad.bo.InforHistoryBo;
+import com.lad.bo.InforRecomBo;
+import com.lad.bo.InforUserReadBo;
+import com.lad.bo.InforUserReadHisBo;
+import com.mongodb.WriteResult;
 
 /**
  * 功能描述：资讯推荐相关接口

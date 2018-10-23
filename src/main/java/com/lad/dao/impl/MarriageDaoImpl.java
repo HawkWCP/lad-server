@@ -1,7 +1,6 @@
 package com.lad.dao.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -24,7 +23,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
 import com.lad.bo.BaseBo;
-import com.lad.bo.CareAndPassBo;
 import com.lad.bo.OptionBo;
 import com.lad.bo.RequireBo;
 import com.lad.bo.WaiterBo;
@@ -570,4 +568,11 @@ public class MarriageDaoImpl implements IMarriageDao {
 		List<OptionBo> result = mongoTemplate.find(query, OptionBo.class);
 		return result;
 	}
+
+	@Override
+	public List<OptionBo> getYlOptions(String field) {
+		Query query = new Query(Criteria.where("field").is(field));
+		query.with(new Sort(Direction.ASC,"sort"));
+		List<OptionBo> result = mongoTemplate.find(query, OptionBo.class);
+		return result;	}
 }

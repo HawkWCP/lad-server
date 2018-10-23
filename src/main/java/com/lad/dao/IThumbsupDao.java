@@ -1,9 +1,9 @@
 package com.lad.dao;
 
+import java.util.List;
+
 import com.lad.bo.ThumbsupBo;
 import com.mongodb.WriteResult;
-
-import java.util.List;
 
 public interface IThumbsupDao extends IBaseDao {
 	public ThumbsupBo insert(ThumbsupBo thumbsupBo);

@@ -1,9 +1,9 @@
 package com.lad.dao;
 
+import java.util.List;
+
 import com.lad.bo.SearchBo;
 import com.mongodb.WriteResult;
-
-import java.util.List;
 
 /**
  * 功能描述：

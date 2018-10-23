@@ -1,9 +1,9 @@
 package com.lad.vo;
 
+import java.util.HashSet;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.HashSet;
 
 @Getter
 @Setter

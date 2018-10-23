@@ -1,10 +1,10 @@
 package com.lad.service;
 
-import com.lad.bo.OrganizationBo;
-import com.mongodb.WriteResult;
-
 import java.util.HashSet;
 import java.util.List;
+
+import com.lad.bo.OrganizationBo;
+import com.mongodb.WriteResult;
 
 public interface IOrganizationService extends IBaseService {
 	public OrganizationBo insert(OrganizationBo organizationBo);

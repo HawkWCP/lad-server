@@ -1,6 +1,5 @@
 package com.lad.vo;
 
-import io.swagger.annotations.ApiParam;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -3,6 +3,7 @@ package com.lad.controller;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -60,7 +61,6 @@ import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
-import com.lad.util.JPushUtil;
 import com.lad.util.MyException;
 import com.lad.vo.CommentVo;
 import com.lad.vo.NoteVo;
@@ -263,7 +263,14 @@ public class NoteController extends BaseContorller {
 		if (useridArr != null) {
 			String path = String.format("/note/note-info.do?noteid=%s&type=%s", noteBo.getId(), noteBo.getType());
 			String content = "有人刚刚在帖子提到了您，快去看看吧!";
-			JPushUtil.push(pushTitle, content, path, useridArr);
+			
+//			JPushUtil.push(pushTitle, content, path, useridArr);
+			List<String> aliasList = Arrays.asList(useridArr);
+			Map<String,String> msgMap = new HashMap<>();
+			msgMap.put("path", path);
+			String message = JSON.toJSONString(msgMap);
+			push(redisServer, pushTitle, message, content, path, aliasList, useridArr);
+
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
 		// 设置当前用户访问该帖子的历史
@@ -398,7 +405,15 @@ public class NoteController extends BaseContorller {
 		String content = "有人刚刚赞了你的帖子，快去看看吧!";
 		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
 		String path = "/note/note-info.do?noteid=" + noteid;
-		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
+//		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
+		String alias = noteBo.getCreateuid();
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String,String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+		
 		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(), uid,
 				noteBo.getCreateuid());
 		return Constant.COM_RESP;
@@ -645,7 +660,15 @@ public class NoteController extends BaseContorller {
 		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
 		String path = "/note/note-info.do?noteid=" + noteid;
 		String content = "有人刚刚评论了你的帖子，快去看看吧!";
-		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
+//		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
+		String alias = noteBo.getCreateuid();
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String,String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+		
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
 				userBo.getId(), noteBo.getCreateuid());
 		if (!StringUtils.isEmpty(parentid)) {
@@ -653,7 +676,12 @@ public class NoteController extends BaseContorller {
 			if (comment != null) {
 				asyncController.updateCircieUnReadNum(comment.getCreateuid(), noteBo.getCircleId());
 				content = "有人刚刚回复了你的评论，快去看看吧!";
-				JPushUtil.pushMessage(pushTitle, content, path, comment.getCreateuid());
+//				JPushUtil.pushMessage(pushTitle, content, path, comment.getCreateuid());
+				alias = comment.getCreateuid();
+				aliasList = new ArrayList<>();
+				aliasList.add(alias);
+				push(redisServer, pushTitle, message, content, path, aliasList, alias);
+				
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
 			}

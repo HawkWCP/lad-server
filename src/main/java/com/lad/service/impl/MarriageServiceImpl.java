@@ -162,4 +162,9 @@ public class MarriageServiceImpl implements IMarriageService {
 	public List<OptionBo> getYlOptions() {
 		return marriageDao.getYlOptions();
 	}
+
+	@Override
+	public List<OptionBo> getYlOptions(String field) {
+		return marriageDao.getYlOptions(field);
+	}
 }

@@ -1,12 +1,16 @@
 package com.lad.service;
 
-import com.lad.bo.*;
-import com.mongodb.WriteResult;
-
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+
+import com.lad.bo.CircleTypeBo;
+import com.lad.bo.RedstarBo;
+import com.lad.bo.UserBo;
+import com.lad.bo.UserTasteBo;
+import com.lad.bo.UserVisitBo;
+import com.mongodb.WriteResult;
 
 public interface IUserService extends IBaseService {
 

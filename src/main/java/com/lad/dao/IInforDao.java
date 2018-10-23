@@ -1,11 +1,10 @@
 package com.lad.dao;
 
+import java.util.List;
+
 import com.mongodb.WriteResult;
 
 import lad.scrapybo.InforBo;
-import lad.scrapybo.SecurityBo;
-
-import java.util.List;
 
 /**
  * 功能描述：

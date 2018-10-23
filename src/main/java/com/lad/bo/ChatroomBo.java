@@ -1,8 +1,8 @@
 package com.lad.bo;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.LinkedHashSet;
+
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "chatroom")
 public class ChatroomBo extends BaseBo {

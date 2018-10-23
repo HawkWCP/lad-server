@@ -1,9 +1,7 @@
 package com.lad.dao.impl;
 
-import com.lad.bo.UserTasteBo;
-import com.lad.dao.IUserTasteDao;
-import com.lad.util.Constant;
-import com.mongodb.WriteResult;
+import java.util.LinkedHashSet;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -11,7 +9,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.util.LinkedHashSet;
+import com.lad.bo.UserTasteBo;
+import com.lad.dao.IUserTasteDao;
+import com.lad.util.Constant;
+import com.mongodb.WriteResult;
 
 /**
  * 功能描述：

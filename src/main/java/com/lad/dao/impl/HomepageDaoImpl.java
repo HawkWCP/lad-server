@@ -1,7 +1,5 @@
 package com.lad.dao.impl;
 
-import com.mongodb.WriteResult;
-
 import java.util.HashSet;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import com.lad.bo.HomepageBo;
 import com.lad.dao.IHomepageDao;
+import com.mongodb.WriteResult;
 
 @Repository("homepageDao")
 public class HomepageDaoImpl implements IHomepageDao {

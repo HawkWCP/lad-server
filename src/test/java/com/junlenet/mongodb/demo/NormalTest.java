@@ -1,6 +1,10 @@
 package com.junlenet.mongodb.demo;
 
-import com.lad.bo.InforSubscriptionBo;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+
 import org.junit.Test;
 import org.redisson.Redisson;
 import org.redisson.api.RMapCache;
@@ -8,10 +12,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.redisson.spring.cache.CacheConfig;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
+import com.lad.bo.InforSubscriptionBo;
 
 /**
  * 功能描述：

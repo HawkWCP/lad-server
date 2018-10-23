@@ -1,11 +1,11 @@
 package com.lad.service;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+
 import com.lad.bo.CollectBo;
 import com.lad.bo.UserTagBo;
 import com.mongodb.WriteResult;
-
-import java.util.LinkedHashSet;
-import java.util.List;
 
 public interface ICollectService {
 	

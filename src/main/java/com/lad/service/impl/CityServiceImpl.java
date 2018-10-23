@@ -1,15 +1,14 @@
 package com.lad.service.impl;
 
-import com.lad.bo.CityBo;
-import com.lad.dao.ICityDao;
-import com.lad.service.ICityService;
-import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.lad.bo.CityBo;
+import com.lad.dao.ICityDao;
+import com.lad.service.ICityService;
+import com.mongodb.BasicDBObject;
 
 /**
  * 功能描述：

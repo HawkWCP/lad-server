@@ -1,11 +1,12 @@
 package com.lad.util;
 
-import com.lad.bo.UserBo;
-import com.lad.service.IUserService;
-import org.apache.logging.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+
+import org.apache.logging.log4j.Logger;
+
+import com.lad.bo.UserBo;
+import com.lad.service.IUserService;
 
 /**
  * Created by unisky on 2017/11/10.

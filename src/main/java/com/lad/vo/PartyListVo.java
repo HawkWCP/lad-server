@@ -1,9 +1,9 @@
 package com.lad.vo;
 
+import java.util.LinkedHashSet;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.LinkedHashSet;
 
 /**
  * 功能描述：

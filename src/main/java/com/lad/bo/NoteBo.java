@@ -1,12 +1,13 @@
 package com.lad.bo;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter

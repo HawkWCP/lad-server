@@ -1,9 +1,9 @@
 package com.lad.dao;
 
-import com.lad.bo.InforTotalNumBo;
-
 import java.util.HashSet;
 import java.util.List;
+
+import com.lad.bo.InforTotalNumBo;
 
 /**
  * 功能描述：

@@ -1,10 +1,10 @@
 package com.lad.dao;
 
-import com.lad.bo.OrganizationBo;
-import com.mongodb.WriteResult;
-
 import java.util.HashSet;
 import java.util.List;
+
+import com.lad.bo.OrganizationBo;
+import com.mongodb.WriteResult;
 
 public interface IOrganizationDao extends IBaseDao {
 	public OrganizationBo insert(OrganizationBo organizationBo);

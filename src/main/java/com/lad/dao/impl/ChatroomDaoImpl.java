@@ -1,6 +1,5 @@
 package com.lad.dao.impl;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -8,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -121,28 +122,29 @@ public class ChatroomDaoImpl implements IChatroomDao {
 	}
 
 	public boolean withInRange(String chatroomId, double[] position, int radius) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(new ObjectId(chatroomId)));
-		//位置索引查询
+		// 位置索引查询
 		Point location = new Point(position[0], position[1]);
-		NearQuery nearQuery = NearQuery.near(location)
-				.maxDistance(new Distance(radius/6378137.0)).spherical(true).query(query);
-		Aggregation aggregation = Aggregation.newAggregation(Aggregation.geoNear(nearQuery,"position"));
-		AggregationResults<ChatroomBo> results = mongoTemplate.aggregate(aggregation,collectionName,ChatroomBo.class);
+		NearQuery nearQuery = NearQuery.near(location).maxDistance(new Distance(radius / 6378137.0)).spherical(true)
+				.query(query);
+		Aggregation aggregation = Aggregation.newAggregation(Aggregation.geoNear(nearQuery, "position"));
+		AggregationResults<ChatroomBo> results = mongoTemplate.aggregate(aggregation, collectionName, ChatroomBo.class);
 		List<ChatroomBo> list = results.getMappedResults();
 		return list != null && !list.isEmpty();
 	}
 
 	/**
 	 * 查看是否有索引，没有则创建
+	 * 
 	 * @param collection
 	 * @param indexName
 	 */
-	private boolean hasIndex(DBCollection collection, String indexName){
+	private boolean hasIndex(DBCollection collection, String indexName) {
 		List<DBObject> indexList = collection.getIndexInfo();
-		if(null!=indexList){
-			for(DBObject o:indexList){
+		if (null != indexList) {
+			for (DBObject o : indexList) {
 				String name = (String) o.get("name");
 				if (StringUtils.isNotEmpty(name) && name.equals(indexName)) {
 					return (isIndex = true);
@@ -152,32 +154,28 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		return false;
 	}
 
-
 	@Override
 	public ChatroomBo selectBySeqInTen(int seq, double[] position, int radius) {
 		org.slf4j.Logger logger2 = org.slf4j.LoggerFactory.getLogger(ChatroomController.class);
-		logger2.error("==========数据库层面传入的定位信息:"+Arrays.toString(position)+"===========");
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("seq").is(seq));
 		query.addCriteria(new Criteria("type").is(Constant.ROOM_FACE_2_FACE));
 		query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
 		query.addCriteria(new Criteria("expire").is(1));
-		long before = System.currentTimeMillis() - 10 * 60 *1000;
+		long before = System.currentTimeMillis() - 10 * 60 * 1000;
 		Date beforeTime = new Date(before);
 		query.addCriteria(new Criteria("createTime").gte(beforeTime));
-		//位置索引查询
+		// 位置索引查询
 		Point location = new Point(position[0], position[1]);
-		Criteria criteria1 = Criteria.where("position").nearSphere(location)
-				.maxDistance(radius/6378137.0);
+		Criteria criteria1 = Criteria.where("position").nearSphere(location).maxDistance(radius / 6378137.0);
 		query.addCriteria(criteria1);
-		logger2.error("==========query语句:"+query.toString()+"===========");
 		return mongoTemplate.findOne(query, ChatroomBo.class);
 	}
 
 	@Override
 	public WriteResult updateMaster(String chatroomId, String masterid) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -188,7 +186,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public WriteResult updateName(String chatroomId, String name) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -197,8 +195,8 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		return mongoTemplate.updateFirst(query, update, ChatroomBo.class);
 	}
 
-	public WriteResult updateName(String chatRoomId, String name, boolean isNameSet){
-		//主键筛选条件
+	public WriteResult updateName(String chatRoomId, String name, boolean isNameSet) {
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatRoomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -209,8 +207,9 @@ public class ChatroomDaoImpl implements IChatroomDao {
 	}
 
 	@Override
-	public WriteResult updateNameAndUsers(String chatRoomId, String name, boolean isNameSet, LinkedHashSet<String> users) {
-		//主键筛选条件
+	public WriteResult updateNameAndUsers(String chatRoomId, String name, boolean isNameSet,
+			LinkedHashSet<String> users) {
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatRoomId).and("deleted").is(Constant.ACTIVITY));
 		Update update = new Update();
@@ -222,7 +221,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public WriteResult updateUsers(String chatroomId, LinkedHashSet<String> users) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -233,7 +232,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public WriteResult updateDescription(String chatroomId, String description) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -244,7 +243,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public WriteResult updateOpen(String chatroomId, boolean isOpen) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -255,7 +254,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public WriteResult updateVerify(String chatroomId, boolean isVerify) {
-		//主键筛选条件
+		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatroomId));
 		query.addCriteria(new Criteria("deleted").is(0));
@@ -266,13 +265,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid) {
-		Query query = new Query();
-		Criteria single = new Criteria("userid").is(userid);
-		Criteria single2 = new Criteria("friendid").is(userid);
-		Criteria mulit = new Criteria("users").in(userid);
-		query.addCriteria(single.orOperator(single2,mulit));
-		query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
-		return mongoTemplate.find(query, ChatroomBo.class);
+		return findMyChatrooms(userid, 0, 0);
 	}
 
 	@Override
@@ -282,7 +275,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		Criteria single = new Criteria("userid").is(userid).and("type").is(Constant.ROOM_SINGLE);
 		Criteria single2 = new Criteria("friendid").is(userid).and("type").is(Constant.ROOM_SINGLE);
 		Criteria mulit = new Criteria("users").in(userid);
-		c.orOperator(single,single2,mulit);
+		c.orOperator(single, single2, mulit);
 		Query query = new Query();
 		query.addCriteria(c);
 		query.addCriteria(new Criteria("deleted").is(Constant.ACTIVITY));
@@ -310,7 +303,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		query.addCriteria(new Criteria("_id").is(chatroomId).and("deleted").is(Constant.ACTIVITY));
 		Update update = new Update();
 		update.set("targetid", partyid);
-		return  mongoTemplate.updateFirst(query, update, ChatroomBo.class);
+		return mongoTemplate.updateFirst(query, update, ChatroomBo.class);
 	}
 
 	@Override
@@ -320,12 +313,12 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		users.add(userid);
 		users.add(friendid);
 		Query query = new Query();
-		query.addCriteria(new Criteria("users").all(users).and("type").ne(Constant.ROOM_SINGLE).and("deleted").is
-				(Constant.ACTIVITY));
+		query.addCriteria(new Criteria("users").all(users).and("type").ne(Constant.ROOM_SINGLE).and("deleted")
+				.is(Constant.ACTIVITY));
 		return mongoTemplate.find(query, ChatroomBo.class);
 	}
 
-	public WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params){
+	public WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params) {
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(chatRoomId).and("deleted").is(0));
 		if (params != null) {
@@ -335,4 +328,66 @@ public class ChatroomDaoImpl implements IChatroomDao {
 		}
 		return null;
 	}
+
+	@Override
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit) {
+		Query query = new Query(Criteria.where("name").regex(keyword).and("deleted").is(0));
+		int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
+		query.skip(skip);
+		query.limit(limit);
+		return mongoTemplate.find(query, ChatroomBo.class);
+	}
+
+	@Override
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit) {
+//		Criteria single = new Criteria("userid").is(userid);
+//		Criteria single2 = new Criteria("friendid").is(userid);
+//		Criteria mulit = new Criteria("users").in(userid);
+//		query.addCriteria(single.orOperator(single2,mulit));
+		Criteria orOptions = new Criteria();
+		orOptions.orOperator(Criteria.where(userid).is(userid), Criteria.where(userid).is("friendid"),
+				Criteria.where("users").in(userid));
+		Query query = new Query(Criteria.where("deleted").is(0).andOperator(orOptions));
+		Logger logger = LogManager.getLogger();
+		logger.error(query);
+		if (page != 0 && limit != 0) {
+			int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
+			query.skip(skip);
+			query.limit(limit);
+		}
+		return findMyChatrooms(userid, page, limit, null);
+	}
+
+	@Override
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList) {
+		Criteria orOptions = new Criteria();
+		orOptions.orOperator(Criteria.where(userid).is(userid), Criteria.where(userid).is("friendid"),
+				Criteria.where("users").in(userid));
+		Criteria criteria = Criteria.where("deleted").is(0).andOperator(orOptions);
+		if (typeList != null) {
+			criteria.and("type").in(typeList);
+		}
+		Query query = new Query(criteria);
+		Logger logger = LogManager.getLogger();
+		logger.error(query);
+		if (page != 0 && limit != 0) {
+			int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
+			query.skip(skip);
+			query.limit(limit);
+		}
+		return mongoTemplate.find(query, ChatroomBo.class);
+	}
+
+	@Override
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit, List<Integer> typeList) {
+		Criteria criteria = Criteria.where("name").regex(keyword).and("deleted").is(0);
+		if(typeList!=null) {
+			criteria.and("type").in(typeList);
+		}
+		Query query = new Query(criteria);
+
+		int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
+		query.skip(skip);
+		query.limit(limit);
+		return mongoTemplate.find(query, ChatroomBo.class);	}
 }

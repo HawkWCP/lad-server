@@ -1,16 +1,17 @@
 package com.lad.service.impl;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.CollectBo;
 import com.lad.bo.UserTagBo;
 import com.lad.dao.CollectDao;
 import com.lad.dao.IUserTagDao;
 import com.lad.service.ICollectService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.LinkedHashSet;
-import java.util.List;
 
 @Service("collectService")
 public class CollectServiceImpl implements ICollectService {

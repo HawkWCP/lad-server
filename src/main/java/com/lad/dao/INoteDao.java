@@ -1,14 +1,15 @@
 package com.lad.dao;
 
-import com.lad.bo.NoteBo;
-import com.mongodb.CommandResult;
-import com.mongodb.WriteResult;
-import org.springframework.data.geo.GeoResults;
-
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import org.springframework.data.geo.GeoResults;
+
+import com.lad.bo.NoteBo;
+import com.mongodb.CommandResult;
+import com.mongodb.WriteResult;
 
 public interface INoteDao extends IBaseDao {
 	public NoteBo insert(NoteBo noteBo);

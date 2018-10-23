@@ -62,6 +62,23 @@ public class CommonUtil {
 		return m.find();
 	}
 
+	/**
+	 *  获取字符串中的数字信息
+	 * @param str
+	 * @return
+	 */
+	public static int[] numInStr(String str) {
+		String regex = "\\D+";
+		String[] split = str.split(regex);
+		int[] result = new int[split.length];
+
+		for (int i = 0; i < split.length; i++) {
+			result[i] = Integer.valueOf(split[i]);
+		}
+
+		return result;
+	}
+
 	public static String getSHA256(String content) {
 		MessageDigest digest;
 		String output = "";
@@ -176,7 +193,7 @@ public class CommonUtil {
 		try {
 			message = URLEncoder.encode(message, "GBK");
 		} catch (UnsupportedEncodingException ex) {
-			logger.error("com.lad.util.CommonUtil.sendSMS2-----:"+ex);
+			logger.error("com.lad.util.CommonUtil.sendSMS2-----:" + ex);
 		}
 		String url = "http://sms-gw.bjedu.cloud:9888/smsservice/SendSMS?UserId=100535&Password=ttlyyl_2017&Mobiles="
 				+ mobile + "&Content=" + message + "&ExtNo=35";
@@ -245,8 +262,7 @@ public class CommonUtil {
 	/**
 	 * 将时间转成字符串
 	 * 
-	 * @param date
-	 *            时间
+	 * @param date 时间
 	 * @return yyyy-MM-dd HH:mm:ss
 	 */
 	public static String time2str(Date date) {
@@ -256,10 +272,8 @@ public class CommonUtil {
 	/**
 	 * 将日期转换成制定格式
 	 * 
-	 * @param format
-	 *            日期格式如 yyyy-MM-dd HH:mm:ss
-	 * @param date
-	 *            传入时间
+	 * @param format 日期格式如 yyyy-MM-dd HH:mm:ss
+	 * @param date   传入时间
 	 * @return 时间字符串
 	 */
 	public static String date2Str(String format, Date date) {
@@ -270,8 +284,7 @@ public class CommonUtil {
 	/**
 	 * 判断可变形参是否为空
 	 * 
-	 * @param ids
-	 *            参数
+	 * @param ids 参数
 	 * @return true if empty
 	 */
 	public static boolean isEmpty(String... ids) {
@@ -281,10 +294,8 @@ public class CommonUtil {
 	/**
 	 * 目标时间距离当前时间是否在time之内
 	 * 
-	 * @param beforeDate
-	 *            目标时间
-	 * @param time
-	 *            单位毫秒
+	 * @param beforeDate 目标时间
+	 * @param time       单位毫秒
 	 * @return ture
 	 */
 	public static boolean isTimeOut(Date beforeDate, long time) {
@@ -295,8 +306,7 @@ public class CommonUtil {
 	/**
 	 * 目标时间距离当前时间是否在10分钟内
 	 * 
-	 * @param beforeDate
-	 *            目标时间
+	 * @param beforeDate 目标时间
 	 * @return ture
 	 */
 	public static boolean isTimeInTen(Date beforeDate) {
@@ -304,8 +314,7 @@ public class CommonUtil {
 	}
 
 	/**
-	 * @param time
-	 *            目标时间
+	 * @param time 目标时间
 	 * @return ture
 	 */
 	public static boolean isTimeIn(long time) {
@@ -367,8 +376,7 @@ public class CommonUtil {
 	 * 分页查询
 	 * 
 	 * @param query
-	 * @param startId
-	 *            开始主键
+	 * @param startId 开始主键
 	 * @param gt
 	 * @param limit
 	 */
@@ -390,8 +398,7 @@ public class CommonUtil {
 	/**
 	 * 判断时间是否在180天之内
 	 * 
-	 * @param currenDate
-	 *            当前时间
+	 * @param currenDate 当前时间
 	 * @return 180天前的日期
 	 */
 	public static Date getHalfYearTime(Date currenDate) {
@@ -402,8 +409,7 @@ public class CommonUtil {
 	/**
 	 * 获取当前时间字符串
 	 * 
-	 * @param currenDate
-	 *            当前时间
+	 * @param currenDate 当前时间
 	 * @return yyyy-MM-dd
 	 */
 	public static String getCurrentDate(Date currenDate) {
@@ -414,8 +420,7 @@ public class CommonUtil {
 	/**
 	 * 获取当前时间字符串
 	 * 
-	 * @param dateStr
-	 *            yyyy-MM-dd HH:mm:ss
+	 * @param dateStr yyyy-MM-dd HH:mm:ss
 	 * @return date
 	 */
 	public static Date getDate(String dateStr) throws ParseException {
@@ -429,8 +434,7 @@ public class CommonUtil {
 	/**
 	 * 获取当前时间字符串
 	 * 
-	 * @param dateStr
-	 *            yyyy-MM-dd HH:mm:ss
+	 * @param dateStr yyyy-MM-dd HH:mm:ss
 	 * @return date
 	 */
 	public static Date getDate(String dateStr, String format) {
@@ -446,8 +450,7 @@ public class CommonUtil {
 	/**
 	 * 获取当前时间字符串
 	 * 
-	 * @param date
-	 *            当前时间
+	 * @param date 当前时间
 	 * @return yyyy-MM-dd
 	 */
 	public static String getDateStr(Date date, String format) {
@@ -486,8 +489,7 @@ public class CommonUtil {
 	/**
 	 * 判断当前对象是否为空
 	 * 
-	 * @param collection
-	 *            当前对象
+	 * @param collection 当前对象
 	 * @return
 	 */
 	public static boolean isEmpty(Collection collection) {
@@ -548,7 +550,7 @@ public class CommonUtil {
 		}
 		return age;
 	}
-	
+
 	/**
 	 * 根据生日计算年龄
 	 * 
@@ -558,7 +560,7 @@ public class CommonUtil {
 	public static int getAge(String birth) {
 		String regex = "\\D+";
 		String[] split = birth.split(regex);
-		if(split.length<3){
+		if (split.length < 3) {
 			return 0;
 		}
 		int birthYear = Integer.valueOf(split[0]);
@@ -647,7 +649,6 @@ public class CommonUtil {
 		return object.toJSONString();
 	}
 
-	
 	public static Object vo_format(Object json, Class clazz) {
 		com.alibaba.fastjson.JSONObject object = JSON.parseObject(JSON.toJSONString(json));
 		Set<String> keySet = object.keySet();
@@ -775,7 +776,7 @@ public class CommonUtil {
 		result = wallBo == null ? new LinkedList<>() : wallBo.getPictures();
 		return result;
 	}
-	
+
 	/**
 	 * 获取敏感词坐标
 	 * 
@@ -783,31 +784,32 @@ public class CommonUtil {
 	 * @param key
 	 * @return
 	 */
-	public static Map<String, List<Integer>> getIndex(String source,String key) {
+	public static Map<String, List<Integer>> getIndex(String source, String key) {
 		int formIndex = 0;
 		Map<String, List<Integer>> position = new HashMap<>();
 		int keyIndex = 1;
 
 		while (true) {
 			int indexOf = source.indexOf(key, formIndex);
-			if(indexOf == -1){
+			if (indexOf == -1) {
 				break;
 			}
-			int endIndex = indexOf+key.length();
+			int endIndex = indexOf + key.length();
 			List<Integer> temp = new ArrayList<>(2);
 			temp.add(indexOf);
 			temp.add(endIndex);
-			position.put("position-"+keyIndex, temp);
-			keyIndex ++ ;
-			formIndex =endIndex;
-			if(formIndex>=source.length()){
+			position.put("position-" + keyIndex, temp);
+			keyIndex++;
+			formIndex = endIndex;
+			if (formIndex >= source.length()) {
 				break;
 			}
 		}
 		return position;
 	}
-	
-	public static List<String> deleteBack(IDynamicService dynamicService,IFriendsService friendsService,UserBo userBo) {
+
+	public static List<String> deleteBack(IDynamicService dynamicService, IFriendsService friendsService,
+			UserBo userBo) {
 		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
 		List<String> friends = new LinkedList<>();
 		for (FriendsBo friendsBo : friendsBos) {
@@ -828,17 +830,17 @@ public class CommonUtil {
 				}
 			}
 		}
-		if(friends.contains(userBo.getId())) {
+		if (friends.contains(userBo.getId())) {
 			friends.remove(userBo.getId());
 		}
 		return friends;
 	}
-	
+
 	// 获取格式为 省-市-区格式的字符串中的市
 	public static String getCity(String area) {
 		String[] split = area.split("-");
-		if(split.length>=2) {
-			String result = split[0]+"-"+split[1];
+		if (split.length >= 2) {
+			String result = split[0] + "-" + split[1];
 			return result;
 		}
 		return "";

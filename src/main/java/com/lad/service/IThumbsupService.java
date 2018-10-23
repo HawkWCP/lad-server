@@ -1,9 +1,9 @@
 package com.lad.service;
 
+import java.util.List;
+
 import com.lad.bo.ThumbsupBo;
 import com.mongodb.WriteResult;
-
-import java.util.List;
 
 public interface IThumbsupService extends IBaseService {
 	public ThumbsupBo insert(ThumbsupBo thumbsupBo);

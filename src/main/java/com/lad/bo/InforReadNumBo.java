@@ -1,9 +1,9 @@
 package com.lad.bo;
 
+import java.io.Serializable;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import java.io.Serializable;
 
 /**
  * 功能描述： 咨询阅读数量表、评论、点赞、转发

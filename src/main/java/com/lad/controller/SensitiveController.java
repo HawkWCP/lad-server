@@ -35,7 +35,6 @@ public class SensitiveController {
 	
 	@RequestMapping("sensitive-query")
 	public String sensitiveQuery(String str){
-//		String url = "http://wf.ttlaoyou.com/v1/query";
 		String url = "http://localhost:8090/v1/query";
 		Map<String,String> params = new HashMap<>();
 		params.put("q", str);

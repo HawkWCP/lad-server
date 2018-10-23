@@ -1,10 +1,14 @@
 package com.lad.service;
 
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.mongodb.WriteResult;
-
-import java.util.*;
 
 public interface IChatroomService extends IBaseService {
 	
@@ -249,4 +253,12 @@ public interface IChatroomService extends IBaseService {
 	 * @return
 	 */
 	WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params);
+
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit);
+
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit);
+
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList);
+
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit, List<Integer> typeList);
 }

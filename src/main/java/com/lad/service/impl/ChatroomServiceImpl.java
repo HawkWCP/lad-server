@@ -1,15 +1,20 @@
 package com.lad.service.impl;
 
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.dao.IChatroomDao;
 import com.lad.dao.IChatroomUserDao;
 import com.lad.service.IChatroomService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @Service("chatroomService")
 public class ChatroomServiceImpl implements IChatroomService {
@@ -198,5 +203,25 @@ public class ChatroomServiceImpl implements IChatroomService {
 	@Override
 	public WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params) {
 		return chatroomDao.updateRoomByParams(chatRoomId, params);
+	}
+
+	@Override
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit) {
+		return chatroomDao.findChatroomByKeyword(keyword, page, limit);
+	}
+
+	@Override
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit) {
+		return chatroomDao.findMyChatrooms(userid, page, limit);
+	}
+
+	@Override
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList) {
+		return chatroomDao.findMyChatrooms(userid, page, limit,typeList);
+	}
+
+	@Override
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit, List<Integer> typeList) {
+		return chatroomDao.findChatroomByKeyword(keyword, page, limit,typeList);
 	}
 }

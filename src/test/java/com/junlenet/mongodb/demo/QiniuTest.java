@@ -1,5 +1,8 @@
 package com.junlenet.mongodb.demo;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.RootLogger;
+
 import com.lad.util.QiNiu;
 import com.qiniu.common.QiniuException;
 import com.qiniu.common.Zone;
@@ -8,8 +11,6 @@ import com.qiniu.storage.BucketManager;
 import com.qiniu.storage.Configuration;
 import com.qiniu.storage.UploadManager;
 import com.qiniu.util.Auth;
-import org.apache.log4j.Logger;
-import org.apache.log4j.spi.RootLogger;
 
 /**
  * 功能描述：

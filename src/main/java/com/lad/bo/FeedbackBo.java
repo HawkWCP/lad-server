@@ -1,8 +1,8 @@
 package com.lad.bo;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.LinkedList;
+
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "feedback")
 public class FeedbackBo extends BaseBo {

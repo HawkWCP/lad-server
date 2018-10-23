@@ -1,10 +1,10 @@
 package com.lad.bo;
 
+import java.util.LinkedHashSet;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.ToString;
-
-import java.util.LinkedHashSet;
 
 /**
  * 功能描述：用户兴趣

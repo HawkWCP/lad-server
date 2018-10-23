@@ -1,12 +1,12 @@
 package com.lad.dao;
 
-import com.lad.bo.ChatroomBo;
-import com.mongodb.WriteResult;
-
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+
+import com.lad.bo.ChatroomBo;
+import com.mongodb.WriteResult;
 
 public interface IChatroomDao extends IBaseDao {
 
@@ -164,4 +164,12 @@ public interface IChatroomDao extends IBaseDao {
 	 * @return
 	 */
 	WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params);
+
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit);
+
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit);
+
+	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList);
+
+	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit, List<Integer> typeList);
 }

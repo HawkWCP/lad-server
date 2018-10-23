@@ -2,7 +2,6 @@ package com.lad.vo;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 
 import lombok.Getter;
 import lombok.Setter;

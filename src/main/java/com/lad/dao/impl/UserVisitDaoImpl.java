@@ -1,9 +1,9 @@
 package com.lad.dao.impl;
 
-import com.lad.bo.UserVisitBo;
-import com.lad.dao.IUserVisitDao;
-import com.lad.util.Constant;
-import com.mongodb.WriteResult;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -12,9 +12,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
+import com.lad.bo.UserVisitBo;
+import com.lad.dao.IUserVisitDao;
+import com.lad.util.Constant;
+import com.mongodb.WriteResult;
 
 /**
  * 功能描述：

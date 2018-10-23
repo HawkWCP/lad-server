@@ -1,13 +1,12 @@
 package com.lad.dao;
 
-import com.lad.bo.LocationBo;
-import com.mongodb.CommandResult;
+import java.util.List;
 
-import org.springframework.data.geo.GeoResult;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 
-import java.util.List;
+import com.lad.bo.LocationBo;
+import com.mongodb.CommandResult;
 
 public interface ILocationDao extends IBaseDao {
 

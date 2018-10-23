@@ -1,16 +1,16 @@
 package com.lad.service.impl;
 
-import com.lad.bo.LocationBo;
-import com.lad.dao.ILocationDao;
-import com.lad.service.ILocationService;
-import com.mongodb.CommandResult;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.lad.bo.LocationBo;
+import com.lad.dao.ILocationDao;
+import com.lad.service.ILocationService;
+import com.mongodb.CommandResult;
 
 @Service("locationService")
 public class LocationServiceImpl implements ILocationService {

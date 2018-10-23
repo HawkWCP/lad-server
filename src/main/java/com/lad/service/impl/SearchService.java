@@ -1,13 +1,14 @@
 package com.lad.service.impl;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.SearchBo;
 import com.lad.dao.ISearchDao;
 import com.lad.service.ISearchService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * 功能描述：

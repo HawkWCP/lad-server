@@ -1,10 +1,11 @@
 package com.lad.bo;
 
-import lombok.Getter;
-import lombok.Setter;
+import java.util.LinkedHashSet;
+
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.LinkedHashSet;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 功能描述： 资讯订阅收藏类

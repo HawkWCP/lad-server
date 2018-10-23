@@ -1,14 +1,14 @@
 package com.lad.vo;
 
+import java.io.Serializable;
+import java.util.Date;
+import java.util.LinkedHashSet;
+
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.io.Serializable;
-import java.util.Date;
-import java.util.LinkedHashSet;
 
 /**
  * 功能描述：

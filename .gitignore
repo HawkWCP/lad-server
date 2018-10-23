@@ -11,3 +11,4 @@ rebel.xml
 *.ear
 /target
 target/
+/lib

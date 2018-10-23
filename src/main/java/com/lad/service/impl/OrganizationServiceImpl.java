@@ -1,14 +1,15 @@
 package com.lad.service.impl;
 
+import java.util.HashSet;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.OrganizationBo;
 import com.lad.dao.IOrganizationDao;
 import com.lad.service.IOrganizationService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.HashSet;
-import java.util.List;
 
 @Service("organizationService")
 public class OrganizationServiceImpl implements IOrganizationService {

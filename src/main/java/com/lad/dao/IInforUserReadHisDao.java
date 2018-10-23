@@ -1,10 +1,10 @@
 package com.lad.dao;
 
-import com.lad.bo.InforUserReadHisBo;
-import com.mongodb.WriteResult;
-
 import java.util.Date;
 import java.util.List;
+
+import com.lad.bo.InforUserReadHisBo;
+import com.mongodb.WriteResult;
 
 /**
  * 功能描述：

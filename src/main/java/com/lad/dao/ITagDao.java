@@ -1,10 +1,10 @@
 package com.lad.dao;
 
-import com.lad.bo.TagBo;
-import com.mongodb.WriteResult;
-
 import java.util.LinkedHashSet;
 import java.util.List;
+
+import com.lad.bo.TagBo;
+import com.mongodb.WriteResult;
 
 public interface ITagDao extends IBaseDao {
 	public TagBo insert(TagBo tagBo);

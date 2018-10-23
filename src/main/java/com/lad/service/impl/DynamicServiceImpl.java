@@ -1,5 +1,13 @@
 package com.lad.service.impl;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lad.bo.DynamicBackBo;
 import com.lad.bo.DynamicBo;
 import com.lad.bo.DynamicNumBo;
@@ -8,13 +16,6 @@ import com.lad.dao.IDynamicDao;
 import com.lad.dao.IDynamicNumDao;
 import com.lad.service.IDynamicService;
 import com.mongodb.WriteResult;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 功能描述： Copyright: Copyright (c) 2017 Version: 1.0 Time:2017/9/23

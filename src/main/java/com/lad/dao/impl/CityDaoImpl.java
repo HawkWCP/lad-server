@@ -1,10 +1,6 @@
 package com.lad.dao.impl;
 
-import com.lad.bo.CityBo;
-import com.lad.dao.ICityDao;
-import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.DBObject;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +10,14 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.GroupOperation;
 import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
-import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.lad.bo.CityBo;
+import com.lad.dao.ICityDao;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 
 /**
  * 功能描述： Copyright: Copyright (c) 2017 Version: 1.0 Time:2017/9/5

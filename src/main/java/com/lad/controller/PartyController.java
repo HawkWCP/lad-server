@@ -57,7 +57,6 @@ import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.IMUtil;
-import com.lad.util.JPushUtil;
 import com.lad.util.MyException;
 import com.lad.vo.CommentVo;
 import com.lad.vo.PartyComment;
@@ -185,7 +184,14 @@ public class PartyController extends BaseContorller {
 		if (circleUsers.size() > 0) {
 			String[] userids = new String[circleUsers.size()];
 			circleUsers.toArray(userids);
-			JPushUtil.push(titlePush, content, path, userids);
+			List<String> aliasList = new ArrayList<>(circleUsers);
+
+			Map<String, String> msgMap = new HashMap<>();
+			msgMap.put("path", path);
+			String message = JSON.toJSONString(msgMap);
+
+//			JPushUtil.push(titlePush, content, path, userids);
+			push(redisServer, titlePush, message, content, path, aliasList, userids);
 			addMessage(messageService, path, content, titlePush, userId, userids);
 		}
 		if (circleBo.isOpen()) {
@@ -471,7 +477,15 @@ public class PartyController extends BaseContorller {
 		}
 		String path = String.format("/party/enroll-detail.do?partyid=%s&userid=%s", partyid, userid);
 		String content = String.format("“%s”报名了您发起的聚会【%s】，请尽快与他沟通参与事宜", userBo.getUserName(), partyBo.getTitle());
-		JPushUtil.push(titlePush, content, path, partyBo.getCreateuid());
+//		JPushUtil.push(titlePush, content, path, partyBo.getCreateuid());
+		String userids = partyBo.getCreateuid();
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(partyBo.getCreateuid());
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		push(redisServer, titlePush, message, content, path, aliasList, userids);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		return Constant.COM_RESP;
 	}
@@ -524,13 +538,12 @@ public class PartyController extends BaseContorller {
 	 * @PostMapping("/manage-enroll")
 	 * 
 	 * @Deprecated public String getEnroll(@RequestParam String partyid,
-	 * HttpServletRequest request, HttpServletResponse response) { UserBo
-	 * userBo; try { userBo = checkSession(request, userService); } catch
-	 * (MyException e) { return e.getMessage(); }
+	 * HttpServletRequest request, HttpServletResponse response) { UserBo userBo;
+	 * try { userBo = checkSession(request, userService); } catch (MyException e) {
+	 * return e.getMessage(); }
 	 * 
-	 * Map<String, Object> map = new HashMap<String, Object>(); map.put("ret",
-	 * 0); map.put("partyVo", ""); return JSONObject.fromObject(map).toString();
-	 * }
+	 * Map<String, Object> map = new HashMap<String, Object>(); map.put("ret", 0);
+	 * map.put("partyVo", ""); return JSONObject.fromObject(map).toString(); }
 	 */
 
 	/**
@@ -541,7 +554,6 @@ public class PartyController extends BaseContorller {
 	@ApiOperation("我发布的聚会列表信息")
 	@PostMapping("/my-partys")
 	public String getMyPartys(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
-		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -807,7 +819,6 @@ public class PartyController extends BaseContorller {
 	@PostMapping("/add-comment")
 	public String addComment(String partyComment, MultipartFile[] photos, HttpServletRequest request,
 			HttpServletResponse response) {
-		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -867,13 +878,22 @@ public class PartyController extends BaseContorller {
 
 		String path = "/party/party-info.do?partyid=" + comment.getPartyid();
 		String content = "有人刚刚评论了你的聚会，快去看看吧!";
-		JPushUtil.pushMessage(titlePush, content, path, partyBo.getCreateuid());
+//		JPushUtil.pushMessage(titlePush, content, path, partyBo.getCreateuid());
+		String userids = partyBo.getCreateuid();
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(partyBo.getCreateuid());
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		push(redisServer, titlePush, message, content, path, aliasList, userids);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		if (!StringUtils.isEmpty(comment.getParentid())) {
 			CommentBo commentBo1 = commentService.findById(comment.getParentid());
 			if (commentBo1 != null) {
 				content = "有人刚刚回复了你的评论，快去看看吧!";
-				JPushUtil.pushMessage(titlePush, content, path, commentBo1.getCreateuid());
+//				JPushUtil.pushMessage(titlePush, content, path, commentBo1.getCreateuid());
+				push(redisServer, titlePush, message, content, path, aliasList, userids);
 				addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 			}
 		}
@@ -1134,7 +1154,12 @@ public class PartyController extends BaseContorller {
 			CommentBo commentBo = commentService.findById(commentId);
 			if (commentBo != null) {
 				String path = "/party/party-info.do?partyid=" + commentBo.getTargetid();
-				JPushUtil.pushMessage(titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path, commentBo.getCreateuid());
+//				JPushUtil.pushMessage(titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path, commentBo.getCreateuid());
+				String userids = commentBo.getCreateuid();
+				List<String> aliasList = new ArrayList<>();
+				aliasList.add(userids);
+				String message = "";
+				push(redisServer, titlePush, message, "有人刚刚赞了你的聚会，快去看看吧!", path, aliasList, userids);
 				addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 			}
 		}
@@ -1248,7 +1273,13 @@ public class PartyController extends BaseContorller {
 			String path = "/party/party-notice.do?partyid=" + partyid;
 			String[] userids = new String[users.size()];
 			users.toArray(userids);
-			JPushUtil.push(titlePush, content, path, userids);
+			List<String> aliasList = new ArrayList<>(users);
+
+//			JPushUtil.push(titlePush, content, path, userids);
+			Map<String, String> msgMap = new HashMap<>();
+			msgMap.put("path", path);
+			String message = JSON.toJSONString(msgMap);
+			push(redisServer, titlePush, message, content, path, aliasList, userids);
 			addMessage(messageService, path, content, titlePush, userBo.getId(), userids);
 		}
 		return Constant.COM_RESP;
@@ -1364,10 +1395,10 @@ public class PartyController extends BaseContorller {
 		if (circleBo != null) {
 			dynamicBo.setSourceName(circleBo.getName());
 		}
-		
-		List<String> friends = CommonUtil.deleteBack(dynamicService,friendsService,userBo);	
+
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
-		
+
 		dynamicService.addDynamic(dynamicBo);
 		partyService.updateShare(partyid, 1);
 		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
@@ -1499,8 +1530,8 @@ public class PartyController extends BaseContorller {
 	 * @param partyBo
 	 */
 	/*
-	 * private void addCircleShow(PartyBo partyBo) { CircleShowBo circleShowBo =
-	 * new CircleShowBo(); circleShowBo.setCircleid(partyBo.getCircleid());
+	 * private void addCircleShow(PartyBo partyBo) { CircleShowBo circleShowBo = new
+	 * CircleShowBo(); circleShowBo.setCircleid(partyBo.getCircleid());
 	 * circleShowBo.setTargetid(partyBo.getId()); circleShowBo.setType(1);
 	 * circleShowBo.setCreateTime(partyBo.getCreateTime());
 	 * circleService.addCircleShow(circleShowBo); }

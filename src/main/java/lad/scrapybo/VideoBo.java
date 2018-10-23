@@ -1,8 +1,9 @@
 package lad.scrapybo;
 
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * 功能描述：

@@ -1,14 +1,14 @@
 package com.lad.bo;
 
+import java.io.Serializable;
+import java.util.Date;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.io.Serializable;
-import java.util.Date;
 
 /**
  * 功能描述： 圈子加入历史，是否加入过圈子 Copyright: Copyright (c) 2017 Version: 1.0

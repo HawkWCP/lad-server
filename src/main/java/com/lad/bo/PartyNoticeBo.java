@@ -1,8 +1,8 @@
 package com.lad.bo;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.LinkedList;
+
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * 功能描述：聚会通知实体

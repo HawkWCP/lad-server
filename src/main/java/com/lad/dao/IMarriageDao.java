@@ -9,7 +9,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import com.lad.bo.BaseBo;
 import com.lad.bo.OptionBo;
 import com.lad.bo.RequireBo;
-import com.lad.bo.UserBo;
 import com.lad.bo.WaiterBo;
 import com.lad.vo.OptionVo;
 import com.mongodb.WriteResult;
@@ -77,5 +76,7 @@ public interface IMarriageDao {
 	WaiterBo findWaiterByNickName(String nickName, String uid);
 
 	List<OptionBo> getYlOptions();
+
+	List<OptionBo> getYlOptions(String field);
 
 }

@@ -1,13 +1,17 @@
 package com.lad.redis;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.spi.RootLogger;
 import org.redisson.Redisson;
-import org.redisson.api.*;
+import org.redisson.api.RList;
+import org.redisson.api.RLock;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RSet;
+import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
 
 /**
  * 功能描述：redis服务

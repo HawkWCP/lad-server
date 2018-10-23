@@ -1,10 +1,10 @@
 package com.lad.vo;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.Date;
 import java.util.LinkedHashSet;
+
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 功能描述：

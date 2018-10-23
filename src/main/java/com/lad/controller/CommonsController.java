@@ -1,9 +1,7 @@
 package com.lad.controller;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,25 +21,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
-import com.lad.bo.ChatroomBo;
-import com.lad.bo.FriendsBo;
 import com.lad.bo.OptionBo;
 import com.lad.bo.UserBo;
-import com.lad.service.IChatroomService;
-import com.lad.service.IFriendsService;
 import com.lad.service.IMarriageService;
 import com.lad.service.IOldFriendService;
 import com.lad.service.IShowService;
-import com.lad.service.IUserService;
 import com.lad.service.SpouseService;
 import com.lad.service.TravelersService;
 import com.lad.util.CommonUtil;
-import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
-import com.lad.util.IMUtil;
 import com.lad.vo.OptionVo;
 
-import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import net.sf.json.JSONObject;
@@ -54,9 +44,9 @@ import net.sf.json.JSONObject;
 @RequestMapping("common")
 @SuppressWarnings("all")
 public class CommonsController extends BaseContorller {
-	
+
 	private Logger logger = LogManager.getLogger();
-	
+
 	@Autowired
 	public IMarriageService marriageService;
 
@@ -72,12 +62,101 @@ public class CommonsController extends BaseContorller {
 	@Autowired
 	private IShowService showService;
 
+	@ApiOperation("养老模块-特色服务选项卡")
+	@GetMapping("get-ylKnightService")
+	public String getYlKnightService() {
+		String field = "ylKnightService";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("养老模块-价格区间选项卡")
+	@GetMapping("get-ylPrice")
+	public String getYlPrice() {
+		String field = "ylPrice";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("养老模块-机构性质选项卡")
+	@GetMapping("get-ylProperty")
+	public String getYlProperty() {
+		String field = "ylProperty";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("养老模块-总床位数选项卡")
+	@GetMapping("get-ylSeat")
+	public String getYlSeat() {
+		String field = "ylSeat";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("养老模块-收住对象选项卡")
+	@GetMapping("get-ylServiceLevel")
+	public String getYlServiceLevel() {
+		String field = "ylServiceLevel";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("养老模块-机构类型选项卡")
+	@GetMapping("get-ylType")
+	public String getYlType() {
+		String field = "ylType";
+		List<OptionBo> ylOptions = marriageService.getYlOptions(field);
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
+			getVoList(ylOptions, resultList);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", resultList);
+		return JSON.toJSONString(map);
+	}
 
 	@GetMapping("getYlOptions")
 	public String getYlOptions() {
 		List<OptionBo> ylOptions = marriageService.getYlOptions();
-		List<OptionVo> resultList = new ArrayList<>(); 
-		if(ylOptions!=null && ylOptions.size()>0) {
+		List<OptionVo> resultList = new ArrayList<>();
+		if (ylOptions != null && ylOptions.size() > 0) {
 			getVoList(ylOptions, resultList);
 		}
 		Map<String, Object> map = new HashMap<>();
@@ -90,7 +169,6 @@ public class CommonsController extends BaseContorller {
 	public String getHobbysOptions() {
 		List<OptionBo> supOptions = marriageService.getHobbysSupOptions();
 		Map<String, Set<String>> map = new HashMap<>();
-
 		for (OptionBo supOption : supOptions) {
 			List<OptionBo> sonOptions = marriageService.getHobbysSonOptions(supOption.getId());
 			Set<String> sonOptionSet = new LinkedHashSet<>();
@@ -193,18 +271,18 @@ public class CommonsController extends BaseContorller {
 		List<OptionBo> salOptions = marriageService.getSalaryOptions();
 		return JSON.toJSONString(salOptions);
 	}
-	
-	private void getVoList(List<OptionBo> boList,List<OptionVo> voList){
-		
+
+	private void getVoList(List<OptionBo> boList, List<OptionVo> voList) {
+
 		try {
 			for (OptionBo optionBo : boList) {
 				OptionVo optionVo = new OptionVo();
 				BeanUtils.copyProperties(optionBo, optionVo);
 				voList.add(optionVo);
-			} 
-		}catch (Exception e) {
+			}
+		} catch (Exception e) {
 			logger.error(e);
 			e.printStackTrace();
-		} 
+		}
 	}
 }

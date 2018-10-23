@@ -1,9 +1,9 @@
 package com.lad.bo;
 
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * 功能描述：个人动态 黑名单设置

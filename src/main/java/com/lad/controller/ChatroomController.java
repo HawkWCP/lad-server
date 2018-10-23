@@ -1,35 +1,69 @@
 package com.lad.controller;
 
-import com.lad.bo.*;
-import com.lad.redis.RedisServer;
-import com.lad.service.*;
-import com.lad.util.*;
-import com.lad.vo.ChatroomUserVo;
-import com.lad.vo.ChatroomVo;
-import com.lad.vo.ReasonVo;
-import com.lad.vo.UserBaseVo;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.text.ParseException;
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
+import com.lad.bo.ChatroomBo;
+import com.lad.bo.ChatroomUserBo;
+import com.lad.bo.CircleNoticeBo;
+import com.lad.bo.FriendsBo;
+import com.lad.bo.PartyBo;
+import com.lad.bo.ReasonBo;
+import com.lad.bo.UserBo;
+import com.lad.redis.RedisServer;
+import com.lad.service.IChatroomService;
+import com.lad.service.ICircleService;
+import com.lad.service.IFriendsService;
+import com.lad.service.IMessageService;
+import com.lad.service.IPartyService;
+import com.lad.service.IReasonService;
+import com.lad.service.IUserService;
+import com.lad.util.ChatRoomUtil;
+import com.lad.util.CommonUtil;
+import com.lad.util.Constant;
+import com.lad.util.ERRORCODE;
+import com.lad.util.IMUtil;
+import com.lad.util.JPushUtil;
+import com.lad.util.MyException;
+import com.lad.vo.ChatroomUserVo;
+import com.lad.vo.ChatroomVo;
+import com.lad.vo.ReasonVo;
+import com.lad.vo.UserBaseVo;
+
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 @Api(value = "ChatroomController", description = "聊天信息相关接口")
 @RestController
@@ -66,6 +100,71 @@ public class ChatroomController extends BaseContorller {
 
 
 	private String titlePush = "互动通知";
+	
+	@ApiOperation("搜索")
+	@ApiImplicitParams({
+		@ApiImplicitParam(name = "keyword", value = "关键词", dataType = "string", paramType = "query"),
+		@ApiImplicitParam(name = "page", value = "页码",paramType = "query",dataType = "int"),
+		@ApiImplicitParam(name = "limit", value = "显示条数",paramType = "query",dataType = "int")
+		})
+	@PostMapping("/chatroom-search")
+	public String chatroomSearch(String keyword, int page,int limit,HttpServletRequest request,HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		
+		List<ChatroomVo> chatroomVos = new ArrayList<>();
+		if(StringUtils.isNotEmpty(keyword)) {
+			List<Integer> typeList = new ArrayList<Integer>();
+			typeList.add(2);
+			typeList.add(3);
+			List<ChatroomBo> myChatrooms = chatroomService.findChatroomByKeyword(keyword,page,limit,typeList);
+			for (ChatroomBo chatroomBo : myChatrooms) {
+				ChatroomVo chatroomVo = new ChatroomVo();
+				chatroomBo2Vo(chatroomBo, chatroomVo);
+				chatroomVos.add(chatroomVo);
+			}
+		}
+
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("result", chatroomVos);
+		return JSONObject.fromObject(map).toString();
+	}
+	
+	@ApiOperation("群聊聊天室列表")
+	@ApiImplicitParams({
+		@ApiImplicitParam(name = "userid", value = "用户id", dataType = "string", paramType = "query"),
+		@ApiImplicitParam(name = "page", value = "页码",paramType = "query",dataType = "int"),
+		@ApiImplicitParam(name = "limit", value = "显示条数",paramType = "query",dataType = "int")
+		})
+	@PostMapping("/chatroom-list")
+	public String chatroomList(String userid,int page,int limit, HttpServletRequest request,HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		List<Integer> typeList = new ArrayList<Integer>();
+		typeList.add(2);
+		typeList.add(3);
+		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid,page,limit,typeList);
+//		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid);
+		List<ChatroomVo> chatroomVos = new ArrayList<>();
+		for (ChatroomBo chatroomBo : myChatrooms) {
+			ChatroomVo chatroomVo = new ChatroomVo();
+			chatroomBo2Vo(chatroomBo, chatroomVo);
+			chatroomVos.add(chatroomVo);
+		}
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("result", chatroomVos);
+		return JSONObject.fromObject(map).toString();
+	}
 
 	@ApiOperation("创建群聊")
 	@ApiImplicitParam(name = "name", value = "群聊名称", dataType = "string", paramType = "query")
@@ -355,7 +454,7 @@ public class ChatroomController extends BaseContorller {
 			return result;
 		}
 		LinkedHashSet<String> set = chatroomBo.getUsers();
-		if (set.size() >= 1) {
+		if (set.size() > 1) {
 			//如果是群主退出，则由下一个人担当
 			if (userid.equals(chatroomBo.getMaster())) {
 				set.remove(userid);
@@ -384,6 +483,7 @@ public class ChatroomController extends BaseContorller {
 		String name = chatroomBo.getName();
 
 		if (set.size() < 1) {
+			// TODO
 			String res = IMUtil.disolveRoom(chatroomid);
 			if (!res.equals(IMUtil.FINISH) && !res.contains("not found")) {
 				return res;
@@ -575,6 +675,34 @@ public class ChatroomController extends BaseContorller {
 			}
 			userVos.add(userVo);
 		}
+	}
+	
+	private void chatroomBo2Vo(ChatroomBo chatroomBo, ChatroomVo chatroomVo){
+		BeanUtils.copyProperties(chatroomBo, chatroomVo);
+		LinkedHashSet<ChatroomUserVo> userVos = chatroomVo.getUserVos();
+		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomBo.getId());
+		for (ChatroomUserBo chatroomUser : chatroomUserBos) {
+			String userid = chatroomUser.getUserid();
+			UserBo chatUser = userService.getUser(userid);
+			if (chatUser == null) {
+				chatroomService.deleteUser(chatroomUser.getId());
+				continue;
+			}
+			ChatroomUserVo userVo = new ChatroomUserVo();
+			userVo.setUserid(chatUser.getId());
+			userVo.setUserPic(chatUser.getHeadPictureName());
+			if (userid.equals(chatroomBo.getMaster())) {
+				userVo.setRole(2);
+			}
+			if (StringUtils.isNotEmpty(chatroomUser.getNickname())) {
+				userVo.setNickname(chatroomUser.getNickname());
+			} else {
+				userVo.setNickname(chatUser.getUserName());
+			}
+			userVos.add(userVo);
+		}
+		chatroomVo.setUserNum(userVos.size());
+		chatroomVo.setUserVos(userVos);
 	}
 
 	@ApiOperation("获取聊天室详情")

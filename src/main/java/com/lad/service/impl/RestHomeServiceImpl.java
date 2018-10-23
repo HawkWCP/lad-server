@@ -84,8 +84,70 @@ public class RestHomeServiceImpl implements IRestHomeService {
 	}
 
 	@Override
-	public List<RestHomeBo> findHomeListByUid(int page, int limit) {
-		return restHomeDao.findHomeListByUid(page, limit);
+	public List<RestHomeBo> findHomeList(int page, int limit) {
+		return restHomeDao.findHomeList(page, limit);
+	}
+
+	@Override
+	public List<RetiredPeopleBo> findPeopleByUserid(String userid) {
+		return restHomeDao.findPeopleByUserid(userid);
+	}
+
+	@Override
+	public List<RestHomeBo> findRecommendHome(List<Map<String, String>> areaList, int page, int limit) {
+		return restHomeDao.findRecommendHome(areaList, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findHomeListByUid(String uid) {
+		return restHomeDao.findHomeListByUid(uid);
+	}
+
+	@Override
+	public List<RetiredPeopleBo> findRecommendPeople(List<Map<String, Object>> conditionList, int page, int limit) {
+		return restHomeDao.findRecommendPeople(conditionList, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findHomeListByKeyword(String keyword, int page, int limit) {
+		return restHomeDao.findHomeListByKeyword(keyword, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findHomeListByKeyword(String uid, String keyword, int page, int limit) {
+		return restHomeDao.findHomeListByKeyword(uid, keyword, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findHomeList(String uid, int page, int limit) {
+		return restHomeDao.findHomeList(uid, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findRecommendHome(String uid, String homeArea, String wannaArea, int page, int limit) {
+		return restHomeDao.findRecommendHome(uid, homeArea, wannaArea, page, limit);
+	}
+
+	@Override
+	public List<RetiredPeopleBo> findRecommendPeople(String uid, List<Map<String, Object>> conditionList, int page,
+			int limit) {
+		return restHomeDao.findRecommendPeople(uid, conditionList, page, limit);
+	}
+
+	@Override
+	public List<RetiredPeopleBo> findRecommendPeople(String uid, String area, boolean acceptOtherArea, int page,
+			int limit) {
+		return restHomeDao.findRecommendPeople(uid, area, acceptOtherArea, page, limit);
+	}
+
+	@Override
+	public List<RestHomeBo> findRecommendHome(String id, List<Map<String, String>> areaList, int page, int limit) {
+		return restHomeDao.findRecommendHome(id, areaList, page, limit);
+	}
+
+	@Override
+	public List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList, String price, int page, int limit) {
+		return restHomeDao.findPeopleListByPrice(uid, conditionList,price, page, limit);
 	}
 
 }
