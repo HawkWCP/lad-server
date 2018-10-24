@@ -4,7 +4,9 @@ import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -12,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -40,6 +43,7 @@ import com.lad.bo.FriendsBo;
 import com.lad.bo.PartyBo;
 import com.lad.bo.PartyNoticeBo;
 import com.lad.bo.PartyUserBo;
+import com.lad.bo.PushTokenBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
@@ -52,6 +56,7 @@ import com.lad.service.IFriendsService;
 import com.lad.service.IMessageService;
 import com.lad.service.IPartyService;
 import com.lad.service.IThumbsupService;
+import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -120,6 +125,9 @@ public class PartyController extends BaseContorller {
 
 	@Autowired
 	private AsyncController asyncController;
+	
+	@Autowired
+	private ITokenService tokenService;
 
 	private String titlePush = "聚会通知";
 
@@ -182,16 +190,17 @@ public class PartyController extends BaseContorller {
 		String path = "/party/party-info.do?partyid=" + partyBo.getId();
 		String content = String.format("“%s”发起了聚会【%s】，快去看看吧", userBo.getUserName(), partyBo.getTitle());
 		if (circleUsers.size() > 0) {
-			String[] userids = new String[circleUsers.size()];
-			circleUsers.toArray(userids);
-			List<String> aliasList = new ArrayList<>(circleUsers);
-
-			Map<String, String> msgMap = new HashMap<>();
-			msgMap.put("path", path);
-			String message = JSON.toJSONString(msgMap);
-
 //			JPushUtil.push(titlePush, content, path, userids);
-			push(redisServer, titlePush, message, content, path, aliasList, userids);
+			String[] userids = new String[circleUsers.size()];
+//			circleUsers.toArray(userids);
+//			List<String> aliasList = new ArrayList<>(circleUsers);
+//
+//			Map<String, String> msgMap = new HashMap<>();
+//			msgMap.put("path", path);
+//			String message = JSON.toJSONString(msgMap);
+//			push(redisServer, titlePush, message, content, path, aliasList, userids);
+			usePush(circleUsers, content, path);
+
 			addMessage(messageService, path, content, titlePush, userId, userids);
 		}
 		if (circleBo.isOpen()) {
@@ -478,14 +487,15 @@ public class PartyController extends BaseContorller {
 		String path = String.format("/party/enroll-detail.do?partyid=%s&userid=%s", partyid, userid);
 		String content = String.format("“%s”报名了您发起的聚会【%s】，请尽快与他沟通参与事宜", userBo.getUserName(), partyBo.getTitle());
 //		JPushUtil.push(titlePush, content, path, partyBo.getCreateuid());
-		String userids = partyBo.getCreateuid();
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(partyBo.getCreateuid());
-
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		push(redisServer, titlePush, message, content, path, aliasList, userids);
+//		String userids = partyBo.getCreateuid();
+//		List<String> aliasList = new ArrayList<>();
+//		aliasList.add(partyBo.getCreateuid());
+//
+//		Map<String, String> msgMap = new HashMap<>();
+//		msgMap.put("path", path);
+//		String message = JSON.toJSONString(msgMap);
+//		push(redisServer, titlePush, message, content, path, aliasList, userids);
+		usePush(partyBo.getCreateuid(), content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		return Constant.COM_RESP;
 	}
@@ -880,20 +890,22 @@ public class PartyController extends BaseContorller {
 		String content = "有人刚刚评论了你的聚会，快去看看吧!";
 //		JPushUtil.pushMessage(titlePush, content, path, partyBo.getCreateuid());
 		String userids = partyBo.getCreateuid();
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(partyBo.getCreateuid());
-
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		push(redisServer, titlePush, message, content, path, aliasList, userids);
+//		List<String> aliasList = new ArrayList<>();
+//		aliasList.add(partyBo.getCreateuid());
+//
+//		Map<String, String> msgMap = new HashMap<>();
+//		msgMap.put("path", path);
+//		String message = JSON.toJSONString(msgMap);
+//		push(redisServer, titlePush, message, content, path, aliasList, userids);
+		usePush(userids, content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		if (!StringUtils.isEmpty(comment.getParentid())) {
 			CommentBo commentBo1 = commentService.findById(comment.getParentid());
 			if (commentBo1 != null) {
 				content = "有人刚刚回复了你的评论，快去看看吧!";
 //				JPushUtil.pushMessage(titlePush, content, path, commentBo1.getCreateuid());
-				push(redisServer, titlePush, message, content, path, aliasList, userids);
+//				push(redisServer, titlePush, message, content, path, aliasList, userids);
+				usePush(userids, content, path);
 				addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 			}
 		}
@@ -1155,11 +1167,12 @@ public class PartyController extends BaseContorller {
 			if (commentBo != null) {
 				String path = "/party/party-info.do?partyid=" + commentBo.getTargetid();
 //				JPushUtil.pushMessage(titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path, commentBo.getCreateuid());
-				String userids = commentBo.getCreateuid();
-				List<String> aliasList = new ArrayList<>();
-				aliasList.add(userids);
-				String message = "";
-				push(redisServer, titlePush, message, "有人刚刚赞了你的聚会，快去看看吧!", path, aliasList, userids);
+//				String userids = commentBo.getCreateuid();
+//				List<String> aliasList = new ArrayList<>();
+//				aliasList.add(userids);
+//				String message = "";
+//				push(redisServer, titlePush, message, "有人刚刚赞了你的聚会，快去看看吧!", path, aliasList, userids);
+				usePush(commentBo.getCreateuid(), "有人刚刚赞了你的聚会，快去看看吧!", path);
 				addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 			}
 		}
@@ -1272,14 +1285,15 @@ public class PartyController extends BaseContorller {
 		if (users.size() > 0) {
 			String path = "/party/party-notice.do?partyid=" + partyid;
 			String[] userids = new String[users.size()];
-			users.toArray(userids);
-			List<String> aliasList = new ArrayList<>(users);
+//			users.toArray(userids);
+//			List<String> aliasList = new ArrayList<>(users);
 
 //			JPushUtil.push(titlePush, content, path, userids);
-			Map<String, String> msgMap = new HashMap<>();
-			msgMap.put("path", path);
-			String message = JSON.toJSONString(msgMap);
-			push(redisServer, titlePush, message, content, path, aliasList, userids);
+//			Map<String, String> msgMap = new HashMap<>();
+//			msgMap.put("path", path);
+//			String message = JSON.toJSONString(msgMap);
+//			push(redisServer, titlePush, message, content, path, aliasList, userids);
+			usePush(userids, content, path);
 			addMessage(messageService, path, content, titlePush, userBo.getId(), userids);
 		}
 		return Constant.COM_RESP;
@@ -1742,5 +1756,72 @@ public class PartyController extends BaseContorller {
 		}
 		chatroomBo.setUsers(users);
 		chatroomService.updateUsers(chatroomBo);
+	}
+	
+	/**
+	 * 收信方为单个id
+	 * 
+	 * @param alias
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String alias, String content, String path) {
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
+		Set<String> tokenSet = new HashSet<>();
+		tokenSet.add(tokenBo.getHuaweiToken());
+
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, alias);
+	}
+
+	/**
+	 * 收信方为一个id的Collection集合
+	 * 
+	 * @param useridSet
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(Collection<String> useridSet, String content, String path) {
+		List<String> aliasList = new ArrayList<>(useridSet);
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		String[] pushUser = new String[useridSet.size()];
+		useridSet.toArray(pushUser);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		Set<String> tokenSet = new HashSet<>();
+		for (PushTokenBo pushTokenBo : tokens) {
+			tokenSet.add(pushTokenBo.getHuaweiToken());
+		}
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, pushUser);
+	}
+
+	/**
+	 * 收信方为一个id数组
+	 * 
+	 * @param useridArr
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String[] useridArr, String content, String path) {
+		List<String> aliasList = Arrays.asList(useridArr);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		Set<String> tokenSet = new HashSet<>();
+		for (PushTokenBo pushTokenBo : tokens) {
+			tokenSet.add(pushTokenBo.getHuaweiToken());
+		}
+
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

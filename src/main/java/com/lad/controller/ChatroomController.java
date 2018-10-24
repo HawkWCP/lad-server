@@ -68,6 +68,7 @@ import net.sf.json.JSONObject;
 @Api(value = "ChatroomController", description = "聊天信息相关接口")
 @RestController
 @RequestMapping("chatroom")
+@SuppressWarnings("all")
 public class ChatroomController extends BaseContorller {
 
 	private static Logger logger = LogManager.getLogger(ChatroomController.class);
@@ -483,7 +484,6 @@ public class ChatroomController extends BaseContorller {
 		String name = chatroomBo.getName();
 
 		if (set.size() < 1) {
-			// TODO
 			String res = IMUtil.disolveRoom(chatroomid);
 			if (!res.equals(IMUtil.FINISH) && !res.contains("not found")) {
 				return res;
@@ -1703,7 +1703,7 @@ public class ChatroomController extends BaseContorller {
 		UserBo loginUser = getUserLogin(request);
 		LinkedHashSet<String> readUsers = noticeBo.getReadUsers();
 		int readNum = readUsers.size();
-		int role = 0;
+//		int role = 0;
 		if (loginUser != null) {
 			String userid = loginUser.getId();
 			HashSet<String> users = chatroomBo.getUsers();

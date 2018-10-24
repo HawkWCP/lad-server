@@ -37,6 +37,7 @@ import net.sourceforge.pinyin4j.PinyinHelper;
 @Api("城市信息接口")
 @Controller
 @RequestMapping("/city")
+@SuppressWarnings("all")
 public class CityController extends BaseContorller {
 
 	@Autowired

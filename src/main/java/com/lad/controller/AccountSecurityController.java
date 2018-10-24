@@ -106,7 +106,7 @@ public class AccountSecurityController extends BaseContorller {
 		if (session.getAttribute("userBo") == null) {
 			return "{\"ret\":-1,\"error\":\"error session\"}";
 		}
-		UserBo userBo = (UserBo) session.getAttribute("userBo");
+//		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		String code = CommonUtil.getRandom();
 		int sendSMS2 = CommonUtil.sendSMS2(phone, CommonUtil.buildCodeMsg(code));
 		logger.info("com.lad.controller.AccountSecurityController.verification_send_phone-----sendSMS2:"+String.valueOf(sendSMS2));

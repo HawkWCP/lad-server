@@ -617,7 +617,7 @@ public class FriendsController extends BaseContorller {
 			json.put("otherIds", new ArrayList<String>());
 			json.put("otherNames", new ArrayList<String>());
 
-			String res2 = IMUtil.notifyInChatRoom(Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, chatroomBo.getId(),
+			IMUtil.notifyInChatRoom(Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, chatroomBo.getId(),
 					json.toString());
 
 			// if(!IMUtil.FINISH.equals(res2)){

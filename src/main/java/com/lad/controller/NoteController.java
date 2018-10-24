@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import com.lad.bo.CommentBo;
 import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.NoteBo;
+import com.lad.bo.PushTokenBo;
 import com.lad.bo.ReadHistoryBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.ThumbsupBo;
@@ -57,6 +59,7 @@ import com.lad.service.INoteService;
 import com.lad.service.IReadHistoryService;
 import com.lad.service.IReasonService;
 import com.lad.service.IThumbsupService;
+import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -132,6 +135,9 @@ public class NoteController extends BaseContorller {
 
 	@Autowired
 	private IReasonService reasonService;
+	
+	@Autowired
+	private ITokenService tokenService;
 
 	private String pushTitle = "互动通知";
 
@@ -265,11 +271,12 @@ public class NoteController extends BaseContorller {
 			String content = "有人刚刚在帖子提到了您，快去看看吧!";
 			
 //			JPushUtil.push(pushTitle, content, path, useridArr);
-			List<String> aliasList = Arrays.asList(useridArr);
-			Map<String,String> msgMap = new HashMap<>();
-			msgMap.put("path", path);
-			String message = JSON.toJSONString(msgMap);
-			push(redisServer, pushTitle, message, content, path, aliasList, useridArr);
+//			List<String> aliasList = Arrays.asList(useridArr);
+//			Map<String,String> msgMap = new HashMap<>();
+//			msgMap.put("path", path);
+//			String message = JSON.toJSONString(msgMap);
+//			push(redisServer, pushTitle, message, content, path, aliasList, useridArr);
+			usePush(useridArr, content, path);
 
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
@@ -406,13 +413,14 @@ public class NoteController extends BaseContorller {
 		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
 		String path = "/note/note-info.do?noteid=" + noteid;
 //		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
-		String alias = noteBo.getCreateuid();
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(alias);
-		Map<String,String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+//		String alias = noteBo.getCreateuid();
+//		List<String> aliasList = new ArrayList<>();
+//		aliasList.add(alias);
+//		Map<String,String> msgMap = new HashMap<>();
+//		msgMap.put("path", path);
+//		String message = JSON.toJSONString(msgMap);
+//		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+		usePush(noteBo.getCreateuid(), content, path);
 		
 		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(), uid,
 				noteBo.getCreateuid());
@@ -661,13 +669,14 @@ public class NoteController extends BaseContorller {
 		String path = "/note/note-info.do?noteid=" + noteid;
 		String content = "有人刚刚评论了你的帖子，快去看看吧!";
 //		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
-		String alias = noteBo.getCreateuid();
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(alias);
-		Map<String,String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+//		String alias = noteBo.getCreateuid();
+//		List<String> aliasList = new ArrayList<>();
+//		aliasList.add(alias);
+//		Map<String,String> msgMap = new HashMap<>();
+//		msgMap.put("path", path);
+//		String message = JSON.toJSONString(msgMap);
+//		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+		usePush(noteBo.getCreateuid(), content, path);
 		
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
 				userBo.getId(), noteBo.getCreateuid());
@@ -677,11 +686,12 @@ public class NoteController extends BaseContorller {
 				asyncController.updateCircieUnReadNum(comment.getCreateuid(), noteBo.getCircleId());
 				content = "有人刚刚回复了你的评论，快去看看吧!";
 //				JPushUtil.pushMessage(pushTitle, content, path, comment.getCreateuid());
-				alias = comment.getCreateuid();
-				aliasList = new ArrayList<>();
-				aliasList.add(alias);
-				push(redisServer, pushTitle, message, content, path, aliasList, alias);
-				
+//				alias = comment.getCreateuid();
+//				aliasList = new ArrayList<>();
+//				aliasList.add(alias);
+//				push(redisServer, pushTitle, message, content, path, aliasList, alias);
+				usePush(noteBo.getCreateuid(), content, path);
+
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
 			}
@@ -1995,5 +2005,72 @@ public class NoteController extends BaseContorller {
 			int readNum = historyByUseridAndNoteId.getReadNum() + 1;
 			readHistoryService.updateReadNum(historyByUseridAndNoteId.getId(), readNum);
 		}
+	}
+	
+	/**
+	 * 收信方为单个id
+	 * 
+	 * @param alias
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String alias, String content, String path) {
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
+		Set<String> tokenSet = new HashSet<>();
+		tokenSet.add(tokenBo.getHuaweiToken());
+
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, alias);
+	}
+
+	/**
+	 * 收信方为一个id的Collection集合
+	 * 
+	 * @param useridSet
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(Collection<String> useridSet, String content, String path) {
+		List<String> aliasList = new ArrayList<>(useridSet);
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		String[] pushUser = new String[useridSet.size()];
+		useridSet.toArray(pushUser);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		Set<String> tokenSet = new HashSet<>();
+		for (PushTokenBo pushTokenBo : tokens) {
+			tokenSet.add(pushTokenBo.getHuaweiToken());
+		}
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, pushUser);
+	}
+
+	/**
+	 * 收信方为一个id数组
+	 * 
+	 * @param useridArr
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String[] useridArr, String content, String path) {
+		List<String> aliasList = Arrays.asList(useridArr);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		Set<String> tokenSet = new HashSet<>();
+		for (PushTokenBo pushTokenBo : tokens) {
+			tokenSet.add(pushTokenBo.getHuaweiToken());
+		}
+
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

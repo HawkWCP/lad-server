@@ -1794,7 +1794,7 @@ public class InforController extends BaseContorller {
 	}
 
 	@ApiOperation("根据类型获取最后5条历史阅读信息")
-	@ApiImplicitParam(name = "inforType", value = "1健康，2 安防，3广播，4视频,5时政，6养老, 0查询所有数据", required = true, paramType = "query", dataType = "int")
+	@ApiImplicitParam(name = "inforType", value = "1健康，2 安防，3广播，4视频, 5时政，6养老, 0查询所有数据", required = true, paramType = "query", dataType = "int")
 	@RequestMapping(value = "/last-read", method = { RequestMethod.GET, RequestMethod.POST })
 	public String lastReadByType(int inforType, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);

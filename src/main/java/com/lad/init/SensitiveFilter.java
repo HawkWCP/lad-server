@@ -19,8 +19,16 @@ public class SensitiveFilter extends OncePerRequestFilter {
 		SensitiveReponseWrapper wrapper = new SensitiveReponseWrapper(response);
 
 		filterChain.doFilter(request, wrapper);
-		OutputStream out = response.getOutputStream();
+		
 		byte[] content = wrapper.getContent();
+		OutputStream out = response.getOutputStream();
 		out.write(content);
+//		for (byte b : content) {
+//			out.write(b);
+//		}
+		
+//		System.out.println(new String(content));
+//		PrintWriter writer = response.getWriter();
+//		writer.write(new String(content));
 	}
 }

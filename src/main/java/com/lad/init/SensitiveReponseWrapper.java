@@ -26,6 +26,7 @@ import org.apache.http.util.EntityUtils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.lad.util.CommonUtil;
 
 public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 	private ByteArrayOutputStream buffer;
@@ -84,35 +85,35 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 
 	
 	private String sensitiveQuery(String str){
-//		String url = "http://wf.ttlaoyou.com/v1/query";
-		String url = "http://localhost:8090/v1/query";
+		String url = "http://wf.ttlaoyou.com/v1/query";
+//		String url = "http://localhost:8090/v1/query";
 		Map<String,String> params = new HashMap<>();
 		params.put("q", str);
 		String sendPost = sendPost(url, params);
 		JSONObject object = JSON.parseObject(sendPost);
 		JSONObject keywords = object.getJSONObject("data").getJSONObject("keywords");
 		if(!keywords.isEmpty()){
-//			List<JSONObject> keyWords = new ArrayList<>();
+			List<JSONObject> keyWords = new ArrayList<>();
 			Set<Entry<String, Object>> entrySet = keywords.entrySet();
 			for (Entry<String, Object> entry : entrySet) {
-//				JSONObject jsonObject = new JSONObject();
-//				jsonObject.put("keyWord", entry.getKey());
-//				jsonObject.put("nums", entry.getValue());
-//				jsonObject.put("positions", CommonUtil.getIndex(str, entry.getKey()));
-//				keyWords.add(jsonObject);
-				str = str.replaceAll(entry.getKey(), "xx");
+				JSONObject jsonObject = new JSONObject();
+				jsonObject.put("keyWord", entry.getKey());
+				jsonObject.put("nums", entry.getValue());
+				jsonObject.put("positions", CommonUtil.getIndex(str, entry.getKey()));
+				keyWords.add(jsonObject);
+				str = str.replaceAll(entry.getKey(), "**");
 			}
 			
-//			JSONObject response = JSON.parseObject(str);
-//			response.put("havaSensitiveWord", true);
-//			response.put("sensitiveWord", keyWords);
-//			str = response.toJSONString();
+			JSONObject response = JSON.parseObject(str);
+			response.put("havaSensitiveWord", true);
+			response.put("sensitiveWord", keyWords);
+			str = response.toJSONString();
 		}else{
 			
-//			JSONObject response = JSON.parseObject(str);
-//			response.put("havaSensitiveWord", false);
-//			response.put("sensitiveWord", new ArrayList<>());
-//			str = response.toJSONString();
+			JSONObject response = JSON.parseObject(str);
+			response.put("havaSensitiveWord", false);
+			response.put("sensitiveWord", new ArrayList<>());
+			str = response.toJSONString();
 		}
 		return str;
 	}

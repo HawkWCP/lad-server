@@ -42,7 +42,6 @@ import com.lad.util.ERRORCODE;
 import com.lad.vo.CommentVo;
 import com.lad.vo.ExposeVo;
 import com.lad.vo.UserBaseVo;
-import com.mongodb.WriteResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -631,7 +630,7 @@ public class ExposeController extends BaseContorller {
 		for (InforBo inforBo : infors) {
 			String title = inforBo.getTitle();
 			String source = inforBo.getSource();
-			WriteResult updateSource = exposeService.updateSource(title,source);
+			exposeService.updateSource(title,source);
 		}
 		return "成功";
 	}

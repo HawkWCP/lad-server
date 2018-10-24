@@ -1,10 +1,10 @@
 package com.lad.controller;
 
-
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,14 +32,16 @@ import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.JPushUtil;
 import com.lad.util.MiPushUtil;
 import com.lad.util.MyException;
+import com.lad.util.PushNcMsg;
 
 public abstract class BaseContorller {
 
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
-	
-	
+	private Logger logger = LogManager.getLogger();
+
 	/**
 	 * push
 	 * @param redisServer
@@ -51,17 +53,17 @@ public abstract class BaseContorller {
 	 * @param alias
 	 */
 	@Async
-	public void push(RedisServer redisServer,String title, String message,String description, String path,List<String> aliasList,String... alias){
+	public void push(RedisServer redisServer,String title, String message,String description, String path,Set<String> userTokens,List<String> aliasList,String... alias){
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		try {
 			//3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
-			Logger logger = LogManager.getLogger();
-			logger.info("aliasList:{}",aliasList.toString());
-			
+			PushNcMsg.push(title, description, userTokens);
 			MiPushUtil.sendMessageToAliases(title, message, description, path, aliasList);
-//			JPushUtil.push(title, message, path, alias);
-		} finally {
+			JPushUtil.push(title, message, path, alias);
+		} catch(Exception e){
+			logger.error("BaseContorller====={}", e);
+		}finally {
 			lock.unlock();
 		}
 	}
@@ -74,11 +76,11 @@ public abstract class BaseContorller {
 	public String toErrorPage() {
 		return "/error";
 	}
-	
+
 	/**
 	 * 定向到错误页面
 	 * 
-	 * @param msg 错误消息
+	 * @param msg   错误消息
 	 * @param model ModelMap
 	 * @return view
 	 */
@@ -87,35 +89,31 @@ public abstract class BaseContorller {
 		return this.toErrorPage();
 	}
 
-
 	/**
 	 * 统一校验session是否存在，不存在以异常跑出
+	 * 
 	 * @param request
 	 * @throws MyException
 	 */
-	public UserBo checkSession(HttpServletRequest request, IUserService userService) throws MyException{
+	public UserBo checkSession(HttpServletRequest request, IUserService userService) throws MyException {
 		HttpSession session = request.getSession();
 		if (session.isNew()) {
-			throw new MyException(CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			throw new MyException(CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason()));
 		}
 		if (session.getAttribute("isLogin") == null) {
-			throw new MyException(CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			throw new MyException(CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason()));
 		}
 		UserBo userBo = (UserBo) session.getAttribute("userBo");
 		if (userBo == null) {
-			throw new MyException(CommonUtil.toErrorResult(
-					ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+			throw new MyException(CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason()));
 		}
 		userBo = userService.getUser(userBo.getId());
 		if (null == userBo) {
-			throw new MyException(CommonUtil.toErrorResult(
-					ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason()));
+			throw new MyException(
+					CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason()));
 		}
 		session.setAttribute("userBo", userBo);
 		return userBo;
@@ -123,6 +121,7 @@ public abstract class BaseContorller {
 
 	/**
 	 * 获取session
+	 * 
 	 * @param request
 	 */
 	public UserBo getUserLogin(HttpServletRequest request) {
@@ -133,11 +132,12 @@ public abstract class BaseContorller {
 		if (session.getAttribute("isLogin") == null) {
 			return null;
 		}
-        return (UserBo) session.getAttribute("userBo");
+		return (UserBo) session.getAttribute("userBo");
 	}
 
 	/**
 	 * 同步session ,用户数据又修改之后,保证session与数据库同步
+	 * 
 	 * @param request
 	 */
 	@Async
@@ -147,10 +147,10 @@ public abstract class BaseContorller {
 		if (null != userBo) {
 			userBo = userService.getUser(userBo.getId());
 			if (userBo == null) {
-				//用户不存在，注销用户session
+				// 用户不存在，注销用户session
 				session.invalidate();
 			} else {
-				//更新用户session
+				// 更新用户session
 				session.setAttribute("userBo", userBo);
 			}
 		}
@@ -158,17 +158,18 @@ public abstract class BaseContorller {
 
 	/**
 	 * 更新圈子访问记录信息
+	 * 
 	 * @param userid
 	 * @param circleid
 	 * @param locationService
 	 * @param circleService
 	 */
 	@Async
-	public void updateHistory(String userid, String circleid,
-							  ILocationService locationService, ICircleService circleService){
+	public void updateHistory(String userid, String circleid, ILocationService locationService,
+			ICircleService circleService) {
 		try {
 			// 获取个人的圈子操作历史
-			CircleHistoryBo circleHistoryBo = circleService.findByUserIdAndCircleId(userid,circleid);
+			CircleHistoryBo circleHistoryBo = circleService.findByUserIdAndCircleId(userid, circleid);
 			// 获取个人的地址信息
 			LocationBo locationBo = locationService.getLocationBoByUserid(userid);
 
@@ -180,7 +181,7 @@ public abstract class BaseContorller {
 				if (null != locationBo) {
 					circleHistoryBo.setPosition(locationBo.getPosition());
 				} else {
-					circleHistoryBo.setPosition(new double[]{0, 0});
+					circleHistoryBo.setPosition(new double[] { 0, 0 });
 				}
 				circleService.insertHistory(circleHistoryBo);
 			} else {
@@ -191,13 +192,9 @@ public abstract class BaseContorller {
 		}
 	}
 
-	
-
-
-	
-	
 	/**
 	 * 更新圈子中各种访问信息或者人气等等
+	 * 
 	 * @param circleService
 	 * @param redisServer
 	 * @param circleid
@@ -205,11 +202,11 @@ public abstract class BaseContorller {
 	 * @param type
 	 */
 	@Async
-	public void updateCircleHot(ICircleService circleService, RedisServer redisServer,
-								String circleid, int num, int type){
+	public void updateCircleHot(ICircleService circleService, RedisServer redisServer, String circleid, int num,
+			int type) {
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		try {
-			//3s自动解锁
+			// 3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
 			circleService.updateCircleHot(circleid, num, type);
 		} finally {
@@ -217,13 +214,13 @@ public abstract class BaseContorller {
 		}
 	}
 
-
 	/**
 	 * 更新动态信息数量表
+	 * 
 	 * @param userid
 	 */
 	@Async
-	public void updateDynamicNums(String userid, int num, IDynamicService dynamicService, RedisServer server){
+	public void updateDynamicNums(String userid, int num, IDynamicService dynamicService, RedisServer server) {
 		DynamicNumBo numBo = dynamicService.findNumByUserid(userid);
 		if (numBo == null) {
 			numBo = new DynamicNumBo();
@@ -232,9 +229,9 @@ public abstract class BaseContorller {
 			numBo.setTotal(1);
 			dynamicService.addNum(numBo);
 		} else {
-			RLock lock = server.getRLock(userid+"dynamicSize");
+			RLock lock = server.getRLock(userid + "dynamicSize");
 			try {
-				lock.lock(2,TimeUnit.SECONDS);
+				lock.lock(2, TimeUnit.SECONDS);
 				dynamicService.updateNumbers(numBo.getId(), num);
 			} finally {
 				lock.unlock();
@@ -242,14 +239,14 @@ public abstract class BaseContorller {
 		}
 	}
 
-
 	/**
 	 * 添加聊天室用户的昵称
+	 * 
 	 * @param chatroomid
 	 * @param nickname
 	 */
 	@Async
-	public void addChatroomUser(IChatroomService service, UserBo userBo, String chatroomid, String nickname){
+	public void addChatroomUser(IChatroomService service, UserBo userBo, String chatroomid, String nickname) {
 		ChatroomUserBo chatroomUserBo = service.findChatUserByUserAndRoomid(userBo.getId(), chatroomid);
 		if (chatroomUserBo == null) {
 			chatroomUserBo = new ChatroomUserBo();
@@ -260,23 +257,23 @@ public abstract class BaseContorller {
 			chatroomUserBo.setShowNick(false);
 			chatroomUserBo.setDisturb(false);
 			service.insertUser(chatroomUserBo);
-		} else if (chatroomUserBo.getDeleted() == Constant.DELETED){
+		} else if (chatroomUserBo.getDeleted() == Constant.DELETED) {
 			service.updateUserNickname(chatroomUserBo.getId(), nickname);
 		}
 	}
 
-
 	/**
 	 * 获取聚会状态
+	 * 
 	 * @param startTimes
 	 * @param appointment
-	 * @return  1 进行中， 2报名结束， 3活动结束
+	 * @return 1 进行中， 2报名结束， 3活动结束
 	 */
-	public int getPartyStatus(LinkedHashSet<String> startTimes, int appointment){
+	public int getPartyStatus(LinkedHashSet<String> startTimes, int appointment) {
 		if (!CommonUtil.isEmpty(startTimes)) {
 			Iterator<String> iterator = startTimes.iterator();
 			String lastTime = "";
-			while (iterator.hasNext()){
+			while (iterator.hasNext()) {
 				lastTime = iterator.next();
 			}
 			if (lastTime.equals("0")) {
@@ -285,16 +282,16 @@ public abstract class BaseContorller {
 			Date lastDate = CommonUtil.getDate(lastTime, "yyyy-MM-dd HH:mm");
 			if (lastDate != null) {
 				Date currentLastTime = CommonUtil.getLastDate(lastDate);
-				//当前时间大于聚会的结束时间 聚会结束
+				// 当前时间大于聚会的结束时间 聚会结束
 				if (System.currentTimeMillis() >= currentLastTime.getTime()) {
 					return 3;
 				}
 				long last = lastDate.getTime();
-				//减去提前预约天数
+				// 减去提前预约天数
 				if (appointment > 0) {
 					last = last - (appointment * dayTimeMins);
 				}
-				//报名时间已经结束
+				// 报名时间已经结束
 				if (System.currentTimeMillis() >= last) {
 					return 2;
 				}
@@ -304,8 +301,8 @@ public abstract class BaseContorller {
 	}
 
 	@Async
-	public void addMessage(IMessageService service, String path, String content, String title,
-						   String createuid, String... userids){
+	public void addMessage(IMessageService service, String path, String content, String title, String createuid,
+			String... userids) {
 		for (String userid : userids) {
 			MessageBo messageBo = new MessageBo();
 			messageBo.setContent(content);
@@ -319,6 +316,7 @@ public abstract class BaseContorller {
 
 	/**
 	 * 消息添加到列表
+	 * 
 	 * @param service
 	 * @param path
 	 * @param content
@@ -329,8 +327,8 @@ public abstract class BaseContorller {
 	 * @param userid
 	 */
 	@Async
-	public void addMessage(IMessageService service, String path, String content, String title, String noteid,
-						   int type, String sourceid, String circleid, String createuid, String userid){
+	public void addMessage(IMessageService service, String path, String content, String title, String noteid, int type,
+			String sourceid, String circleid, String createuid, String userid) {
 		MessageBo messageBo = new MessageBo();
 		messageBo.setContent(content);
 		messageBo.setPath(path);
