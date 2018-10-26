@@ -525,17 +525,20 @@ public class RestHomeController extends BaseContorller {
 			if (StringUtils.isEmpty(peopleJson)) {
 				map.put("ret", -1);
 				map.put("message", "参数错误");
+				return JSON.toJSONString(map);
 			}
 
 			RetiredPeopleBo poepleBo = JSON.parseObject(peopleJson, RetiredPeopleBo.class);
 			if (poepleBo.getId() == null) {
 				map.put("ret", -1);
 				map.put("message", "缺少id");
+				return JSON.toJSONString(map);
 			}
 			RetiredPeopleBo resultBo = restHomeService.findPeopleById(poepleBo.getId());
 			if (resultBo == null) {
 				map.put("ret", -1);
 				map.put("message", "数据不存在或已删除");
+				return JSON.toJSONString(map);
 			}
 
 			Map<String, Object> params = isUpdate(peopleJson, resultBo);
@@ -576,7 +579,7 @@ public class RestHomeController extends BaseContorller {
 	@PostMapping("/peopleInfo")
 	public String peopleInfo(String peopleId, HttpServletRequest request, HttpServletResponse response) {
 		Map<String, Object> map = new HashMap<>();
-		logger.info("@PostMapping(\"/peopleInfo\")=====homeId:{}", peopleId);
+		logger.info("@PostMapping(\"/peopleInfo\")=====peopleId:{}", peopleId);
 		try {
 			UserBo userBo = getUserLogin(request);
 			if (userBo == null) {
@@ -840,7 +843,8 @@ public class RestHomeController extends BaseContorller {
 
 	private Map<String, Object> isUpdate(String jsonParams, Object oldValues)
 			throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-
+		
+		
 		Map<String, Object> params = new HashMap<String, Object>();
 		Iterator<Map.Entry<String, Object>> iterator = JSONObject.fromObject(jsonParams).entrySet().iterator();
 		JSONObject oldObject = JSONObject.fromObject(oldValues);

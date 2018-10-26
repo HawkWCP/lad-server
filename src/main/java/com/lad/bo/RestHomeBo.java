@@ -32,5 +32,7 @@ public class RestHomeBo extends BaseBo {
 	private boolean acceptOtherArea;
 	private boolean orderPoint;
 	
+	private String introduction;
+	
 	private boolean protocol = false;
 }

@@ -27,5 +27,8 @@ public class RestHomeVo extends BaseVo {
 	private String ways;
 	private boolean acceptOtherArea;
 	private boolean orderPoint;
+	
+	private String introduction;
+	
 	private LinkedHashSet<String> images = new LinkedHashSet<>();
 }

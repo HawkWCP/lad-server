@@ -21,14 +21,10 @@ public class SensitiveFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, wrapper);
 		
 		byte[] content = wrapper.getContent();
+		
+		response.setContentLength(content.length);
 		OutputStream out = response.getOutputStream();
 		out.write(content);
-//		for (byte b : content) {
-//			out.write(b);
-//		}
-		
-//		System.out.println(new String(content));
-//		PrintWriter writer = response.getWriter();
-//		writer.write(new String(content));
+
 	}
 }

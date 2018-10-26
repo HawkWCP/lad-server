@@ -21,6 +21,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,23 +31,88 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lad.util.CommonUtil;
 
+import net.sf.json.JSONException;
+
 @SuppressWarnings("all")
 @RestController
 @RequestMapping("sensitive")
 public class SensitiveController {
-	
-	@RequestMapping("sensitive-query")
-	public String sensitiveQuery(String str){
+
+	private Logger logger = LogManager.getLogger();
+
+	@PostMapping("sensitive-check")
+	public String sensitiveChecky(String fieldJson) {
 		String url = "http://localhost:8090/v1/query";
-		Map<String,String> params = new HashMap<>();
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("sensitiveWord", false);
+
+		try {
+			JSONObject jsonObject = JSON.parseObject(fieldJson);
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Entry<String, Object> entry : jsonObject.entrySet()) {
+				if (entry.getValue() instanceof java.lang.String) {
+
+					String value = (String) entry.getValue();
+
+					Map<String, String> params = new HashMap<>();
+					params.put("q", value);
+					String sendPost = sendPost(url, params);
+
+					JSONObject object = JSON.parseObject(sendPost);
+					JSONObject keywords = object.getJSONObject("data").getJSONObject("keywords");
+
+					if (!keywords.isEmpty()) {
+						Map<String, Object> wordWrapper = new HashMap<>();
+						wordWrapper.put("field", entry.getKey());
+						wordWrapper.put("value", value);
+						List<Map<String, Object>> keywordList = new ArrayList<>();
+						for (Entry<String, Object> keyEntry : keywords.entrySet()) {
+							Map<String, Object> keyWordAnalysistor = new HashMap<>();
+							keyWordAnalysistor.put("keyword", keyEntry.getKey());
+							keyWordAnalysistor.put("number", keyEntry.getValue());
+							keyWordAnalysistor.put("position", CommonUtil.getIndex(value, keyEntry.getKey()));
+							keywordList.add(keyWordAnalysistor);
+						}
+						wordWrapper.put("sensitiveWord", keywordList);
+						map.put("sensitiveWord", true);
+						result.add(wordWrapper);
+					}
+				}
+			}
+			map.put("result", result);
+		} catch (com.alibaba.fastjson.JSONException e) {
+			logger.error("@PostMapping(\"sensitive-check\")=====error:{}", e);
+			map.put("ret", -1);
+			map.put("description", e.toString());
+			map.put("message", "JSON格式错误:" + e.toString());
+		} catch (JSONException e) {
+			logger.error("@PostMapping(\"sensitive-check\")=====error:{}", e);
+			map.put("ret", -1);
+			map.put("description", e.toString());
+			map.put("message", "JSON格式错误:" + e.toString());
+		} catch (Exception e) {
+			logger.error("@PostMapping(\"sensitive-check\")=====error:{}",e);
+			Map<String,Object> result = new HashMap<>();
+			result.put("ret", -1);
+			result.put("message", "出现错误:"+e);
+			return JSON.toJSONString(result);
+		}
+
+		return JSON.toJSONString(map);
+	}
+
+	@PostMapping("sensitive-query")
+	public String sensitiveQuery(String str) {
+		String url = "http://localhost:8090/v1/query";
+		Map<String, String> params = new HashMap<>();
 		params.put("q", str);
 		String sendPost = sendPost(url, params);
-		System.out.println(sendPost);
 		JSONObject object = JSON.parseObject(sendPost);
 		JSONObject keywords = object.getJSONObject("data").getJSONObject("keywords");
-		
-		Map<String,Object> map = new HashMap<>();
-		if(!keywords.isEmpty()){
+
+		Map<String, Object> map = new HashMap<>();
+		if (!keywords.isEmpty()) {
 			List<JSONObject> keyWords = new ArrayList<>();
 			Set<Entry<String, Object>> entrySet = keywords.entrySet();
 			for (Entry<String, Object> entry : entrySet) {
@@ -58,33 +126,32 @@ public class SensitiveController {
 			map.put("keyWords", keyWords);
 			map.put("text", object.getJSONObject("data").get("text"));
 			map.put("source", str);
-		}else{
+		} else {
 			map.put("ret", 0);
 			map.put("keyWords", new ArrayList<>());
 			map.put("text", str);
 			map.put("source", str);
 		}
-		
+
 		return JSON.toJSONString(map);
 	}
-	
-	
-	@RequestMapping("sensitive-search")
-	public String getSensitives(){
+
+	@PostMapping("sensitive-search")
+	public String getSensitives() {
 //		String url = "http://wf.ttlaoyou.com/v1/black_words";
 		String url = "http://localhost:8090/v1/black_words";
 		String sendGet = sendGet(url);
 		JSONObject object = JSON.parseObject(sendGet);
 		return sendGet(url);
 	}
-	
-	private String sendPost(String url,Map<String,String> params) {
+
+	private String sendPost(String url, Map<String, String> params) {
 		try {
 			List<BasicNameValuePair> formparams = new ArrayList<>();
 			for (Entry<String, String> entry : params.entrySet()) {
 				formparams.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
-			
+
 			HttpEntity reqEntity = new UrlEncodedFormEntity(formparams, "utf-8");
 
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000)// 一、连接超时：connectionTimeout-->指的是连接一个url的连接等待时间
@@ -110,7 +177,6 @@ public class SensitiveController {
 		return null;
 	}
 
-	
 	private String sendGet(String url) {
 		CloseableHttpClient httpclient = HttpClientBuilder.create().build();
 		try {
@@ -123,9 +189,9 @@ public class SensitiveController {
 				HttpEntity entity = response.getEntity();
 				// 打印响应状态
 				if (entity != null) {
-					if(response.getStatusLine().getStatusCode()/100==2){
+					if (response.getStatusLine().getStatusCode() / 100 == 2) {
 						return EntityUtils.toString(entity);
-					}else{
+					} else {
 						return JSON.toJSONString(response.getStatusLine());
 					}
 				}
@@ -148,5 +214,5 @@ public class SensitiveController {
 		}
 		return null;
 	}
-	
+
 }

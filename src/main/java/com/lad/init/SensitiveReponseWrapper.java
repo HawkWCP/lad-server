@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
@@ -23,12 +22,17 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lad.util.CommonUtil;
 
 public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
+
+	private Logger logger = LogManager.getLogger();
+
 	private ByteArrayOutputStream buffer;
 
 	private ServletOutputStream out;
@@ -53,9 +57,7 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 
 	public byte[] getContent() throws IOException {
 		flushBuffer();
-		String response = buffer.toString();
-		String string = sensitiveQuery(response);
-		return string.getBytes();
+		return sensitiveQuery(buffer.toString()).getBytes();
 	}
 
 	class WrapperOutputStream extends ServletOutputStream {
@@ -83,57 +85,90 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 		}
 	}
 
-	
-	private String sensitiveQuery(String str){
+	private String sensitiveQuery(String str) {
 		String url = "http://wf.ttlaoyou.com/v1/query";
 //		String url = "http://localhost:8090/v1/query";
-		Map<String,String> params = new HashMap<>();
-		params.put("q", str);
-		String sendPost = sendPost(url, params);
-		JSONObject object = JSON.parseObject(sendPost);
-		JSONObject keywords = object.getJSONObject("data").getJSONObject("keywords");
-		if(!keywords.isEmpty()){
-			List<JSONObject> keyWords = new ArrayList<>();
-			Set<Entry<String, Object>> entrySet = keywords.entrySet();
-			for (Entry<String, Object> entry : entrySet) {
-				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("keyWord", entry.getKey());
-				jsonObject.put("nums", entry.getValue());
-				jsonObject.put("positions", CommonUtil.getIndex(str, entry.getKey()));
-				keyWords.add(jsonObject);
-				str = str.replaceAll(entry.getKey(), "**");
+
+		// 过滤响应
+		JSONObject response = JSON.parseObject(str);
+		int ret = (int) response.get("ret");
+		if (ret != 0) {
+			return str;
+		}
+		try {
+			// 发送响应语句进行检查,并返回结果keywords
+			Map<String, String> params = new HashMap<>();
+			params.put("q", str);
+			String sendPost = sendPost(url, params);
+			JSONObject object = JSON.parseObject(sendPost);
+			JSONObject keywords = object.getJSONObject("data").getJSONObject("keywords");
+
+			if (!keywords.isEmpty()) {
+				response.put("havaSensitiveWord", true);
+
+				List<SensiwordWrapper> sensitiveAnalysis = new ArrayList<>();
+				for (Entry<String, Object> entry : keywords.entrySet()) {
+					SensiwordWrapper sensiwordWrapper = new SensiwordWrapper();
+					String sensiword = entry.getKey();
+					sensiwordWrapper.setSensitiveWord(sensiword);
+
+					int num = (int) entry.getValue();
+					sensiwordWrapper.setNum(num);
+
+					List<Map<String, Object>> position = new ArrayList<>();
+					for (Entry<String, Object> resEntry : response.entrySet()) {
+						if (resEntry.getValue().toString().contains(sensiword)) {
+							Map<String, Object> map = new HashMap<>(
+									CommonUtil.getIndex(resEntry.getValue().toString(), sensiword));
+							map.put("field", resEntry.getKey());
+							position.add(map);
+
+							if (resEntry.getValue() instanceof java.lang.String) {
+								String value = (String) resEntry.getValue();
+								response.put(resEntry.getKey(), JSON.parseObject(value.replaceAll(sensiword, "**")));
+							}
+
+							if (resEntry.getValue() instanceof com.alibaba.fastjson.JSONArray) {
+								com.alibaba.fastjson.JSONArray value = (com.alibaba.fastjson.JSONArray) resEntry
+										.getValue();
+
+								response.put(resEntry.getKey(),
+										JSON.parseArray(value.toString().replaceAll(sensiword, "**")));
+
+							}
+						}
+					}
+					sensiwordWrapper.setPosition(position);
+					sensitiveAnalysis.add(sensiwordWrapper);
+				}
+				response.put("sensitiveAnalysis", sensitiveAnalysis);
+				str = response.toJSONString();
+			} else {
+
+				response.put("havaSensitiveWord", false);
+				response.put("sensitiveWord", new ArrayList<>());
+				str = response.toJSONString();
 			}
-			
-			JSONObject response = JSON.parseObject(str);
-			response.put("havaSensitiveWord", true);
-			response.put("sensitiveWord", keyWords);
-			str = response.toJSONString();
-		}else{
-			
-			JSONObject response = JSON.parseObject(str);
-			response.put("havaSensitiveWord", false);
-			response.put("sensitiveWord", new ArrayList<>());
-			str = response.toJSONString();
+		} catch (Exception e) {
+			logger.error(e);
 		}
 		return str;
 	}
-	
-	
-	/*private String getSensitives(){
-//		String url = "http://wf.ttlaoyou.com/v1/black_words";
-		String url = "http://localhost:8090/v1/black_words";
-		String sendGet = sendGet(url);
-		JSONObject object = JSON.parseObject(sendGet);
-		return sendGet(url);
-	}*/
-	
-	private String sendPost(String url,Map<String,String> params) {
+
+	/*
+	 * private String getSensitives(){ // String url =
+	 * "http://wf.ttlaoyou.com/v1/black_words"; String url =
+	 * "http://localhost:8090/v1/black_words"; String sendGet = sendGet(url);
+	 * JSONObject object = JSON.parseObject(sendGet); return sendGet(url); }
+	 */
+
+	private String sendPost(String url, Map<String, String> params) {
 		try {
 			List<BasicNameValuePair> formparams = new ArrayList<>();
 			for (Entry<String, String> entry : params.entrySet()) {
 				formparams.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
-			
+
 			HttpEntity reqEntity = new UrlEncodedFormEntity(formparams, "utf-8");
 
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000)// 一、连接超时：connectionTimeout-->指的是连接一个url的连接等待时间
@@ -159,42 +194,33 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 		return null;
 	}
 
-	
-	/*private String sendGet(String url) {
-		CloseableHttpClient httpclient = HttpClientBuilder.create().build();
-		try {
-			// 创建httpget.
-			HttpGet httpget = new HttpGet(url);
-			// 执行get请求.
-			CloseableHttpResponse response = httpclient.execute(httpget);
-			try {
-				// 获取响应实体
-				HttpEntity entity = response.getEntity();
-				// 打印响应状态
-				if (entity != null) {
-					if(response.getStatusLine().getStatusCode()/100==2){
-						return EntityUtils.toString(entity);
-					}else{
-						return JSON.toJSONString(response.getStatusLine());
-					}
-				}
-			} finally {
-				response.close();
-			}
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (ParseException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			// 关闭连接,释放资源
-			try {
-				httpclient.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+	private class SensiwordWrapper {
+		private String sensitiveWord;
+		private int num;
+		private List<Map<String, Object>> position = new ArrayList<Map<String, Object>>();
+
+		public String getSensitiveWord() {
+			return sensitiveWord;
 		}
-		return null;
-	}*/
+
+		public void setSensitiveWord(String sensitiveWord) {
+			this.sensitiveWord = sensitiveWord;
+		}
+
+		public int getNum() {
+			return num;
+		}
+
+		public void setNum(int num) {
+			this.num = num;
+		}
+
+		public List<Map<String, Object>> getPosition() {
+			return position;
+		}
+
+		public void setPosition(List<Map<String, Object>> position) {
+			this.position = position;
+		}
+	}
 }

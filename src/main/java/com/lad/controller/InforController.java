@@ -1678,7 +1678,6 @@ public class InforController extends BaseContorller {
 	public String forwardDynamic(@RequestParam String inforid, @RequestParam int inforType, String view,
 			String landmark, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
-		// TODO
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
@@ -1765,7 +1764,6 @@ public class InforController extends BaseContorller {
 	@RequestMapping(value = "/forward-circle", method = { RequestMethod.GET, RequestMethod.POST })
 	public String forwardCircle(String circleid, String inforid, int inforType, HttpServletRequest request,
 			HttpServletResponse response) {
-		// TODO
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -2149,7 +2147,7 @@ public class InforController extends BaseContorller {
 	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
 	@RequestMapping(value = "/daily-infor", method = { RequestMethod.GET, RequestMethod.POST })
 	public String dailyNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
-
+		// TODO
 		DailynewsBo inforBo = inforService.findByDailynewsId(inforid);
 		if (inforBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());

@@ -808,6 +808,30 @@ public class CommonUtil {
 		return position;
 	}
 
+	public static List<List<Integer>> getIndexAsList(String source, String key) {
+		int formIndex = 0;
+		List<List<Integer>> position = new ArrayList<>();
+		int keyIndex = 1;
+
+		while (true) {
+			int indexOf = source.indexOf(key, formIndex);
+			if (indexOf == -1) {
+				break;
+			}
+			int endIndex = indexOf + key.length();
+			List<Integer> temp = new ArrayList<>(2);
+			temp.add(indexOf);
+			temp.add(endIndex);
+			position.add(temp);
+			keyIndex++;
+			formIndex = endIndex;
+			if (formIndex >= source.length()) {
+				break;
+			}
+		}
+		return position;
+	}
+	
 	public static List<String> deleteBack(IDynamicService dynamicService, IFriendsService friendsService,
 			UserBo userBo) {
 		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
