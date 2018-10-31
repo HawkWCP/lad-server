@@ -860,11 +860,19 @@ public class CommonUtil {
 		return friends;
 	}
 
+	public static final String BEIJING = "北京市";
+	public static final String CHONGQING = "重庆市";
+	public static final String TIANJIN = "天津市";
+	public static final String SHANGHAI = "上海市";
 	// 获取格式为 省-市-区格式的字符串中的市
 	public static String getCity(String area) {
 		String[] split = area.split("-");
+		String first = split[0];
+		if(area.contains(BEIJING)||area.contains(CHONGQING)||area.contains(TIANJIN)||area.contains(SHANGHAI)) {
+			return first;
+		}
 		if (split.length >= 2) {
-			String result = split[0] + "-" + split[1];
+			String result = first + "-" + split[1];
 			return result;
 		}
 		return "";

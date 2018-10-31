@@ -1,6 +1,8 @@
 package com.lad.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -16,6 +18,7 @@ import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
 import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
+import com.lad.util.MeizuPushUtil;
 
 @RestController
 @RequestMapping("push")
@@ -66,5 +69,13 @@ public class PushController extends BaseContorller {
 		map.put("ret", 0);
 		map.put("result", "token保存成功");
 		return JSON.toJSONString(map);
+	}
+	
+	@PostMapping("/meizuPush")
+	public void meizupush() {
+		MeizuPushUtil meizuPushUtil = new MeizuPushUtil();
+		List<String> alias = new ArrayList<>();
+		alias.add("59cfa42831f0a51d1e047420");
+		meizuPushUtil.pushMessageByAlias("push title","push content","https://www.baidu.com",alias) ;
 	}
 }

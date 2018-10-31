@@ -100,6 +100,7 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 		int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
 		query.skip(skip);
 		query.limit(limit);
+
 		return mongoTemplate.find(query, RetiredPeopleBo.class);
 	}
 
@@ -159,15 +160,21 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	@Override
 	public List<RestHomeBo> findHomeListByKeyword(String uid, String keyword, int page, int limit) {
 		Query query = new Query();
-		Criteria criteria = Criteria.where("area").regex(keyword).and("deleted").is(0);
-		if (criteria != null) {
-			criteria.and("createuid").ne(uid);
+		Criteria orCriteria = new Criteria();
+		orCriteria.orOperator(Criteria.where("area").regex(keyword), Criteria.where("name").regex(keyword));
+		Criteria andCriteria = Criteria.where("deleted").is(0);
+		if (uid != null) {
+			andCriteria.and("createuid").ne(uid);
 		}
+		Criteria criteria = new Criteria();
+		criteria.andOperator(andCriteria, orCriteria);
 		query.addCriteria(criteria);
+		System.out.println(query);
 		query.with(new Sort(new Sort.Order(Direction.DESC, "_id")));
 		int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
 		query.skip(skip);
 		query.limit(limit);
+
 		return mongoTemplate.find(query, RestHomeBo.class);
 	}
 
@@ -219,12 +226,27 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 		List<RestHomeBo> result = new ArrayList<>();
 
 		for (Map<String, String> areaMap : areaList) {
-			Criteria acceptOtherArea = Criteria.where("area").regex(areaMap.get("wannaArea") + "*")
-					.and("acceptOtherArea").is(true);
-			Criteria refuseOtherArea = Criteria.where("area").regex(areaMap.get("wannaArea") + "*").and("area")
-					.regex(areaMap.get("homeArea") + "*").and("acceptOtherArea").is(false);
-			Criteria orOption = acceptOtherArea.orOperator(acceptOtherArea, refuseOtherArea);
-			Criteria criteria = Criteria.where("deleted").is(0).andOperator(orOption);
+			String wannaRegex = areaMap.get("wannaArea") + ".*";
+			String homeRegex = areaMap.get("homeArea") + ".*";
+
+
+			
+//			Criteria orCriteria = new Criteria();
+//			意向地址等于所在地址,并且接受异地;
+//			Criteria acceptTrueAndWannaTrue = Criteria.where("area").regex(wannaRegex).and("acceptOtherArea").is(true);
+//			家庭地址等于所在地址,并且接受异地;
+//			Criteria acceptTrueAndHomeTrue = Criteria.where("area").regex(homeRegex).and("acceptOtherArea").is(true);
+//			家庭地址等于所在地址,不接受异地
+//			Criteria acceptFalseAndHomeTrue = Criteria.where("area").regex(homeRegex).and("area").regex(wannaRegex).and("acceptOtherArea").is(false);
+//
+//			orCriteria.orOperator(acceptTrueAndWannaTrue, acceptFalseAndHomeTrue);
+//
+//			Criteria criteria = Criteria.where("deleted").is(0).andOperator(orCriteria);
+			
+			Criteria criteria = Criteria.where("area").regex(wannaRegex).and("deleted").is(0);
+			if(!wannaRegex.equals(homeRegex)) {
+				criteria.and("acceptOtherArea").is(true);
+			}
 			if (StringUtils.isNotEmpty(id)) {
 				criteria.and("createuid").ne(id);
 			}
@@ -249,12 +271,12 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	public List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList,
 			String price, int page, int limit) {
 		List<RetiredPeopleBo> result = new ArrayList<>();
+
 		for (Map<String, Object> condition : conditionList) {
-			Criteria criteria = Criteria.where("deleted").is(0).and("wannaArea")
-					.regex((String) condition.get("area") + "-*");
-			// 如果不接受异地
+			String areaRegex = condition.get("area") + "*";
+			Criteria criteria = Criteria.where("deleted").is(0).and("wannaArea").regex(areaRegex); // 如果不接受异地
 			if (!(boolean) condition.get("acceptOtherArea")) {
-				criteria.and("homeArea").regex((String) condition.get("area") + "-*");
+				criteria.and("homeArea").regex(areaRegex);
 			}
 			if (StringUtils.isNotEmpty(uid)) {
 				criteria.and("createuid").ne(uid);
@@ -269,6 +291,7 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 			int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
 			query.skip(skip);
 			query.limit(limit);
+
 			List<RetiredPeopleBo> find = mongoTemplate.find(query, RetiredPeopleBo.class);
 			Set<String> idList = new HashSet<>();
 			for (RetiredPeopleBo retiredPeopleBo : find) {
@@ -278,6 +301,7 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 				}
 			}
 		}
+
 		return result;
 	}
 }

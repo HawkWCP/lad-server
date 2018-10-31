@@ -32,10 +32,11 @@ import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.HuaWeiPushNcMsg;
 import com.lad.util.JPushUtil;
+import com.lad.util.MeizuPushUtil;
 import com.lad.util.MiPushUtil;
 import com.lad.util.MyException;
-import com.lad.util.PushNcMsg;
 
 public abstract class BaseContorller {
 
@@ -45,22 +46,24 @@ public abstract class BaseContorller {
 	/**
 	 * push
 	 * @param redisServer
-	 * @param title
-	 * @param message
-	 * @param description
+	 * @param title			
+	 * @param message		地址的json格式
+	 * @param description	发送neirong,又名content
 	 * @param path
 	 * @param aliasList
 	 * @param alias
 	 */
 	@Async
 	public void push(RedisServer redisServer,String title, String message,String description, String path,Set<String> userTokens,List<String> aliasList,String... alias){
+		
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		try {
 			//3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
-			PushNcMsg.push(title, description, userTokens);
-			MiPushUtil.sendMessageToAliases(title, message, description, path, aliasList);
-			JPushUtil.push(title, message, path, alias);
+			HuaWeiPushNcMsg.push(title, "华为推送:"+description, userTokens);
+			MiPushUtil.sendMessageToAliases(title, "小米推送:"+description,message,  path, aliasList);
+			MeizuPushUtil.pushMessageByAlias(title, "魅族推送:"+description, message, aliasList);
+			JPushUtil.push(title, "极光推送:"+description, path, alias);
 		} catch(Exception e){
 			logger.error("BaseContorller====={}", e);
 		}finally {

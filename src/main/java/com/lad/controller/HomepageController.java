@@ -34,6 +34,7 @@ import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleBo;
 import com.lad.bo.CircleTypeBo;
+import com.lad.bo.FriendsBo;
 import com.lad.bo.HomepageBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
@@ -42,10 +43,12 @@ import com.lad.bo.UserVisitBo;
 import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
+import com.lad.service.IFriendsService;
 import com.lad.service.IHomepageService;
 import com.lad.service.IPictureService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
+import com.lad.service.impl.FriendsServiceImpl;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
@@ -84,6 +87,9 @@ public class HomepageController extends BaseContorller {
 	
 	@Autowired
 	private IPictureService pictureService;
+	
+	@Autowired
+	private IFriendsService friendsService; 
 
 	private int homeType = 0;
 
@@ -148,7 +154,6 @@ public class HomepageController extends BaseContorller {
 
 	@GetMapping("/new-visitors-count")
 	public String new_visitors_count(HttpServletRequest request, HttpServletResponse response) {
-		// TODO
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -397,7 +402,7 @@ public class HomepageController extends BaseContorller {
 			}
 		}
 		UserInfoVo infoVo = new UserInfoVo();
-		bo2vo(userBo, infoVo);
+		bo2vo(loginUser,userBo, infoVo);
 		List<CircleBo> circleBos = circleService.findMyCircles(userid, 1, 5000);
 		List<CircleBaseVo> circles = new LinkedList<>();
 		
@@ -567,13 +572,19 @@ public class HomepageController extends BaseContorller {
 		}
 	}
 
-	private void bo2vo(UserBo userBo, UserInfoVo infoVo) {
+	private void bo2vo(UserBo loginUser,UserBo userBo, UserInfoVo infoVo) {
 		org.springframework.beans.BeanUtils.copyProperties(userBo, infoVo);
 		UserTasteBo tasteBo = userService.findByUserId(userBo.getId());
 		if (tasteBo == null) {
 			tasteBo = new UserTasteBo();
 			tasteBo.setUserid(userBo.getId());
 			userService.addUserTaste(tasteBo);
+		}
+		FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorId(loginUser.getId(), userBo.getId());
+		if(friendsBo!=null) {
+			if(!StringUtils.isEmpty(friendsBo.getBackname())) {
+				infoVo.setUserName(friendsBo.getBackname());
+			}
 		}
 		infoVo.setSports(tasteBo.getSports());
 		infoVo.setMusics(tasteBo.getMusics());

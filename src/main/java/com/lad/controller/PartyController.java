@@ -1202,7 +1202,6 @@ public class PartyController extends BaseContorller {
 
 		return "";
 	}
-
 	@ApiOperation("与聚会报名人员进行临时聊天")
 	@PostMapping("/temp-chatroom")
 	public String tempChatroom(String partyid, String friendid, HttpServletRequest request,

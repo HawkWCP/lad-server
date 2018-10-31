@@ -180,6 +180,16 @@
 			<systemPath>${basedir}/lib/MiPush_SDK_Server_2_2_19.jar</systemPath>
 			<scope>system</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.lad</groupId>
+			<artifactId>push-server-sdk</artifactId>
+			<version>1.2.7.20180307_release</version>
+			<type>jar</type>
+			<systemPath>${basedir}/lib/push-server-sdk-1.2.7.20180307_release.jar</systemPath>
+			<scope>system</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>com.lad</groupId>
 			<artifactId>json-simple</artifactId>
@@ -418,8 +428,11 @@
 					<encoding>${project.build.sourceEncoding}</encoding>
 				</configuration>
 			</plugin>
-			<!-- <plugin> <groupId>org.apache.tomcat.maven</groupId> <artifactId>tomcat7-maven-plugin</artifactId> 
-				<version>2.2</version> </plugin> -->
+			<!-- <plugin>
+	<groupId>org.apache.tomcat.maven</groupId>
+	<artifactId>tomcat7-maven-plugin</artifactId>
+	<version>2.2</version>
+</plugin> -->
 		</plugins>
 	</build>
 

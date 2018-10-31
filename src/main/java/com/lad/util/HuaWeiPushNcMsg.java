@@ -29,7 +29,7 @@ import com.alibaba.fastjson.JSONObject;
 
 //Push通知栏消息Demo
 //本示例程序中的appId,appSecret,deviceTokens以及appPkgName需要用户自行替换为有效值
-public class PushNcMsg {
+public class HuaWeiPushNcMsg {
 	private static String appSecret = "97419e32a148a3413706721cf4335f21";
 	private static String appId = "100445029";// 用户在华为开发者联盟申请的appId和appSecret（会员中心->应用管理，点击应用名称的链接）
 	private static String tokenUrl = "https://login.vmall.com/oauth2/token"; // 获取认证Token的URL

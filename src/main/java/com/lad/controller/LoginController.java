@@ -176,7 +176,7 @@ public class LoginController extends BaseContorller {
 	public String login(@RequestParam("phone")String phone,
 						@RequestParam("password")String password,
 						HttpServletRequest request, HttpServletResponse response) {
-		
+		logger.info("@PostMapping(\"/login\")=====phone:{},password:{}", phone, password);
 		HttpSession session = request.getSession();
 		if (!StringUtils.hasLength(phone)) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_PHONE_ERROR.getIndex(), ERRORCODE.ACCOUNT_PHONE_ERROR.getReason());
@@ -191,6 +191,7 @@ public class LoginController extends BaseContorller {
 		password = CommonUtil.getSHA256(password);
 		Map<String, Object> map = new HashMap<String, Object>();
 		userBo = loginService.getUser(phone, password);
+//		userBo = userService.findUserById("59cfa42831f0a51d1e047420");
 		if (userBo != null) {
 			map.put("ret", 0);
 			session.setAttribute("isLogin", true);

@@ -32,11 +32,13 @@ import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
 import com.lad.vo.RestHomeVo;
 import com.lad.vo.RetiredPeopleVo;
+import com.qiniu.util.Json;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import net.bytebuddy.description.modifier.SynchronizationState;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
@@ -79,23 +81,30 @@ public class RestHomeController extends BaseContorller {
 
 			List<OptionBo> ylOptions = marriageService.getYlOptions("ylPrice");
 			String peoplePrice = null;
-			for (OptionBo optionBo : ylOptions) {
-				String value = optionBo.getValue();
-				if ("10000以上".equals(value)) {
-					peoplePrice = value;
-					continue;
-				}
-				int[] numInStr = CommonUtil.numInStr(value);
-				if (numInStr.length != 2) {
-					throw new Exception("@PostMapping(\"/people-search\"):价格选项卡错误( option.value =" + value + ")");
-				}
-				if (price >= numInStr[0] && price <= numInStr[1]) {
-					peoplePrice = value;
-					continue;
+			if (price > 10000) {
+				peoplePrice = "10000以上";
+
+			} else {
+				for (OptionBo optionBo : ylOptions) {
+					String value = optionBo.getValue();
+					if("10000以上".equals(value)) {
+						continue;
+					}
+					int[] numInStr = CommonUtil.numInStr(value);
+					if (numInStr.length != 2) {
+						throw new Exception("@PostMapping(\"/people-search\"):价格选项卡错误( option.value =" + value + ")");
+					}
+					if (price >= numInStr[0] && price <= numInStr[1]) {
+						peoplePrice = value;
+						continue;
+
+					}
+
 				}
 			}
 
 			List<RestHomeBo> homeList = restHomeService.findHomeListByUid(userBo.getId());
+
 			List<Map<String, Object>> conditionList = new ArrayList<>();
 			for (RestHomeBo restHomeBo : homeList) {
 				if (restHomeBo != null) {
@@ -105,6 +114,7 @@ public class RestHomeController extends BaseContorller {
 					conditionList.add(condition);
 				}
 			}
+
 
 			List<RetiredPeopleBo> retiredPeople = restHomeService.findPeopleListByPrice(userBo.getId(), conditionList,
 					peoplePrice, page, limit);
@@ -146,6 +156,7 @@ public class RestHomeController extends BaseContorller {
 				map.put("message", "关键词不能为空");
 			}
 			keyword = ".*" + keyword + ".*";
+
 			List<RestHomeBo> restHome = restHomeService.findHomeListByKeyword(userBo.getId(), keyword, page, limit);
 			List<RestHomeVo> resultList = new ArrayList<>();
 			if (restHome != null && restHome.size() > 0) {
@@ -266,11 +277,10 @@ public class RestHomeController extends BaseContorller {
 				return JSON.toJSONString(map);
 			}
 
-			String wannaArea = CommonUtil.getCity(people.getHomeArea());
+			String wannaArea = CommonUtil.getCity(people.getWannaArea());
 			String homeArea = CommonUtil.getCity(people.getHomeArea());
 
-			List<RestHomeBo> recommendBo = restHomeService.findRecommendHome(userBo.getId(), homeArea, wannaArea, page,
-					limit);
+			List<RestHomeBo> recommendBo = restHomeService.findRecommendHome(userBo.getId(), homeArea, wannaArea, page,limit);
 			List<RestHomeVo> resultList = new ArrayList<>();
 			if (recommendBo != null && recommendBo.size() > 0) {
 				homeBo2Vo(recommendBo, resultList);
@@ -356,6 +366,7 @@ public class RestHomeController extends BaseContorller {
 			if (home == null) {
 				map.put("ret", -1);
 				map.put("message", "养老院信息不存在或已删除");
+				return JSON.toJSONString(map);
 			}
 			boolean acceptOtherArea = home.isAcceptOtherArea();
 			String area = CommonUtil.getCity(home.getArea());
@@ -428,6 +439,7 @@ public class RestHomeController extends BaseContorller {
 			}
 
 			List<RetiredPeopleBo> publishes = restHomeService.findPeopleListByUid(userBo.getId(), page, limit);
+
 			List<RetiredPeopleVo> resultList = new ArrayList<>();
 			peopleBo2Vo(publishes, resultList);
 
@@ -843,8 +855,7 @@ public class RestHomeController extends BaseContorller {
 
 	private Map<String, Object> isUpdate(String jsonParams, Object oldValues)
 			throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-		
-		
+
 		Map<String, Object> params = new HashMap<String, Object>();
 		Iterator<Map.Entry<String, Object>> iterator = JSONObject.fromObject(jsonParams).entrySet().iterator();
 		JSONObject oldObject = JSONObject.fromObject(oldValues);
