@@ -192,6 +192,15 @@
 
 		<dependency>
 			<groupId>com.lad</groupId>
+			<artifactId>opush-server-sdk</artifactId>
+			<version>1.0.1</version>
+			<type>jar</type>
+			<systemPath>${basedir}/lib/opush-server-sdk-1.0.1.jar</systemPath>
+			<scope>system</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.lad</groupId>
 			<artifactId>json-simple</artifactId>
 			<version>1.1.1</version>
 			<type>jar</type>
@@ -429,10 +438,10 @@
 				</configuration>
 			</plugin>
 			<!-- <plugin>
-	<groupId>org.apache.tomcat.maven</groupId>
-	<artifactId>tomcat7-maven-plugin</artifactId>
-	<version>2.2</version>
-</plugin> -->
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.2</version>
+			</plugin> -->
 		</plugins>
 	</build>
 

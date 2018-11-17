@@ -874,7 +874,8 @@ public class CommonUtil {
 		if (split.length >= 2) {
 			String result = first + "-" + split[1];
 			return result;
+		}else {
+			return first;
 		}
-		return "";
 	}
 }

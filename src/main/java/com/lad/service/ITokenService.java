@@ -17,4 +17,6 @@ public interface ITokenService {
 
 	List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet);
 
+	void deletedTokenByTokenAndUserId(String token, String userId);
+
 }

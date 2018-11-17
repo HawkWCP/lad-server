@@ -98,7 +98,6 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		// TODO
 		logger.info("@RequestMapping(value = \"/new-visitors-count\")=====user:{}({})",
 				userBo.getUserName(), userBo.getId());
 
@@ -127,7 +126,6 @@ public class DynamicController extends BaseContorller {
 
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		logger.error("temp:{}", JSON.toJSONString(temp));
 		map.put("all_visitors_count", temp.size());
 		map.put("new_visitors_count", new_visit_num);
 		return JSONObject.fromObject(map).toString();
@@ -659,7 +657,6 @@ public class DynamicController extends BaseContorller {
 		dynamicService.updateReadToTure(userBo.getId(), temp);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		logger.error("temp:{}", JSON.toJSONString(temp));
 		map.put("visitUserVos", visitUsers);
 		return JSONObject.fromObject(map).toString();
 	}

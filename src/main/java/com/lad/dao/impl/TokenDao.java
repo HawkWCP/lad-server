@@ -45,4 +45,9 @@ public class TokenDao implements ITokenDao {
 		return mongoTemplate.find(new Query(Criteria.where("userId").in(useridSet)), PushTokenBo.class);
 	}
 
+	@Override
+	public void deletedTokenByTokenAndUserId(String token, String userId) {
+		mongoTemplate.remove(new Query(Criteria.where("huaweiToken").is(token).and("userId").is(userId)), PushTokenBo.class);
+	}
+
 }

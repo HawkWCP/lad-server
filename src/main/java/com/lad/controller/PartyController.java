@@ -1204,8 +1204,7 @@ public class PartyController extends BaseContorller {
 	}
 	@ApiOperation("与聚会报名人员进行临时聊天")
 	@PostMapping("/temp-chatroom")
-	public String tempChatroom(String partyid, String friendid, HttpServletRequest request,
-			HttpServletResponse response) {
+	public String tempChatroom(String partyid, String friendid, HttpServletRequest request,HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1402,7 +1401,7 @@ public class PartyController extends BaseContorller {
 		}
 		dynamicBo.setVideo(partyBo.getVideo());
 		dynamicBo.setVideoPic(partyBo.getVideoPic());
-		dynamicBo.setType(Constant.NOTE_TYPE);
+		dynamicBo.setType(Constant.PARTY_TYPE);
 		dynamicBo.setLandmark(landmark);
 		CircleBo circleBo = circleService.selectById(partyBo.getCircleid());
 		if (circleBo != null) {

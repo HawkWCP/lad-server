@@ -17,13 +17,16 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
@@ -36,19 +39,19 @@ public class HuaWeiPushNcMsg {
 	private static String apiUrl = "https://api.push.hicloud.com/pushsend.do"; // 应用级消息下发API
 	private static String accessToken;// 下发通知消息的认证Token
 	private static long tokenExpiredTime; // accessToken的过期时间
-	
+
 	private static String appPkgName = "com.ttlaoyou";
 	private static Logger logger = LogManager.getLogger();
 
-
-	public static void push(String title,String content,Set<String> userTokens) throws IOException {
+	public static void push(String title, String content, String path, Set<String> userTokens) throws IOException {
 		refreshToken();
-		sendPushMessage( title, content, userTokens);
+		sendPushMessage(title, content, path, userTokens);
 	}
 
 	// 获取下发通知消息的认证Token
 	private static void refreshToken() throws IOException {
-		String msgBody = MessageFormat.format("grant_type=client_credentials&client_secret={0}&client_id={1}",URLEncoder.encode(appSecret, "UTF-8"), appId);
+		String msgBody = MessageFormat.format("grant_type=client_credentials&client_secret={0}&client_id={1}",
+				URLEncoder.encode(appSecret, "UTF-8"), appId);
 		String response = httpPost(tokenUrl, msgBody, 5000, 5000);
 		JSONObject obj = JSONObject.parseObject(response);
 		accessToken = obj.getString("access_token");
@@ -56,7 +59,8 @@ public class HuaWeiPushNcMsg {
 	}
 
 	// 发送Push消息
-	private static void sendPushMessage(String title,String content,Set<String> userTokens) throws IOException {
+	private static void sendPushMessage(String title, String content, String path, Set<String> userTokens)
+			throws IOException {
 		if (tokenExpiredTime <= System.currentTimeMillis()) {
 			refreshToken();
 		}
@@ -71,9 +75,15 @@ public class HuaWeiPushNcMsg {
 
 		JSONObject param = new JSONObject();
 		param.put("appPkgName", appPkgName);// 定义需要打开的appPkgName
+//		#Intent;action=com.huawei.push.action.test;package=com.huawei.pushtest;end
+		Map<String,String> map = new HashMap<>();
+		map.put("path", path);
+		map.put("title", title);
+		map.put("content", content);
+		param.put("intent", "wonderfullpush://com.ttlaoyou/HuaWeiPush?action="+JSON.toJSONString(map)+";#Intent;launchFlags=0x10000000;end");// 定义需要打开的appPkgName
 
 		JSONObject action = new JSONObject();
-		action.put("type", 3);// 类型3为打开APP，其他行为请参考接口文档设置
+		action.put("type", 1);// 类型3为打开APP，其他行为请参考接口文档设置
 		action.put("param", param);// 消息点击动作参数
 
 		JSONObject msg = new JSONObject();
@@ -92,6 +102,7 @@ public class HuaWeiPushNcMsg {
 		JSONObject payload = new JSONObject();
 		payload.put("hps", hps);
 
+		logger.info("huaweipush payload:{}", payload.toJSONString());
 		String postBody = MessageFormat.format(
 				"access_token={0}&nsp_svc={1}&nsp_ts={2}&device_token_list={3}&payload={4}",
 				URLEncoder.encode(accessToken, "UTF-8"), URLEncoder.encode("openpush.message.api.send", "UTF-8"),

@@ -37,4 +37,9 @@ public class TokenService implements ITokenService {
 		return tokenDao.findTokenByUserIds(useridSet);
 	}
 
+	@Override
+	public void deletedTokenByTokenAndUserId(String token, String userId) {
+		tokenDao.deletedTokenByTokenAndUserId(token, userId);
+	}
+
 }

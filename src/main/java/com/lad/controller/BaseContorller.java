@@ -45,28 +45,30 @@ public abstract class BaseContorller {
 
 	/**
 	 * push
+	 * 
 	 * @param redisServer
-	 * @param title			
-	 * @param message		地址的json格式
-	 * @param description	发送neirong,又名content
+	 * @param title
+	 * @param message     地址的json格式
+	 * @param description 发送neirong,又名content
 	 * @param path
 	 * @param aliasList
 	 * @param alias
 	 */
 	@Async
-	public void push(RedisServer redisServer,String title, String message,String description, String path,Set<String> userTokens,List<String> aliasList,String... alias){
-		
+	public void push(RedisServer redisServer, String title, String message, String description, String path,
+			Set<String> userTokens, List<String> aliasList, String... alias) {
+
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		try {
-			//3s自动解锁
+			// 3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
-			HuaWeiPushNcMsg.push(title, "华为推送:"+description, userTokens);
-			MiPushUtil.sendMessageToAliases(title, "小米推送:"+description,message,  path, aliasList);
-			MeizuPushUtil.pushMessageByAlias(title, "魅族推送:"+description, message, aliasList);
-			JPushUtil.push(title, "极光推送:"+description, path, alias);
-		} catch(Exception e){
+			HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
+			MiPushUtil.sendMessageToAliases(title, message, "小米推送:" + description, path, aliasList);
+			MeizuPushUtil.pushMessageByAlias(title, "魅族推送:" + description, message, aliasList);
+			JPushUtil.push(title, "极光推送:" + description, path, alias);
+		} catch (Exception e) {
 			logger.error("BaseContorller====={}", e);
-		}finally {
+		} finally {
 			lock.unlock();
 		}
 	}

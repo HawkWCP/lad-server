@@ -77,8 +77,12 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	public WriteResult updateHomeById(String id, Map<String, Object> params) {
 		Query query = new Query(Criteria.where("_id").is(id).and("deleted").is(0));
 		Update update = new Update();
+		if(params.size()>0) {
 		for (Entry<String, Object> entry : params.entrySet()) {
 			update.set(entry.getKey(), entry.getValue());
+		}
+		}else {
+			update.set("_class", "com.lad.bo.RestHomeBo");
 		}
 		return mongoTemplate.updateFirst(query, update, RestHomeBo.class);
 	}
@@ -87,9 +91,14 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	public WriteResult updatePeopleById(String id, Map<String, Object> params) {
 		Query query = new Query(Criteria.where("_id").is(id).and("deleted").is(0));
 		Update update = new Update();
-		for (Entry<String, Object> entry : params.entrySet()) {
-			update.set(entry.getKey(), entry.getValue());
+		if(params.size()>0) {
+			for (Entry<String, Object> entry : params.entrySet()) {
+				update.set(entry.getKey(), entry.getValue());
+			}
+		}else {
+			update.set("_class", "com.lad.bo.RetiredPeopleBo");
 		}
+
 		return mongoTemplate.updateFirst(query, update, RetiredPeopleBo.class);
 	}
 
@@ -273,7 +282,7 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 		List<RetiredPeopleBo> result = new ArrayList<>();
 
 		for (Map<String, Object> condition : conditionList) {
-			String areaRegex = condition.get("area") + "*";
+			String areaRegex = condition.get("area") + ".*";
 			Criteria criteria = Criteria.where("deleted").is(0).and("wannaArea").regex(areaRegex); // 如果不接受异地
 			if (!(boolean) condition.get("acceptOtherArea")) {
 				criteria.and("homeArea").regex(areaRegex);

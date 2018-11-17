@@ -1,8 +1,6 @@
 package com.lad.controller;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +16,7 @@ import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
 import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
-import com.lad.util.MeizuPushUtil;
+import com.lad.util.OppoPush;
 
 @RestController
 @RequestMapping("push")
@@ -63,19 +61,35 @@ public class PushController extends BaseContorller {
 		} catch (Exception e) {
 			logger.error("@PostMapping(\"/huaweiToken\")=====error:{}", e);
 			map.put("ret", -1);
-			map.put("message", "服务器发生错误:"+e.toString());
+			map.put("message", "服务器发生错误:" + e.toString());
 			return JSON.toJSONString(map);
 		}
 		map.put("ret", 0);
 		map.put("result", "token保存成功");
 		return JSON.toJSONString(map);
 	}
+
+	@PostMapping("/huawei-token-del")
+	public String deletedHuaweiToken(String userId) {
+		Map<String, Object> map = new HashMap<>();
+		try {
+			PushTokenBo userTocken = tokenService.findTokenByUserId(userId);
+			if (userTocken == null) {
+				map.put("ret", -1);
+				map.put("message", "用户id错误或为注册token");
+				return JSON.toJSONString(map);
+			}
+			tokenService.deletedTokenByTokenAndUserId(userTocken.getHuaweiToken(), userId);
+			map.put("ret", 0);
+			map.put("result", "OK");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return JSON.toJSONString(map);
+	}
 	
-	@PostMapping("/meizuPush")
-	public void meizupush() {
-		MeizuPushUtil meizuPushUtil = new MeizuPushUtil();
-		List<String> alias = new ArrayList<>();
-		alias.add("59cfa42831f0a51d1e047420");
-		meizuPushUtil.pushMessageByAlias("push title","push content","https://www.baidu.com",alias) ;
+	@PostMapping("oppo")
+	public void oppoPush() {
+		OppoPush.send2One("pushTitle", "title", "content", "59d9b12431f0a57ce97a522d");
 	}
 }

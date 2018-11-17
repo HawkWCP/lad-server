@@ -3027,7 +3027,7 @@ public class CircleController extends BaseContorller {
 			HttpServletResponse response) {
 		logger.info("com.lad.controller.CircleController.circleNews-----circleid:" + circleid + ",page:" + page
 				+ ",limit:" + limit);
-
+		
 		LinkedList<NoteVo> noteVos = new LinkedList<>();
 		// 获取圈子置顶帖
 		List<NoteBo> tops = noteService.getTopNotesByCircleid(circleid, page, limit);
@@ -3333,7 +3333,6 @@ public class CircleController extends BaseContorller {
 					break;
 				case Constant.INFOR_DAILY:
 					DailynewsBo dailyNewsBo = inforService.findDailynewsById(noteBo.getSourceid());
-					logger.error("INFOR_DAILY=====Data:{}", JSON.toJSONString(dailyNewsBo));
 					if (dailyNewsBo != null) {
 						noteVo.setSubject(dailyNewsBo.getTitle());
 						noteVo.setVisitCount((long) dailyNewsBo.getVisitNum());

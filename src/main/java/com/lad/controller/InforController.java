@@ -1690,26 +1690,34 @@ public class InforController extends BaseContorller {
 		switch (inforType) {
 		case Constant.INFOR_HEALTH:
 			InforBo inforBo = inforService.findById(inforid);
+			dynamicBo.setInforClassName("");
 			dynamicBo.setTitle(inforBo.getTitle());
 			dynamicBo.setSourceName(inforBo.getModule());
+			dynamicBo.setInforType(inforType);
 			if (inforBo.getImageUrls() != null) {
 				dynamicBo.setPhotos(new LinkedHashSet<>(inforBo.getImageUrls()));
 			}
 			break;
 		case Constant.INFOR_SECRITY:
 			SecurityBo securityBo = inforService.findSecurityById(inforid);
+			dynamicBo.setInforClassName("");
 			dynamicBo.setTitle(securityBo.getTitle());
 			dynamicBo.setSourceName(securityBo.getNewsType());
+			dynamicBo.setInforType(inforType);
 			break;
 		case Constant.INFOR_RADIO:
 			BroadcastBo broadcastBo = inforService.findBroadById(inforid);
 			dynamicBo.setTitle(broadcastBo.getTitle());
+			dynamicBo.setInforClassName(broadcastBo.getClassName());
 			dynamicBo.setSourceName(broadcastBo.getModule());
+			dynamicBo.setInforType(inforType);
 			break;
 		case Constant.INFOR_VIDEO:
 			VideoBo videoBo = inforService.findVideoById(inforid);
 			dynamicBo.setTitle(videoBo.getTitle());
+			dynamicBo.setInforClassName(videoBo.getClassName());
 			dynamicBo.setSourceName(videoBo.getModule());
+			dynamicBo.setInforType(inforType);
 			if (videoBo.getPoster() != null) {
 				dynamicBo.setVideoPic(videoBo.getPoster());
 			}
@@ -1718,16 +1726,20 @@ public class InforController extends BaseContorller {
 			break;
 		case Constant.INFOR_DAILY:
 			DailynewsBo dailynewsBo = inforService.findByDailynewsId(inforid);
+			dynamicBo.setInforClassName("");
 			dynamicBo.setTitle(dailynewsBo.getTitle());
 			dynamicBo.setSourceName(dailynewsBo.getClassName());
+			dynamicBo.setInforType(inforType);
 			if (dailynewsBo.getImageUrls() != null) {
 				dynamicBo.setPhotos(new LinkedHashSet<>(dailynewsBo.getImageUrls()));
 			}
 			break;
 		case Constant.INFOR_YANGLAO:
 			YanglaoBo yanglaoBo = inforService.findByYanglaoId(inforid);
+			dynamicBo.setInforClassName("");
 			dynamicBo.setTitle(yanglaoBo.getTitle());
 			dynamicBo.setSourceName(yanglaoBo.getClassName());
+			dynamicBo.setInforType(inforType);
 			if (yanglaoBo.getImageUrls() != null) {
 				dynamicBo.setPhotos(new LinkedHashSet<>(yanglaoBo.getImageUrls()));
 			}
@@ -1791,6 +1803,7 @@ public class InforController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
+	// TODO
 	@ApiOperation("根据类型获取最后5条历史阅读信息")
 	@ApiImplicitParam(name = "inforType", value = "1健康，2 安防，3广播，4视频, 5时政，6养老, 0查询所有数据", required = true, paramType = "query", dataType = "int")
 	@RequestMapping(value = "/last-read", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2133,7 +2146,6 @@ public class InforController extends BaseContorller {
 			@ApiImplicitParam(name = "limit", value = "显示关键词数量", paramType = "query", dataType = "int") })
 	@RequestMapping(value = "/hot-search-words", method = { RequestMethod.GET, RequestMethod.POST })
 	public String searchHotHis(int inforType, int limit, HttpServletRequest request, HttpServletResponse response) {
-
 		List<SearchBo> searchBos = searchService.findInforByTimes(2, inforType, limit);
 		List<String> words = new ArrayList<>();
 		searchBos.forEach(searchBo -> words.add(searchBo.getKeyword()));
@@ -2147,7 +2159,6 @@ public class InforController extends BaseContorller {
 	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
 	@RequestMapping(value = "/daily-infor", method = { RequestMethod.GET, RequestMethod.POST })
 	public String dailyNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
-		// TODO
 		DailynewsBo inforBo = inforService.findByDailynewsId(inforid);
 		if (inforBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());

@@ -57,4 +57,9 @@ public class DynamicBo extends BaseBo {
     
 	private LinkedHashSet<String> unReadFrend = new LinkedHashSet<>();
 	
+	//1健康，2 安防，3广播，4视频，5时政，6养老
+	private int inforType;
+	
+	// 视频,广播
+	private String inforClassName;
 }

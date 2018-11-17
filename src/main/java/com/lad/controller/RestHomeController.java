@@ -32,6 +32,7 @@ import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
 import com.lad.vo.RestHomeVo;
 import com.lad.vo.RetiredPeopleVo;
+import com.lad.vo.UserBaseVo;
 import com.qiniu.util.Json;
 
 import io.swagger.annotations.Api;
@@ -87,7 +88,7 @@ public class RestHomeController extends BaseContorller {
 			} else {
 				for (OptionBo optionBo : ylOptions) {
 					String value = optionBo.getValue();
-					if("10000以上".equals(value)) {
+					if ("10000以上".equals(value)) {
 						continue;
 					}
 					int[] numInStr = CommonUtil.numInStr(value);
@@ -114,7 +115,6 @@ public class RestHomeController extends BaseContorller {
 					conditionList.add(condition);
 				}
 			}
-
 
 			List<RetiredPeopleBo> retiredPeople = restHomeService.findPeopleListByPrice(userBo.getId(), conditionList,
 					peoplePrice, page, limit);
@@ -280,7 +280,8 @@ public class RestHomeController extends BaseContorller {
 			String wannaArea = CommonUtil.getCity(people.getWannaArea());
 			String homeArea = CommonUtil.getCity(people.getHomeArea());
 
-			List<RestHomeBo> recommendBo = restHomeService.findRecommendHome(userBo.getId(), homeArea, wannaArea, page,limit);
+			List<RestHomeBo> recommendBo = restHomeService.findRecommendHome(userBo.getId(), homeArea, wannaArea, page,
+					limit);
 			List<RestHomeVo> resultList = new ArrayList<>();
 			if (recommendBo != null && recommendBo.size() > 0) {
 				homeBo2Vo(recommendBo, resultList);
@@ -461,8 +462,9 @@ public class RestHomeController extends BaseContorller {
 			@ApiImplicitParam(name = "homeJson", value = "养老院json数据", required = true, paramType = "query", dataType = "string") })
 	@PostMapping("/updateHome")
 	public String updateHome(String homeJson, HttpServletRequest request, HttpServletResponse response) {
-		Map<String, Object> map = new HashMap<>();
 		logger.info("@PostMapping(\"/updateHome\")=====homeJson:{}", homeJson);
+		
+		Map<String, Object> map = new HashMap<>();
 		try {
 			UserBo userBo = getUserLogin(request);
 			if (userBo == null) {
@@ -476,6 +478,8 @@ public class RestHomeController extends BaseContorller {
 				return JSON.toJSONString(map);
 			}
 
+			homeJson = jsonHandler(homeJson);
+			
 			RestHomeBo homeBo = JSON.parseObject(homeJson, RestHomeBo.class);
 			if (homeBo.getId() == null) {
 				map.put("ret", -1);
@@ -490,7 +494,6 @@ public class RestHomeController extends BaseContorller {
 			}
 
 			Map<String, Object> params = isUpdate(homeJson, resultBo);
-
 			restHomeService.updateHomeById(homeBo.getId(), params);
 			map.put("ret", 0);
 			map.put("homeId", homeBo.getId());
@@ -602,12 +605,18 @@ public class RestHomeController extends BaseContorller {
 				map.put("ret", -1);
 				map.put("message", "参数错误");
 			}
-			RetiredPeopleBo poepleBo = restHomeService.findPeopleById(peopleId);
-			RetiredPeopleVo poepleVo = new RetiredPeopleVo();
-			if (poepleBo != null) {
-				peopleBo2Vo(poepleBo, poepleVo);
+			RetiredPeopleBo peopleBo = restHomeService.findPeopleById(peopleId);
+
+			if (peopleBo != null) {
+				RetiredPeopleVo peopleVo = new RetiredPeopleVo();
+				UserBo createUser = userService.findUserById(peopleBo.getCreateuid());
+				peopleBo2Vo(peopleBo, peopleVo);
+
 				map.put("ret", 0);
-				map.put("result", poepleVo);
+				map.put("result", peopleVo);
+				UserBaseVo baseVo = new UserBaseVo();
+				BeanUtils.copyProperties(createUser, baseVo);
+				map.put("createuser", baseVo);
 			} else {
 				map.put("ret", -1);
 				map.put("message", "数据不存在或已删除");
@@ -640,11 +649,16 @@ public class RestHomeController extends BaseContorller {
 				map.put("message", "参数错误");
 			}
 			RestHomeBo homeBo = restHomeService.findHomeById(homeId);
-			RestHomeVo homeVo = new RestHomeVo();
 			if (homeBo != null) {
+				UserBo createUser = userService.findUserById(homeBo.getCreateuid());
+				RestHomeVo homeVo = new RestHomeVo();
 				homeBo2Vo(homeBo, homeVo);
+
 				map.put("ret", 0);
 				map.put("result", homeVo);
+				UserBaseVo baseVo = new UserBaseVo();
+				BeanUtils.copyProperties(createUser, baseVo);
+				map.put("createuser", baseVo);
 			} else {
 				map.put("ret", -1);
 				map.put("message", "数据不存在或已删除");
@@ -754,6 +768,9 @@ public class RestHomeController extends BaseContorller {
 						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 			}
 
+			resthomeJson = jsonHandler(resthomeJson);
+			
+			
 			RestHomeBo homeBo = JSON.parseObject(resthomeJson, RestHomeBo.class);
 			if (homeBo != null) {
 				if (homeBo.isProtocol()) {
@@ -781,6 +798,19 @@ public class RestHomeController extends BaseContorller {
 		}
 
 		return JSON.toJSONString(map);
+	}
+
+	private String jsonHandler(String resthomeJson) {
+		// 特殊处理   传入参数将最低价值与最高价值拆分为两个字段
+		com.alibaba.fastjson.JSONObject parseObject = JSON.parseObject(resthomeJson);
+		int highest = (int)parseObject.get("priceHighest");
+		int lowest = (int) parseObject.get("priceLowest");
+		String price = lowest+"-"+highest;
+		parseObject.remove("priceHighest");
+		parseObject.remove("priceLowest");
+		parseObject.put("price", price);
+		resthomeJson = JSON.toJSONString(parseObject);
+		return resthomeJson;
 	}
 
 	@ApiOperation("添加养老信息")

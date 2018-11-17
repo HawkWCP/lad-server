@@ -16,4 +16,6 @@ public interface ITokenDao extends IBaseDao {
 
 	List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet);
 
+	void deletedTokenByTokenAndUserId(String token, String userId);
+
 }

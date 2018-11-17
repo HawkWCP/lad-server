@@ -816,6 +816,7 @@ public class ChatroomController extends BaseContorller {
 	@PostMapping("/facetoface-create")
 	public String faceToFaceCreate(@RequestParam int seq, @RequestParam double px, @RequestParam double py,
 			HttpServletRequest request, HttpServletResponse response) {
+		// TODO
 		UserBo userBo;		
 		try {
 			userBo = checkSession(request, userService);
