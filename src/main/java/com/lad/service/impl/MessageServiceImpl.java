@@ -11,7 +11,7 @@ import com.lad.service.IMessageService;
 import com.mongodb.WriteResult;
 
 @Service("messageService")
-public class MessageServiceImpl implements IMessageService {
+public class MessageServiceImpl extends BaseServiceImpl  implements IMessageService {
 
 	@Autowired
 	private IMessageDao messageDao;

@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.FriendsBo;
@@ -823,7 +824,7 @@ public class FriendsController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("@PostMapping(\"/near-friends\"),pa:{},py:{}", px, py);
+		logger.info("@PostMapping(\"/near-friends\"),px:{},py:{}", px, py);
 		List<String> friendids = new LinkedList<>();
 		Map<String, Double> disMap = new HashMap<>();
 		Point point = new Point(px, py);

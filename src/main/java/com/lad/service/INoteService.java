@@ -12,7 +12,7 @@ import com.lad.bo.NoteBo;
 import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 
-public interface INoteService extends IBaseService {
+public interface INoteService{
 	public NoteBo insert(NoteBo noteBo);
 
 	public NoteBo selectById(String noteId);

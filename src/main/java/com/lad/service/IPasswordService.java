@@ -1,5 +1,5 @@
 package com.lad.service;
 
-public interface IPasswordService extends IBaseService {
+public interface IPasswordService {
 
 }

@@ -11,7 +11,7 @@ import com.lad.service.ITempFaceToFaceChatroomService;
 import com.mongodb.WriteResult;
 
 @Service("tempFaceToFaceChatroomService")
-public class TempFaceToFaceChatroomServiceImpl implements
+public class TempFaceToFaceChatroomServiceImpl extends BaseServiceImpl implements
 		ITempFaceToFaceChatroomService {
 
 	@Autowired

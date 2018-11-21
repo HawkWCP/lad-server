@@ -8,7 +8,7 @@ import java.util.List;
 import com.lad.bo.FriendsBo;
 import com.mongodb.WriteResult;
 
-public interface IFriendsService extends IBaseService {
+public interface IFriendsService {
 	public FriendsBo insert(FriendsBo friendsBo);
 
 	public WriteResult updateBackname(String userid, String friendid, String backname,LinkedList<String> usedBackName);

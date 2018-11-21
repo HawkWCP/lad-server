@@ -5,7 +5,7 @@ import java.util.List;
 import com.lad.bo.ThumbsupBo;
 import com.mongodb.WriteResult;
 
-public interface IThumbsupService extends IBaseService {
+public interface IThumbsupService  {
 	public ThumbsupBo insert(ThumbsupBo thumbsupBo);
 
 	public ThumbsupBo getByVidAndVisitorid(String vid, String visitorid);

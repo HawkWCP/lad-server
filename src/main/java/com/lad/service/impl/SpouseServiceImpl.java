@@ -14,7 +14,7 @@ import com.lad.service.SpouseService;
 import com.mongodb.WriteResult;
 
 @Service("spouseService")
-public class SpouseServiceImpl implements SpouseService {
+public class SpouseServiceImpl extends BaseServiceImpl  implements SpouseService {
 	@Autowired
 	private ISpouseDao spouseDao;
 	

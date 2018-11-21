@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "friends")
 public class FriendsBo extends BaseBo {
 
+	private static final long serialVersionUID = 1L;
 
 	public LinkedList<String> getUsedBackName() {
 		return usedBackName;

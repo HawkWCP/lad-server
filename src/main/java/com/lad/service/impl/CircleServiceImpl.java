@@ -26,7 +26,7 @@ import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 
 @Service("circleService")
-public class CircleServiceImpl implements ICircleService {
+public class CircleServiceImpl extends BaseServiceImpl implements ICircleService {
 
 	@Autowired
 	private ICircleDao circleDao;
@@ -47,15 +47,15 @@ public class CircleServiceImpl implements ICircleService {
 	private ICircleShowDao circleShowDao;
 
 	public CircleBo insert(CircleBo circleBo) {
-		return circleDao.insert(circleBo);
+		return changeImgHost(circleDao.insert(circleBo));
 	}
 
 	public CircleBo selectById(String circleBoId) {
-		return circleDao.selectById(circleBoId);
+		return changeImgHost(circleDao.selectById(circleBoId));
 	}
 
 	public List<CircleBo> selectByuserid(String userid) {
-		return circleDao.selectByuserid(userid);
+		return changeImgHost(circleDao.selectByuserid(userid));
 	}
 
 	public WriteResult updateUsers(String circleBoId, HashSet<String> users) {
@@ -80,7 +80,7 @@ public class CircleServiceImpl implements ICircleService {
 	}
 
 	public List<CircleBo> selectByType(String tag, String sub_tag, String category) {
-		return circleDao.selectByType(tag, sub_tag, category);
+		return changeImgHost(circleDao.selectByType(tag, sub_tag, category));
 	}
 
 	public WriteResult updateNotes(String circleBoId, long noteSize) {
@@ -89,7 +89,7 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findByCreateid(String createid) {
-		return circleDao.findByCreateid(createid);
+		return changeImgHost(circleDao.findByCreateid(createid));
 	}
 
 	@Override
@@ -99,12 +99,12 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findMyCircles(String userid, int page, int limit) {
-		return circleDao.findMyCircles(userid, page, limit);
+		return changeImgHost(circleDao.findMyCircles(userid, page, limit));
 	}
 
 	@Override
 	public List<CircleBo> selectUsersPre(String userid) {
-		return circleDao.selectUsersPre(userid);
+		return changeImgHost(circleDao.selectUsersPre(userid));
 	}
 
 	@Override
@@ -119,9 +119,10 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findBykeyword(String keyword, String city, int page, int limit) {
-		return circleDao.findBykeyword(keyword, city, page, limit);
+		return changeImgHost(circleDao.findBykeyword(keyword, city, page, limit));
 	}
 
+	// TODO
 	@Override
 	public GeoResults<CircleBo> findNearCircle(String userid, double[] position, int maxDistance, int page, int limit) {
 		return circleDao.findNearCircle(userid, position, maxDistance, page, limit);
@@ -129,17 +130,17 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findByType(String tag, String sub_tag, String city, int page, int limit) {
-		return circleDao.findByType(tag, sub_tag, city, page, limit);
+		return changeImgHost(circleDao.findByType(tag, sub_tag, city, page, limit));
 	}
 
 	@Override
 	public List<CircleHistoryBo> findNearPeople(String circleid, String userid, double[] position, double maxDistance) {
-		return circleHistoryDao.findNear(circleid, userid, position, maxDistance);
+		return changeImgHost(circleHistoryDao.findNear(circleid, userid, position, maxDistance));
 	}
 
 	@Override
 	public CircleHistoryBo insertHistory(CircleHistoryBo circleHistoryBo) {
-		return circleHistoryDao.insert(circleHistoryBo);
+		return changeImgHost(circleHistoryDao.insert(circleHistoryBo));
 	}
 
 	@Override
@@ -149,7 +150,7 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public CircleHistoryBo findByUserIdAndCircleId(String userid, String circleid) {
-		return circleHistoryDao.findByUserIdAndCircleId(userid, circleid);
+		return changeImgHost(circleHistoryDao.findByUserIdAndCircleId(userid, circleid));
 	}
 
 	@Async
@@ -159,37 +160,37 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleTypeBo> selectByLevel(int level, int type) {
-		return circleTypeDao.selectByLevel(level, type);
+		return changeImgHost(circleTypeDao.selectByLevel(level, type));
 	}
 
 	@Override
 	public CircleTypeBo addCircleType(CircleTypeBo circleTypeBo) {
-		return circleTypeDao.insert(circleTypeBo);
+		return changeImgHost(circleTypeDao.insert(circleTypeBo));
 	}
 
 	@Override
 	public List<CircleTypeBo> selectByParent(String name) {
-		return circleTypeDao.selectByParent(name, 0);
+		return changeImgHost(circleTypeDao.selectByParent(name, 0));
 	}
 
 	@Override
 	public CircleTypeBo findEsixtTagName(String keyword) {
-		return circleTypeDao.findEsixtTagName(keyword, 0);
+		return changeImgHost(circleTypeDao.findEsixtTagName(keyword, 0));
 	}
 
 	@Override
 	public List<CircleTypeBo> selectByPage(int start, int limit) {
-		return circleTypeDao.findAll(start, limit, 0);
+		return changeImgHost(circleTypeDao.findAll(start, limit, 0));
 	}
 
 	@Override
 	public CircleTypeBo findByName(String name, int level, int type) {
-		return circleTypeDao.selectByNameLevel(name, level, type);
+		return changeImgHost(circleTypeDao.selectByNameLevel(name, level, type));
 	}
 
 	@Override
 	public List<CircleTypeBo> findAllCircleTypes() {
-		return circleTypeDao.findAll();
+		return changeImgHost(circleTypeDao.findAll());
 	}
 
 	@Override
@@ -219,32 +220,32 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findByCitys(String province, String city, String district, int page, int limit) {
-		return circleDao.findByCitys(province, city, district, page, limit);
+		return changeImgHost(circleDao.findByCitys(province, city, district, page, limit));
 	}
 
 	@Override
 	public List<CircleBo> findByCityName(String cityName, int page, int limit) {
-		return circleDao.findByCityName(cityName, page, limit);
+		return changeImgHost(circleDao.findByCityName(cityName, page, limit));
 	}
 
 	@Override
 	public List<CircleBo> findRelatedCircles(String circleid, String tag, String sub_tag, int page, int limit) {
-		return circleDao.findRelatedCircles(circleid, tag, sub_tag, page, limit);
+		return changeImgHost(circleDao.findRelatedCircles(circleid, tag, sub_tag, page, limit));
 	}
 
 	@Override
 	public CircleBo findByTagAndName(String name, String tag, String sub_tag) {
-		return circleDao.findByTagAndName(name, tag, sub_tag);
+		return changeImgHost(circleDao.findByTagAndName(name, tag, sub_tag));
 	}
 
 	@Override
 	public CircleAddBo insertCircleAdd(CircleAddBo addBo) {
-		return circleAddDao.insert(addBo);
+		return changeImgHost(circleAddDao.insert(addBo));
 	}
 
 	@Override
 	public CircleAddBo findHisByUserAndCircle(String userid, String circleid) {
-		return circleAddDao.findByUserAndCircle(userid, circleid);
+		return changeImgHost(circleAddDao.findByUserAndCircle(userid, circleid));
 	}
 
 	@Override
@@ -254,32 +255,32 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> selectUsersLike(String userid, String city, double[] position, int minDistance) {
-		return circleDao.selectUsersLike(userid, city, position, minDistance);
+		return changeImgHost(circleDao.selectUsersLike(userid, city, position, minDistance));
 	}
 
 	@Override
 	public CircleBo selectByIdIgnoreDel(String circleid) {
-		return circleDao.selectByIdIgnoreDel(circleid);
+		return changeImgHost(circleDao.selectByIdIgnoreDel(circleid));
 	}
 
 	@Override
 	public List<CircleBo> findCirclesInList(List<String> circleids) {
-		return circleDao.findCirclesInList(circleids);
+		return changeImgHost(circleDao.findCirclesInList(circleids));
 	}
 
 	@Override
 	public CircleHistoryBo findCircleHisById(String id) {
-		return circleHistoryDao.findCircleHisById(id);
+		return changeImgHost(circleHistoryDao.findCircleHisById(id));
 	}
 
 	@Override
 	public List<CircleHistoryBo> findCircleHisByUserid(String userid, int type, int page, int limit) {
-		return circleHistoryDao.findCircleHisByUserid(userid, type, page, limit);
+		return changeImgHost(circleHistoryDao.findCircleHisByUserid(userid, type, page, limit));
 	}
 
 	@Override
 	public List<CircleHistoryBo> findCircleHisByCricleid(String circleid, int type, int page, int limit) {
-		return circleHistoryDao.findCircleHisByCricleid(circleid, type, page, limit);
+		return changeImgHost(circleHistoryDao.findCircleHisByCricleid(circleid, type, page, limit));
 	}
 
 	@Override
@@ -294,17 +295,17 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public CircleNoticeBo addNotice(CircleNoticeBo noticeBo) {
-		return circleNoticeDao.addNotice(noticeBo);
+		return changeImgHost(circleNoticeDao.addNotice(noticeBo));
 	}
 
 	@Override
 	public List<CircleNoticeBo> findCircleNotice(String targetid, int noticeType, int page, int limit) {
-		return circleNoticeDao.findCircleNotice(targetid, noticeType, page, limit);
+		return changeImgHost(circleNoticeDao.findCircleNotice(targetid, noticeType, page, limit));
 	}
 
 	@Override
 	public CircleNoticeBo findLastNotice(String targetid, int noticeType) {
-		return circleNoticeDao.findLastNotice(targetid, noticeType);
+		return changeImgHost(circleNoticeDao.findLastNotice(targetid, noticeType));
 	}
 
 	@Override
@@ -324,17 +325,17 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public CircleNoticeBo findNoticeById(String id) {
-		return circleNoticeDao.findNoticeById(id);
+		return changeImgHost(circleNoticeDao.findNoticeById(id));
 	}
 
 	@Override
 	public CircleShowBo addCircleShow(CircleShowBo showBo) {
-		return circleShowDao.addCircleShow(showBo);
+		return changeImgHost(circleShowDao.addCircleShow(showBo));
 	}
 
 	@Override
 	public List<CircleShowBo> findCircleShows(String circleid, int page, int limit) {
-		return circleShowDao.findCircleShows(circleid, page, limit);
+		return changeImgHost(circleShowDao.findCircleShows(circleid, page, limit));
 	}
 
 	@Override
@@ -344,17 +345,17 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleNoticeBo> findUnReadNotices(String userid, String targetid, int noticeType) {
-		return circleNoticeDao.unReadNotice(userid, targetid, noticeType);
+		return changeImgHost(circleNoticeDao.unReadNotice(userid, targetid, noticeType));
 	}
 
 	@Override
 	public List<CircleNoticeBo> findUnReadNotices(String userid, String targetid, int noticeType, int page, int limit) {
-		return circleNoticeDao.unReadNotice(userid, targetid, noticeType, page, limit);
+		return changeImgHost(circleNoticeDao.unReadNotice(userid, targetid, noticeType, page, limit));
 	}
 
 	@Override
 	public List<CircleNoticeBo> findNoticeByIds(String... ids) {
-		return circleNoticeDao.findNoticeByIds(ids);
+		return changeImgHost(circleNoticeDao.findNoticeByIds(ids));
 	}
 
 	@Override
@@ -365,7 +366,7 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> selectByCity(String city, int page, int limit) {
-		return circleDao.selectByCity(city, page, limit);
+		return changeImgHost(circleDao.selectByCity(city, page, limit));
 	}
 
 	@Override
@@ -380,7 +381,7 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> selectByRegexName(String showType) {
-		return circleDao.selectByRegexName(showType);
+		return changeImgHost(circleDao.selectByRegexName(showType));
 	}
 
 	@Override
@@ -390,17 +391,17 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> findHotCircles(String city, int page, int limit) {
-		return circleDao.findHotCircles(city, page, limit);
+		return changeImgHost(circleDao.findHotCircles(city, page, limit));
 	}
 
 	@Override
 	public List<CircleBo> findHotCircles(int page, int limit) {
-		return circleDao.findHotCircles(page, limit);
+		return changeImgHost(circleDao.findHotCircles(page, limit));
 	}
 
 	@Override
 	public List<CircleAddBo> findApplyCircleAddByUid(String uid) {
-		return circleDao.findApplyCircleAddByUid(uid);
+		return changeImgHost(circleDao.findApplyCircleAddByUid(uid));
 	}
 
 	@Override
@@ -410,26 +411,26 @@ public class CircleServiceImpl implements ICircleService {
 
 	@Override
 	public List<CircleBo> getTopsByUid(List<String> topCircles, String id) {
-		return circleDao.getTopsByUid(topCircles, id);
+		return changeImgHost(circleDao.getTopsByUid(topCircles, id));
 	}
 
 	@Override
 	public CircleBo selectByIdAndUid(String circleid, String id) {
-		return circleDao.selectByIdAndUid(circleid, id);
+		return changeImgHost(circleDao.selectByIdAndUid(circleid, id));
 	}
 
 	@Override
 	public List<CircleBo> findCirclesByUid(String uid) {
-		return circleDao.findCirclesByUid(uid);
+		return changeImgHost(circleDao.findCirclesByUid(uid));
 	}
 
 	@Override
 	public List<CircleAddBo> findApplyCircleAddByids(List<String> ids) {
-		return circleDao.findApplyCircleAddByids(ids);
+		return changeImgHost(circleDao.findApplyCircleAddByids(ids));
 	}
 
 	@Override
 	public List<CircleBo> findCirclesByUid(String id, List<String> topCircles) {
-		return circleDao.findCirclesByUid(id, topCircles);
+		return changeImgHost(circleDao.findCirclesByUid(id, topCircles));
 	}
 }

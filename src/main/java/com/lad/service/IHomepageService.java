@@ -5,7 +5,7 @@ import java.util.HashSet;
 import com.lad.bo.HomepageBo;
 import com.mongodb.WriteResult;
 
-public interface IHomepageService extends IBaseService {
+public interface IHomepageService {
 	public HomepageBo insert(HomepageBo homepageBo);
 
 	public HomepageBo update_new_visitors_count(HomepageBo homepageBo);

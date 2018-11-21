@@ -44,7 +44,7 @@ public class LocationController extends BaseContorller {
 
 	@RequestMapping(value = "/near",method = {RequestMethod.GET, RequestMethod.POST})
 	public String near(double px, double py, HttpServletRequest request, HttpServletResponse response) throws Exception {
-		logger.info("@PostMapping(\"/near\"),pa:{},py:{}", px, py);
+		logger.info("@PostMapping(\"/near\"),px:{},py:{}", px, py);
 		
 		CommandResult commanResult = locationService.findNearCircleByCommond(px,py, 10000);
 		JSONArray array = new JSONArray();

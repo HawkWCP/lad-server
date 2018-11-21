@@ -8,7 +8,7 @@ import com.lad.dao.IFeedbackDao;
 import com.lad.service.IFeedbackService;
 
 @Service("feedbackService")
-public class FeedbackServiceImpl implements IFeedbackService{
+public class FeedbackServiceImpl extends BaseServiceImpl  implements IFeedbackService{
 
 	@Autowired
 	private IFeedbackDao feedbackDao;

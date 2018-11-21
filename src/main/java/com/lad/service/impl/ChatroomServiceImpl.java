@@ -17,28 +17,28 @@ import com.lad.service.IChatroomService;
 import com.mongodb.WriteResult;
 
 @Service("chatroomService")
-public class ChatroomServiceImpl implements IChatroomService {
+public class ChatroomServiceImpl extends BaseServiceImpl implements IChatroomService {
 
 	@Autowired
 	private IChatroomDao chatroomDao;
 
 	@Autowired
 	private IChatroomUserDao chatroomUserDao;
-	
+
 	public ChatroomBo insert(ChatroomBo chatroom) {
-		return chatroomDao.insert(chatroom);
+		return changeImgHost(chatroomDao.insert(chatroom));
 	}
 
 	public ChatroomBo updateName(ChatroomBo chatroom) {
-		return chatroomDao.updateName(chatroom);
+		return changeImgHost(chatroomDao.updateName(chatroom));
 	}
 
 	public ChatroomBo get(String chatroomId) {
-		return chatroomDao.get(chatroomId);
+		return changeImgHost(chatroomDao.get(chatroomId));
 	}
 
 	public ChatroomBo updateUsers(ChatroomBo chatroom) {
-		return chatroomDao.updateUsers(chatroom);
+		return changeImgHost(chatroomDao.updateUsers(chatroom));
 	}
 
 	public WriteResult delete(String chatroomId) {
@@ -46,11 +46,11 @@ public class ChatroomServiceImpl implements IChatroomService {
 	}
 
 	public ChatroomBo selectByUserIdAndFriendid(String userid, String friendid) {
-		return chatroomDao.selectByUserIdAndFriendid(userid, friendid);
+		return changeImgHost(chatroomDao.selectByUserIdAndFriendid(userid, friendid));
 	}
 
 	public ChatroomBo selectBySeq(int seq) {
-		return chatroomDao.selectBySeq(seq);
+		return changeImgHost(chatroomDao.selectBySeq(seq));
 	}
 
 	public WriteResult setSeqExpire(int seq) {
@@ -64,7 +64,7 @@ public class ChatroomServiceImpl implements IChatroomService {
 
 	@Override
 	public ChatroomBo selectBySeqInTen(int seq, double[] position, int radius) {
-		return chatroomDao.selectBySeqInTen(seq, position, radius);
+		return changeImgHost(chatroomDao.selectBySeqInTen(seq, position, radius));
 	}
 
 	@Override
@@ -102,12 +102,10 @@ public class ChatroomServiceImpl implements IChatroomService {
 		return chatroomDao.remove(chatroomId);
 	}
 
-
 	@Override
 	public ChatroomUserBo insertUser(ChatroomUserBo userBo) {
-		return chatroomUserDao.insert(userBo);
+		return changeImgHost(chatroomUserDao.insert(userBo));
 	}
-
 
 	@Override
 	public WriteResult deleteUser(String id) {
@@ -116,7 +114,7 @@ public class ChatroomServiceImpl implements IChatroomService {
 
 	@Override
 	public List<ChatroomUserBo> findByUserRoomid(String chatroomid) {
-		return chatroomUserDao.findByRoomid(chatroomid);
+		return changeImgHost(chatroomUserDao.findByRoomid(chatroomid));
 	}
 
 	@Override
@@ -156,7 +154,7 @@ public class ChatroomServiceImpl implements IChatroomService {
 
 	@Override
 	public ChatroomUserBo findChatUserByUserAndRoomid(String userid, String chatroomid) {
-		return chatroomUserDao.findByUserAndRoomid(userid, chatroomid);
+		return changeImgHost(chatroomUserDao.findByUserAndRoomid(userid, chatroomid));
 	}
 
 	@Override
@@ -166,12 +164,12 @@ public class ChatroomServiceImpl implements IChatroomService {
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid, Date timestamp) {
-		return chatroomDao.findMyChatrooms(userid, timestamp);
+		return changeImgHost(chatroomDao.findMyChatrooms(userid, timestamp));
 	}
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid) {
-		return chatroomDao.findMyChatrooms(userid);
+		return changeImgHost(chatroomDao.findMyChatrooms(userid));
 	}
 
 	@Override
@@ -190,15 +188,15 @@ public class ChatroomServiceImpl implements IChatroomService {
 	}
 
 	@Override
-	public WriteResult updateNameAndUsers(String chatRoomId, String name, boolean isNameSet, LinkedHashSet<String> users) {
+	public WriteResult updateNameAndUsers(String chatRoomId, String name, boolean isNameSet,
+			LinkedHashSet<String> users) {
 		return chatroomDao.updateNameAndUsers(chatRoomId, name, isNameSet, users);
 	}
 
 	@Override
 	public List<ChatroomBo> haveSameChatroom(String userid, String friendid) {
-		return chatroomDao.haveSameChatroom(userid, friendid);
+		return changeImgHost(chatroomDao.haveSameChatroom(userid, friendid));
 	}
-
 
 	@Override
 	public WriteResult updateRoomByParams(String chatRoomId, Map<String, Object> params) {
@@ -207,21 +205,21 @@ public class ChatroomServiceImpl implements IChatroomService {
 
 	@Override
 	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit) {
-		return chatroomDao.findChatroomByKeyword(keyword, page, limit);
+		return changeImgHost(chatroomDao.findChatroomByKeyword(keyword, page, limit));
 	}
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit) {
-		return chatroomDao.findMyChatrooms(userid, page, limit);
+		return changeImgHost(chatroomDao.findMyChatrooms(userid, page, limit));
 	}
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList) {
-		return chatroomDao.findMyChatrooms(userid, page, limit,typeList);
+		return changeImgHost(chatroomDao.findMyChatrooms(userid, page, limit, typeList));
 	}
 
 	@Override
 	public List<ChatroomBo> findChatroomByKeyword(String keyword, int page, int limit, List<Integer> typeList) {
-		return chatroomDao.findChatroomByKeyword(keyword, page, limit,typeList);
+		return changeImgHost(chatroomDao.findChatroomByKeyword(keyword, page, limit, typeList));
 	}
 }

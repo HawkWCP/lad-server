@@ -8,7 +8,7 @@ import com.lad.dao.IReadHistoryDao;
 import com.lad.service.IReadHistoryService;
 
 @Service("readHistoryService")
-public class ReadHistoryServiceImpl implements IReadHistoryService {
+public class ReadHistoryServiceImpl extends BaseServiceImpl  implements IReadHistoryService {
 	@Autowired
 	private IReadHistoryDao readHistoryDao;
 

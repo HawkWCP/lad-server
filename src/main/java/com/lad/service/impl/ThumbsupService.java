@@ -11,7 +11,7 @@ import com.lad.service.IThumbsupService;
 import com.mongodb.WriteResult;
 
 @Service("thumbsupService")
-public class ThumbsupService implements IThumbsupService {
+public class ThumbsupService extends BaseServiceImpl  implements IThumbsupService {
 
 	@Autowired
 	private IThumbsupDao thumbsupDao;

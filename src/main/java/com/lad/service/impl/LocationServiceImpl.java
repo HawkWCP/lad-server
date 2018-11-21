@@ -13,7 +13,7 @@ import com.lad.service.ILocationService;
 import com.mongodb.CommandResult;
 
 @Service("locationService")
-public class LocationServiceImpl implements ILocationService {
+public class LocationServiceImpl extends BaseServiceImpl  implements ILocationService {
 
 	@Autowired
 	private ILocationDao locationDao;

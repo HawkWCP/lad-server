@@ -32,7 +32,7 @@ import com.mongodb.WriteResult;
  * @author huweijun
  */
 @Service("userService")
-public class UserServiceImpl implements IUserService {
+public class UserServiceImpl extends BaseServiceImpl implements IUserService {
 
 	@Autowired
 	private IUserDao userDao;
@@ -99,7 +99,7 @@ public class UserServiceImpl implements IUserService {
 	}
 
 	public UserBo getUser(String userId) {
-		return userDao.getUser(userId);
+		return changeImgHost(userDao.getUser(userId));
 	}
 
 	public List<UserBo> getUserByName(String name) {
@@ -339,8 +339,8 @@ public class UserServiceImpl implements IUserService {
 	}
 
 	@Override
-	public List<UserVisitBo> findUserVisitFirst(String ownerid,HashSet<String>  not_push_set,int type) {
-		return userVisitDao.findUserVisitFirst(ownerid, not_push_set,type);
+	public List<UserVisitBo> findUserVisitFirst(String ownerid, HashSet<String> not_push_set, int type) {
+		return userVisitDao.findUserVisitFirst(ownerid, not_push_set, type);
 	}
 
 	@Override

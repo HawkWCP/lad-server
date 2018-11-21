@@ -10,7 +10,7 @@ import com.lad.bo.OldFriendRequireBo;
 import com.lad.bo.UserBo;
 import com.mongodb.WriteResult;
 
-public interface IOldFriendService  extends IBaseService{
+public interface IOldFriendService{
 
 	String getInitData(String id);
 

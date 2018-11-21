@@ -9,7 +9,7 @@ import com.lad.service.IIMTermService;
 import com.mongodb.WriteResult;
 
 @Service("iMTermService")
-public class IMTermServiceImpl implements IIMTermService {
+public class IMTermServiceImpl extends BaseServiceImpl  implements IIMTermService {
 
 	@Autowired
 	private IIMTermDao iMTermDao;

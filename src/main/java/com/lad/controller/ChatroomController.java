@@ -897,9 +897,10 @@ public class ChatroomController extends BaseContorller {
 
 				// 向群中发某人加入群聊通知
 				String res2 = IMUtil.notifyInChatRoom(
-						Constant.SOME_ONE_JOIN_CHAT_ROOM,
+						Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM,
 						chatroom.getId(),
 						json.toString());
+				logger.info("===============================old chatroot,  user [{}], chatroom {},  res {}",userBo.getId(),chatroom.getId(), res2);
 				if(!IMUtil.FINISH.equals(res2)){
 					logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s",res2);
 				}
@@ -916,6 +917,8 @@ public class ChatroomController extends BaseContorller {
 					Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM,
 					chatroom.getId(),
 					json.toString());
+			logger.info("===============================new chatroot,  user [{}], chatroom {},  res {}",userBo.getId(),chatroom.getId(), res2);
+
 			if(!IMUtil.FINISH.equals(res2)){
 				logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s",res2);
 			}

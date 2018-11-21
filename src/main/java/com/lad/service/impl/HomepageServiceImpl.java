@@ -11,7 +11,7 @@ import com.lad.service.IHomepageService;
 import com.mongodb.WriteResult;
 
 @Service("homepageService")
-public class HomepageServiceImpl implements IHomepageService {
+public class HomepageServiceImpl extends BaseServiceImpl  implements IHomepageService {
 
 	@Autowired
 	private IHomepageDao homepageDao;

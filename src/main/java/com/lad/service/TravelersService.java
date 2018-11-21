@@ -7,7 +7,7 @@ import com.lad.bo.BaseBo;
 import com.lad.bo.TravelersRequireBo;
 import com.mongodb.WriteResult;
 
-public interface TravelersService extends IBaseService {
+public interface TravelersService {
 	public void test();
 
 	public String insert(BaseBo baseBo);

@@ -5,7 +5,7 @@ import java.util.List;
 import com.lad.bo.TempFaceToFaceChatroomBo;
 import com.mongodb.WriteResult;
 
-public interface ITempFaceToFaceChatroomService extends IBaseService {
+public interface ITempFaceToFaceChatroomService{
 	
 	public TempFaceToFaceChatroomBo insert(TempFaceToFaceChatroomBo tempFaceToFaceChatroomBo);
 	public TempFaceToFaceChatroomBo selectByUserid(String userid);

@@ -15,7 +15,7 @@ import com.lad.bo.CircleTypeBo;
 import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 
-public interface ICircleService extends IBaseService {
+public interface ICircleService{
 	public CircleBo insert(CircleBo circleBo);
 
 	public CircleBo selectById(String circleBoId);

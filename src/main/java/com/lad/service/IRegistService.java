@@ -1,6 +1,6 @@
 package com.lad.service;
 
-public interface IRegistService extends IBaseService{
+public interface IRegistService{
 	
 	public Integer verification_send(String phone);
 	

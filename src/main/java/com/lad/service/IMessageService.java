@@ -5,7 +5,7 @@ import java.util.List;
 import com.lad.bo.MessageBo;
 import com.mongodb.WriteResult;
 
-public interface IMessageService extends IBaseService {
+public interface IMessageService {
 
 
 	MessageBo insert(MessageBo messageBo);

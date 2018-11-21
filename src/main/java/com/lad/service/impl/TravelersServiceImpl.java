@@ -9,11 +9,12 @@ import org.springframework.stereotype.Service;
 import com.lad.bo.BaseBo;
 import com.lad.bo.TravelersRequireBo;
 import com.lad.dao.ITravelersDao;
+import com.lad.service.IBaseService;
 import com.lad.service.TravelersService;
 import com.mongodb.WriteResult;
 
 @Service("travelersService")
-public class TravelersServiceImpl implements TravelersService {
+public class TravelersServiceImpl  extends BaseServiceImpl implements TravelersService {
 
 	@Autowired
 	private ITravelersDao travelersDao;

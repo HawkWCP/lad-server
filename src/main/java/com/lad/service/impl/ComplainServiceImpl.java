@@ -8,7 +8,7 @@ import com.lad.dao.IComplainDao;
 import com.lad.service.IComplainService;
 
 @Service("complainService")
-public class ComplainServiceImpl implements IComplainService {
+public class ComplainServiceImpl extends BaseServiceImpl  implements IComplainService {
 
 	@Autowired
 	private IComplainDao complainDao;

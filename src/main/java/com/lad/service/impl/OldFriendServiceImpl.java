@@ -15,7 +15,7 @@ import com.lad.service.IOldFriendService;
 import com.mongodb.WriteResult;
 
 @Service("oldFriendService")
-public class OldFriendServiceImpl implements IOldFriendService {
+public class OldFriendServiceImpl extends BaseServiceImpl implements IOldFriendService {
 
 	@Autowired
 	private IOldFriendDao oldFriendDao;

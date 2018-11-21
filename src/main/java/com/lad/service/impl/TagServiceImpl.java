@@ -12,7 +12,7 @@ import com.lad.service.ITagService;
 import com.mongodb.WriteResult;
 
 @Service("tagService")
-public class TagServiceImpl implements ITagService {
+public class TagServiceImpl extends BaseServiceImpl  implements ITagService {
 
 	@Autowired
 	private ITagDao tagDao;

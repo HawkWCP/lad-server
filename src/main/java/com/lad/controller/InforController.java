@@ -686,7 +686,7 @@ public class InforController extends BaseContorller {
 	@RequestMapping(value = "/news-infor", method = { RequestMethod.GET, RequestMethod.POST })
 	public String infor(String inforid, HttpServletRequest request, HttpServletResponse response) {
 		InforBo inforBo = inforService.findById(inforid);
-		logger.error(logger.getName() + ".infor====={@RequestMapping(value = /news-infor} was requested");
+		logger.info(logger.getName() + ".infor====={@RequestMapping(value = /news-infor} was requested");
 		if (inforBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
 		}

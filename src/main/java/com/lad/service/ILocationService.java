@@ -8,7 +8,7 @@ import org.springframework.data.geo.Point;
 import com.lad.bo.LocationBo;
 import com.mongodb.CommandResult;
 
-public interface ILocationService extends IBaseService {
+public interface ILocationService {
 	public LocationBo insertUserPoint(LocationBo locationBo);
 	public LocationBo updateUserPoint(LocationBo locationBo);
 	public List<LocationBo> findCircleNear(double px, double py, double maxDistance);

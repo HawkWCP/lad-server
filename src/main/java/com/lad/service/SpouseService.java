@@ -8,7 +8,7 @@ import com.lad.bo.SpouseBaseBo;
 import com.lad.bo.SpouseRequireBo;
 import com.mongodb.WriteResult;
 
-public interface SpouseService extends IBaseService {
+public interface SpouseService {
 	public String insert(BaseBo baseBo);
 
 	public SpouseBaseBo findBaseById(String baseId);

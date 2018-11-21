@@ -2,7 +2,7 @@ package com.lad.service;
 
 import com.lad.bo.ReadHistoryBo;
 
-public interface IReadHistoryService extends IBaseService {
+public interface IReadHistoryService{
 
 	String addReadHistory(ReadHistoryBo historyBo);
 

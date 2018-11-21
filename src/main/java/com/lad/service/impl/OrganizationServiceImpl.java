@@ -12,7 +12,7 @@ import com.lad.service.IOrganizationService;
 import com.mongodb.WriteResult;
 
 @Service("organizationService")
-public class OrganizationServiceImpl implements IOrganizationService {
+public class OrganizationServiceImpl extends BaseServiceImpl implements IOrganizationService {
 
 	@Autowired
 	private IOrganizationDao organizationDao;

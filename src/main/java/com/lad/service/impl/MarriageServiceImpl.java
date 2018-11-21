@@ -17,7 +17,7 @@ import com.lad.service.IMarriageService;
 import com.lad.vo.OptionVo;
 import com.mongodb.WriteResult;
 @Service("marriageService")
-public class MarriageServiceImpl implements IMarriageService {
+public class MarriageServiceImpl extends BaseServiceImpl  implements IMarriageService {
 	
 	@Autowired
 	public IMarriageDao marriageDao;

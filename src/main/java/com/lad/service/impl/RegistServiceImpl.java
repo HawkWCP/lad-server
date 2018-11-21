@@ -7,7 +7,7 @@ import com.lad.dao.IRegistDao;
 import com.lad.service.IRegistService;
 
 @Service("registService")
-public class RegistServiceImpl implements IRegistService {
+public class RegistServiceImpl extends BaseServiceImpl  implements IRegistService {
 
 	@Autowired
 	private IRegistDao registDao;

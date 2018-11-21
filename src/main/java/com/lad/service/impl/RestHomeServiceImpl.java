@@ -13,7 +13,7 @@ import com.lad.service.IRestHomeService;
 import com.mongodb.WriteResult;
 
 @Service("restHomeService")
-public class RestHomeServiceImpl implements IRestHomeService {
+public class RestHomeServiceImpl extends BaseServiceImpl implements IRestHomeService {
 
 	@Autowired
 	private IRestHomeDao restHomeDao;

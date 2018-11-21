@@ -14,7 +14,7 @@ import com.lad.service.IFriendsService;
 import com.mongodb.WriteResult;
 
 @Service("friendsService")
-public class FriendsServiceImpl implements IFriendsService {
+public class FriendsServiceImpl extends BaseServiceImpl  implements IFriendsService {
 
 	@Autowired
 	private IFriendsDao friendsDao;
@@ -55,8 +55,10 @@ public class FriendsServiceImpl implements IFriendsService {
 		return friendsDao.getFriendByIdAndVisitorIdAgree(userid, friendid);
 	}
 
+	// TODO
 	public List<FriendsBo> getFriendByUserid(String userid) {
-		return friendsDao.getFriendByUserid(userid);
+		List<FriendsBo> changeImgHost = changeImgHost(friendsDao.getFriendByUserid(userid));
+		return changeImgHost;
 	}
 
 	public List<FriendsBo> getFriendByFriendid(String friendid) {

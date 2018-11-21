@@ -8,7 +8,7 @@ import com.lad.dao.ILoginDao;
 import com.lad.service.ILoginService;
 
 @Service("loginService")
-public class LoginServiceImpl implements ILoginService {
+public class LoginServiceImpl extends BaseServiceImpl  implements ILoginService {
 
 	@Autowired
 	private ILoginDao loginDao;

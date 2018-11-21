@@ -13,7 +13,7 @@ import com.lad.bo.WaiterBo;
 import com.lad.vo.OptionVo;
 import com.mongodb.WriteResult;
 
-public interface IMarriageService extends IBaseService {
+public interface IMarriageService {
 	// 根据当前用户id查找发布的信息
 	public List<WaiterBo> getPublishById(String userId);
 

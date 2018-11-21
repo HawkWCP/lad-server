@@ -1807,7 +1807,6 @@ public class NoteController extends BaseContorller {
 					break;
 				case Constant.INFOR_DAILY:
 					DailynewsBo dailyNewsBo = inforService.findDailynewsById(noteBo.getSourceid());
-					logger.error("INFOR_DAILY=====Data:{}", JSON.toJSONString(dailyNewsBo));
 					if (dailyNewsBo != null) {
 						noteVo.setSubject(dailyNewsBo.getTitle());
 						noteVo.setVisitCount((long) dailyNewsBo.getVisitNum());

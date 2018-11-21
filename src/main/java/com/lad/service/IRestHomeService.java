@@ -7,7 +7,7 @@ import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.mongodb.WriteResult;
 
-public interface IRestHomeService extends IBaseService {
+public interface IRestHomeService {
 
 	String test(String str);
 

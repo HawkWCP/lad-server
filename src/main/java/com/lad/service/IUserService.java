@@ -12,7 +12,7 @@ import com.lad.bo.UserTasteBo;
 import com.lad.bo.UserVisitBo;
 import com.mongodb.WriteResult;
 
-public interface IUserService extends IBaseService {
+public interface IUserService {
 
 	public UserBo save(UserBo userBo);
 

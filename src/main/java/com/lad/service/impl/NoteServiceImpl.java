@@ -17,7 +17,7 @@ import com.mongodb.CommandResult;
 import com.mongodb.WriteResult;
 
 @Service("noteService")
-public class NoteServiceImpl implements INoteService {
+public class NoteServiceImpl  extends BaseServiceImpl  implements INoteService {
 	@Autowired
 	private INoteDao noteDao;
 

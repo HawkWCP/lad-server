@@ -10,7 +10,7 @@ import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.mongodb.WriteResult;
 
-public interface IChatroomService extends IBaseService {
+public interface IChatroomService{
 	
 	public ChatroomBo insert(ChatroomBo chatroom);
 
