@@ -395,4 +395,9 @@ public class UserDaoImpl implements IUserDao {
 	public List<UserBo> findAllUser() {
 		return mongoTemplate.find(new Query(Criteria.where("deleted").is(Constant.ACTIVITY)), UserBo.class);
 	}
+
+	@Override
+	public boolean checkUidAlive(String uid) {
+		return mongoTemplate.count(new Query(Criteria.where("_id").is(uid)), UserBo.class)>0;
+	}
 }

@@ -26,8 +26,28 @@ public class InforUserReadBo implements Serializable {
     private LinkedHashSet<String> radios = new LinkedHashSet<>();
     //视频
     private LinkedHashSet<String> videos = new LinkedHashSet<>();
+    
+    private LinkedHashSet<String> yanglao = new LinkedHashSet<>();
+    
+    private LinkedHashSet<String> daily = new LinkedHashSet<>();
 
-    private Integer deleted = 0;
+    public LinkedHashSet<String> getDaily() {
+		return daily;
+	}
+
+	public void setDaily(LinkedHashSet<String> daily) {
+		this.daily = daily;
+	}
+
+	public LinkedHashSet<String> getYanglao() {
+		return yanglao;
+	}
+
+	public void setYanglao(LinkedHashSet<String> yanglao) {
+		this.yanglao = yanglao;
+	}
+
+	private Integer deleted = 0;
 
     public String getId() {
         return id;

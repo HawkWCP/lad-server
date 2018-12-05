@@ -693,12 +693,12 @@ public class InforController extends BaseContorller {
 
 		InforVo inforVo = new InforVo();
 		UserBo userBo = getUserLogin(request);
+		// TODO
 		if (userBo != null) {
 			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
 			inforVo.setSelfSub(thumbsupBo != null);
 			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_HEALTH);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_HEALTH, inforBo.getModule(),
-					inforBo.getClassName());
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_HEALTH, inforBo.getModule(),inforBo.getClassName());
 		}
 		updateInforNum(inforid, Constant.INFOR_HEALTH, 1, Constant.VISIT_NUM);
 		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_HEALTH);
@@ -2220,7 +2220,7 @@ public class InforController extends BaseContorller {
 	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
 	@RequestMapping(value = "/yanglao-infor", method = { RequestMethod.GET, RequestMethod.POST })
 	public String dayanglaoNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
-
+		// TODO
 		YanglaoBo inforBo = inforService.findByYanglaoId(inforid);
 		if (inforBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
@@ -2271,7 +2271,7 @@ public class InforController extends BaseContorller {
 		}
 		UserBo userBo = getUserLogin(request);
 		if (userBo != null) {
-			asyncController.updateUserReadHis(userBo.getId(), className, "", Constant.INFOR_DAILY);
+			asyncController.updateUserReadHis(userBo.getId(), className, "", Constant.INFOR_YANGLAO);
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);

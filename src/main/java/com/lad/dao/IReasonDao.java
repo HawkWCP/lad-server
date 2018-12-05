@@ -161,4 +161,6 @@ public interface IReasonDao extends IBaseDao{
 	WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet);
 
 	ReasonBo findByUserAndCircle(String userid, String circleid, int status, int reasonType);
+
+	List<ReasonBo> findByUserAddChatroom(String userid);
 }

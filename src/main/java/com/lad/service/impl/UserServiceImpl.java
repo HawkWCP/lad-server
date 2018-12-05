@@ -418,4 +418,9 @@ public class UserServiceImpl extends BaseServiceImpl implements IUserService {
 	public WriteResult deleteByVisitid(String visitid, String ownerid) {
 		return userVisitDao.deleteByVisitid(visitid, ownerid);
 	}
+
+	@Override
+	public boolean checkUidAlive(String uid) {
+		return userDao.checkUidAlive(uid);
+	}
 }

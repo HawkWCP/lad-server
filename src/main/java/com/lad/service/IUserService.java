@@ -304,4 +304,6 @@ public interface IUserService {
 	public List<UserVisitBo> visitToMeList(String ownerid, String visitid, int type);
 
 	public WriteResult deleteByVisitid(String visitid, String ownerid);
+
+	public boolean checkUidAlive(String id);
 }

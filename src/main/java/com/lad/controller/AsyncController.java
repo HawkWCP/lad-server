@@ -378,7 +378,11 @@ public class AsyncController extends BaseContorller {
             sets= readBo.getRadios();
         } else if (Constant.INFOR_VIDEO == type) {
             sets = readBo.getVideos();
-        } else {
+		} else if (Constant.INFOR_YANGLAO == type){
+        	sets = readBo.getYanglao();
+        }else if(Constant.INFOR_DAILY == type){
+        	sets = readBo.getDaily();
+        }else {
             sets = new LinkedHashSet<>();
         }
         if (isNew) {

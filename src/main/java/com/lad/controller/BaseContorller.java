@@ -1,10 +1,14 @@
 package com.lad.controller;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,16 +37,17 @@ import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.HuaWeiPushNcMsg;
-import com.lad.util.JPushUtil;
 import com.lad.util.MeizuPushUtil;
 import com.lad.util.MiPushUtil;
 import com.lad.util.MyException;
+import com.lad.util.VivoPushUtil;
 
 public abstract class BaseContorller {
 
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
 
+	private static final ExecutorService THREADPOOL = Executors.newFixedThreadPool(5);
 	/**
 	 * push
 	 * 
@@ -59,13 +64,56 @@ public abstract class BaseContorller {
 			Set<String> userTokens, List<String> aliasList, String... alias) {
 
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
+		
 		try {
 			// 3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
-			HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
-			MiPushUtil.sendMessageToAliases(title, message, "小米推送:" + description, path, aliasList);
-			MeizuPushUtil.pushMessageByAlias(title, "魅族推送:" + description, message, aliasList);
-			JPushUtil.push(title, "极光推送:" + description, path, alias);
+			
+			THREADPOOL.execute(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
+					} catch (IOException e) {
+						logger.error("BaseContorller====={}", e);
+					}
+				}
+			});
+			THREADPOOL.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+						MiPushUtil.sendMessageToAliases(title, message, "小米推送:" + description, path, aliasList);
+					} catch (Exception e) {
+						logger.error("BaseContorller====={}", e);
+					}
+
+				}
+			});
+			THREADPOOL.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+						MeizuPushUtil.pushMessageByAlias(title, "魅族推送:" + description, message, aliasList);
+					} catch (Exception e) {
+						logger.error("BaseContorller====={}", e);
+					}
+				}
+			});
+			THREADPOOL.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
+						VivoPushUtil.sendToMany(title, "vivo推送" + description, aliasList, message);
+					} catch (Exception e) {
+						logger.error("BaseContorller====={}", e);
+					}
+				}
+			});
+//			JPushUtil.push(title, "极光推送:" + description, path, alias);
 		} catch (Exception e) {
 			logger.error("BaseContorller====={}", e);
 		} finally {

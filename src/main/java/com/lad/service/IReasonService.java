@@ -160,4 +160,6 @@ public interface IReasonService {
 	WriteResult updateUnReadSet(String userid, String circleid, HashSet<String> unReadSet);
 
 	ReasonBo findByUserAndCircle(String id, String id2, int addAgree, int reasonType);
+
+	List<ReasonBo> findByUserAddChatroom(String userid);
 }

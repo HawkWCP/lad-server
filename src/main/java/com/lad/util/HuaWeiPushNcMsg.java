@@ -43,8 +43,10 @@ public class HuaWeiPushNcMsg {
 	private static String appPkgName = "com.ttlaoyou";
 	private static Logger logger = LogManager.getLogger();
 
+	
 	public static void push(String title, String content, String path, Set<String> userTokens) throws IOException {
-		refreshToken();
+//		refreshToken();
+		logger.info("华为push=====title:{},content:{},path:{},userTokens:{}", title,content,path,userTokens);
 		sendPushMessage(title, content, path, userTokens);
 	}
 
@@ -147,10 +149,12 @@ public class HuaWeiPushNcMsg {
 			for (String line : lines) {
 				strBuf.append(line);
 			}
-			System.out.println(strBuf.toString());
 			logger.info("huawei push=====httpPost result:{}", strBuf.toString());
 			return strBuf.toString();
-		} finally {
+		} catch(Exception e){
+			logger.error("huawei push error ===== e:{}", e);
+			return e.getMessage();
+		}finally {
 			IOUtils.closeQuietly(outPut);
 			IOUtils.closeQuietly(in);
 			if (urlConnection != null) {

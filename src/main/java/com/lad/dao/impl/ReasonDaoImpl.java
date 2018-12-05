@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -264,5 +265,12 @@ public class ReasonDaoImpl implements IReasonDao {
 		query.addCriteria(new Criteria("status").is(status));
 		query.addCriteria(new Criteria("reasonType").is(reasonType));
 		return mongoTemplate.findOne(query, ReasonBo.class);
+	}
+
+	@Override
+	public List<ReasonBo> findByUserAddChatroom(String userid) {
+		Query query = new Query(Criteria.where("createuid").is(userid).and("reasonType").is(1).and("status").is(1));
+		query.with(new Sort(new Sort.Order(Direction.DESC, "_id")));
+		return mongoTemplate.find(new Query(Criteria.where("createuid").is(userid).and("reasonType").is(1).and("status").is(1)), ReasonBo.class);
 	}
 }

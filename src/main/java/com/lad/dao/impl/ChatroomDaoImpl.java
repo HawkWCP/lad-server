@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -368,8 +369,9 @@ public class ChatroomDaoImpl implements IChatroomDao {
 			criteria.and("type").in(typeList);
 		}
 		Query query = new Query(criteria);
-		Logger logger = LogManager.getLogger();
-		logger.error(query);
+
+		query.with(new Sort(new Sort.Order(Direction.DESC, "createTime")));
+		
 		if (page != 0 && limit != 0) {
 			int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
 			query.skip(skip);

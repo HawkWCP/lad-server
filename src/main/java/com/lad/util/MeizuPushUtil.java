@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.UserBo;
 import com.meizu.push.sdk.server.IFlymePush;
@@ -17,8 +20,10 @@ public class MeizuPushUtil {
 
 	private static final long appId = 116349;
 	private static final String appSecret = "393f08c32d4c428eab8f3650fb1188d5";
-	
+	private static Logger logger = LogManager.getLogger();
+
 	public static void pushMessageByAlias(String title,String content,String path,List<String> alias) {
+		logger.info("魅族推送=====title:{},content:{},path:{},alias:{}", title,content,path,alias);
 		try {
 			IFlymePush push = new IFlymePush(appSecret);
 			VarnishedMessage message = new VarnishedMessage.Builder()

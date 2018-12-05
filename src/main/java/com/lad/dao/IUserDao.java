@@ -189,4 +189,6 @@ public interface IUserDao extends IBaseDao {
 	WriteResult updateAddress(UserBo userBo);
 
 	List<UserBo> findAllUser();
+
+	boolean checkUidAlive(String uid);
 }

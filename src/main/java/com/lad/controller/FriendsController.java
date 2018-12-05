@@ -3,6 +3,8 @@ package com.lad.controller;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -34,13 +37,16 @@ import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.LocationBo;
+import com.lad.bo.PushTokenBo;
 import com.lad.bo.TagBo;
 import com.lad.bo.UserBo;
+import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
 import com.lad.service.ITagService;
+import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
@@ -66,7 +72,7 @@ import net.sf.json.JSONObject;
 public class FriendsController extends BaseContorller {
 
 	private static Logger logger = LogManager.getLogger(FriendsController.class);
-	
+
 	@Autowired
 	private IFriendsService friendsService;
 	@Autowired
@@ -84,44 +90,55 @@ public class FriendsController extends BaseContorller {
 
 	private String pushTitle = "好友通知";
 
+//	@ApiOperation("获取健康养生指定分类下资讯信息列表")
+//	@ApiImplicitParams({
+//			@ApiImplicitParam(name = "groupName", value = "健康资讯分类", required = true, paramType = "query", dataType = "string"),
+//			@ApiImplicitParam(name = "inforTime", value = "资讯分分页时最后一条时间，若为空表示第一页开始", paramType = "query", required = true, dataType = "string"),
+//			@ApiImplicitParam(name = "limit", value = "资讯分页每页条数", required = true, paramType = "query", dataType = "int") })
+	
+	@ApiOperation("申请添加好友")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "friendid", value = "需要添加的好友id", required = true, paramType = "query", dataType = "string")})
 	@RequestMapping(value = "/apply", method = { RequestMethod.GET, RequestMethod.POST })
 	public String apply(String friendid, HttpServletRequest request, HttpServletResponse response) {
-		UserBo userBo;
+		logger.info("@RequestMapping(value = \"/apply\")=====friendid:{}", friendid);
+		Map<String, Object> map = new HashMap<String, Object>();
 		try {
-			userBo = checkSession(request, userService);
+			UserBo userBo = checkSession(request, userService);
+			UserBo friendBo = userService.getUser(friendid);
+			if (friendBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
+			}
+			FriendsBo temp = friendsService.getFriendByIdAndVisitorId(userBo.getId(), friendid);
+			if (temp != null) {
+				if (temp.getApply() == 1) {
+					return CommonUtil.toErrorResult(ERRORCODE.FRIEND_EXIST.getIndex(), ERRORCODE.FRIEND_EXIST.getReason());
+				}
+				return CommonUtil.toErrorResult(ERRORCODE.FRIEND_APPLY_EXIST.getIndex(),
+						ERRORCODE.FRIEND_APPLY_EXIST.getReason());
+			}
+			FriendsBo friendsBo = new FriendsBo();
+			friendsBo.setUserid(userBo.getId());
+			friendsBo.setFriendid(friendid);
+			friendsBo.setUsername(friendBo.getUserName());
+			friendsBo.setApply(0);
+			friendsService.insert(friendsBo);
+			String path = "/friends/apply-list.do";
+//			JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
+			usePush(friendid, userBo.getUserName() + JPushUtil.APPLY, path);
+			addMessage(messageService, path, userBo.getUserName() + JPushUtil.APPLY, pushTitle, friendid);
+			map.put("ret", 0);
 		} catch (MyException e) {
+			logger.error("@RequestMapping(value = \"/apply\")=====好友请求过程中发生错误:{}", e);
 			return e.getMessage();
 		}
-		UserBo friendBo = userService.getUser(friendid);
-		if (friendBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
-		}
-		FriendsBo temp = friendsService.getFriendByIdAndVisitorId(userBo.getId(), friendid);
-		if (temp != null) {
-			if (temp.getApply() == 1) {
-				return CommonUtil.toErrorResult(ERRORCODE.FRIEND_EXIST.getIndex(), ERRORCODE.FRIEND_EXIST.getReason());
-			}
-			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_APPLY_EXIST.getIndex(),
-					ERRORCODE.FRIEND_APPLY_EXIST.getReason());
-		}
-		FriendsBo friendsBo = new FriendsBo();
-		friendsBo.setUserid(userBo.getId());
-		friendsBo.setFriendid(friendid);
-		friendsBo.setUsername(friendBo.getUserName());
-		friendsBo.setApply(0);
-		friendsService.insert(friendsBo);
-		String path = "/friends/apply-list.do";
-		JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
-		addMessage(messageService, path, userBo.getUserName() + JPushUtil.APPLY, pushTitle, friendid);
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
+
 		return JSONObject.fromObject(map).toString();
 	}
 
 	/**
 	 *
-	 * @param id
-	 *            好友关系中的ID，不是userid或者朋友ID
+	 * @param id       好友关系中的ID，不是userid或者朋友ID
 	 * @param request
 	 * @param response
 	 * @return
@@ -196,12 +213,9 @@ public class FriendsController extends BaseContorller {
 	/**
 	 * 判断并保存用户与好友之间的chatroom关系
 	 * 
-	 * @param user
-	 *            本人
-	 * @param friend
-	 *            好友
-	 * @param chatroomBo
-	 *            聊天室
+	 * @param user       本人
+	 * @param friend     好友
+	 * @param chatroomBo 聊天室
 	 * @return
 	 */
 	private ChatroomBo savekUserAndFriendChatroom(UserBo user, UserBo friend, ChatroomBo chatroomBo) {
@@ -435,43 +449,48 @@ public class FriendsController extends BaseContorller {
 		List<FriendsBo> list = friendsService.getFriendByUserid(userid);
 		List<FriendsVo> voList = new LinkedList<FriendsVo>();
 		for (FriendsBo friendsBo : list) {
-			FriendsVo vo = new FriendsVo();
-			ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(userBo.getId(), friendsBo.getFriendid());
-			if (chatroomBo == null) {
-				chatroomBo = chatroomService.selectByUserIdAndFriendid(friendsBo.getFriendid(), userBo.getId());
+			if (userService.checkUidAlive(friendsBo.getFriendid())
+					&& userService.checkUidAlive(friendsBo.getUserid())) {
+				FriendsVo vo = new FriendsVo();
+				ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(userBo.getId(),
+						friendsBo.getFriendid());
 				if (chatroomBo == null) {
-					UserBo friend = userService.getUser(friendsBo.getFriendid());
-					chatroomBo = savekUserAndFriendChatroom(userBo, friend, chatroomBo);
-					// 首次创建聊天室，需要输入名称
-					String res = IMUtil.subscribe(0, chatroomBo.getId(), userid, friend.getId());
-					if (!res.equals(IMUtil.FINISH)) {
-						return res;
+					chatroomBo = chatroomService.selectByUserIdAndFriendid(friendsBo.getFriendid(), userBo.getId());
+					if (chatroomBo == null) {
+						UserBo friend = userService.getUser(friendsBo.getFriendid());
+						chatroomBo = savekUserAndFriendChatroom(userBo, friend, chatroomBo);
+						// 首次创建聊天室，需要输入名称
+						String res = IMUtil.subscribe(0, chatroomBo.getId(), userid, friend.getId());
+						if (!res.equals(IMUtil.FINISH)) {
+							return res;
+						}
 					}
 				}
-			}
 
-			BeanUtils.copyProperties(friendsBo, vo);
-			String friendid = friendsBo.getFriendid();
-			UserBo friend = userService.getUser(friendid);
-			if (friend == null) {
-				continue;
+				BeanUtils.copyProperties(friendsBo, vo);
+				String friendid = friendsBo.getFriendid();
+				UserBo friend = userService.getUser(friendid);
+				if (friend == null) {
+					continue;
+				}
+				List<TagBo> tagBos = tagService.getTagBoListByUseridAndFrinedid(userid, friendid);
+				List<String> tagList = new ArrayList<>();
+				for (TagBo tagBo : tagBos) {
+					tagList.add(tagBo.getName());
+				}
+				vo.setSex(friend.getSex());
+				vo.setTag(tagList);
+				vo.setUsername(friend.getUserName());
+				vo.setPicture(friend.getHeadPictureName());
+				vo.setChannelId(chatroomBo.getId());
+				if (StringUtils.isEmpty(friendsBo.getBackname())) {
+					vo.setBackname(friend.getUserName());
+				} else {
+					vo.setBackname(friendsBo.getBackname());
+				}
+				voList.add(vo);
+
 			}
-			List<TagBo> tagBos = tagService.getTagBoListByUseridAndFrinedid(userid, friendid);
-			List<String> tagList = new ArrayList<>();
-			for (TagBo tagBo : tagBos) {
-				tagList.add(tagBo.getName());
-			}
-			vo.setSex(friend.getSex());
-			vo.setTag(tagList);
-			vo.setUsername(friend.getUserName());
-			vo.setPicture(friend.getHeadPictureName());
-			vo.setChannelId(chatroomBo.getId());
-			if (StringUtils.isEmpty(friendsBo.getBackname())) {
-				vo.setBackname(friend.getUserName());
-			} else {
-				vo.setBackname(friendsBo.getBackname());
-			}
-			voList.add(vo);
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
@@ -534,102 +553,114 @@ public class FriendsController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		if (StringUtils.isEmpty(friendids)) {
-			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
-		}
-		if (!friendids.contains(",")) {
-			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
-		}
-		ImAssistant assistent = ImAssistant.init(Constant.PUSHD_IP, Constant.PUSHD_POST);
-		if (assistent == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.PUSHED_CONNECT_ERROR.getIndex(),
-					ERRORCODE.PUSHED_CONNECT_ERROR.getReason());
-		}
-		String[] idsList = friendids.split(",");
-		LinkedHashSet<String> userSet = new LinkedHashSet<String>();
-		for (String id : idsList) {
-			FriendsBo temp = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), id);
-			if (temp == null) {
-				if (id.equals(userBo.getId())) {
-					userSet.add(id);
-					continue;
-				}
+		Map<String, Object> map = new HashMap<String, Object>();
+
+		try {
+			if (StringUtils.isEmpty(friendids)) {
 				return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
 			}
-			userSet.add(id);
-		}
+			if (!friendids.contains(",")) {
+				return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
+			}
+			ImAssistant assistent = ImAssistant.init(Constant.PUSHD_IP, Constant.PUSHD_POST);
+			if (assistent == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.PUSHED_CONNECT_ERROR.getIndex(),
+						ERRORCODE.PUSHED_CONNECT_ERROR.getReason());
+			}
+			String[] idsList = friendids.split(",");
+			LinkedHashSet<String> userSet = new LinkedHashSet<String>();
+			for (String id : idsList) {
+				boolean uidAlive = userService.checkUidAlive(id);
+				System.out.println("user id " + id + " is alibe:" + uidAlive);
+				if (uidAlive) {
+					FriendsBo temp = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), id);
+					if (temp == null) {
+						if (id.equals(userBo.getId())) {
+							userSet.add(id);
+							continue;
+						}
+						return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(),
+								ERRORCODE.FRIEND_NULL.getReason());
+					}
+					userSet.add(id);
+				}
+			}
 
-		/**
-		 * 因为没有看懂上面for循环中，为什么有可能会包含 userBo.getId() 所以为了保险起见，remove掉，再add进去
-		 */
-		userSet.remove(userBo.getId());
-		String[] tt = new String[userSet.size()];
-		int i = 0;
-		for (String uu : userSet) {
-			tt[i++] = uu;
-		}
-		Object[] nameAndIds = ChatRoomUtil.getUserNamesAndIds(userService, tt, null);
-
-		userSet.add(userBo.getId());
-		ChatroomBo chatroomBo = new ChatroomBo();
-		chatroomBo.setType(2);
-		chatroomBo.setUsers(userSet);
-		chatroomBo.setMaster(userBo.getId());
-		chatroomBo.setCreateuid(userBo.getId());
-
-		// 生成群聊名称
-		String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, userSet, chatroomBo.getId(), null);
-		if (newChatRoomName != null) {
-			chatroomBo.setName(newChatRoomName);
-		} else {
 			/**
-			 * 出现这种情况的原因： 请看ChatRoomUtil.generateChatRoomName 这个方法的内部处理。
-			 * 如果前端传的userIds参数没问题，那么不会出现这种群聊名称
-			 *
-			 * 如果出现了这种情况，为了不至于没有群聊名称，默认为"群聊"。这样处理不会造成糟糕bug，特别是给前端，虽然让用户感到一点困惑
+			 * 为何加了又删?
 			 */
-			chatroomBo.setName("群聊");
+			userSet.remove(userBo.getId());
+			String[] tt = new String[userSet.size()];
+			int i = 0;
+			for (String uu : userSet) {
+				tt[i++] = uu;
+			}
+			Object[] nameAndIds = ChatRoomUtil.getUserNamesAndIds(userService, tt, null);
+
+			userSet.add(userBo.getId());
+			ChatroomBo chatroomBo = new ChatroomBo();
+			chatroomBo.setType(2);
+			chatroomBo.setUsers(userSet);
+			chatroomBo.setMaster(userBo.getId());
+			chatroomBo.setCreateuid(userBo.getId());
+
+			// 生成群聊名称
+			String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, userSet, chatroomBo.getId(), null);
+			if (newChatRoomName != null) {
+				chatroomBo.setName(newChatRoomName);
+			} else {
+				/**
+				 * 出现这种情况的原因： 请看ChatRoomUtil.generateChatRoomName 这个方法的内部处理。
+				 * 如果前端传的userIds参数没问题，那么不会出现这种群聊名称
+				 *
+				 * 如果出现了这种情况，为了不至于没有群聊名称，默认为"群聊"。这样处理不会造成糟糕bug，特别是给前端，虽然让用户感到一点困惑
+				 */
+				chatroomBo.setName("群聊");
+			}
+
+			chatroomService.insert(chatroomBo);
+			for (String id : userSet) {
+				UserBo user = userService.getUser(id);
+				HashSet<String> chatroomsSet = user.getChatrooms();
+				chatroomsSet.add(chatroomBo.getId());
+				user.setChatrooms(chatroomsSet);
+				userService.updateChatrooms(user);
+				addChatroomUser(user, chatroomBo.getId());
+			}
+			String res = IMUtil.subscribe(0, chatroomBo.getId(), idsList);
+			if (!IMUtil.FINISH.equals(res)) {
+				return res;
+			}
+//			JPushUtil.pushTo(userBo.getUserName() + JPushUtil.MULTI_INSERT, idsList);
+			usePush(idsList, userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
+			addMessage(messageService, "", userBo.getUserName() + JPushUtil.MULTI_INSERT, pushTitle, userBo.getId(),
+					idsList);
+
+			// 某人被邀请加入群聊通知
+			if (nameAndIds[0] != null) {
+				JSONObject json = new JSONObject();
+				json.put("masterId", userBo.getId());
+				json.put("masterName", userBo.getUserName());
+				json.put("hitIds", nameAndIds[1]);
+				json.put("hitNames", nameAndIds[0]);
+				json.put("otherIds", new ArrayList<String>());
+				json.put("otherNames", new ArrayList<String>());
+
+				IMUtil.notifyInChatRoom(Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, chatroomBo.getId(), json.toString());
+
+				// if(!IMUtil.FINISH.equals(res2)){
+				// logger.error("failed notifyInChatRoom
+				// Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, %s",res2);
+				// }
+			}
+
+			map.put("ret", 0);
+			map.put("channelId", chatroomBo.getId());
+		} catch (Exception e) {
+			logger.error("@PostMapping(\"/multi-insert\")=====throw exception:{}", e);
+			e.printStackTrace();
 		}
 
-		chatroomService.insert(chatroomBo);
-		for (String id : userSet) {
-			UserBo user = userService.getUser(id);
-			HashSet<String> chatroomsSet = user.getChatrooms();
-			chatroomsSet.add(chatroomBo.getId());
-			user.setChatrooms(chatroomsSet);
-			userService.updateChatrooms(user);
-			addChatroomUser(user, chatroomBo.getId());
-		}
-		String res = IMUtil.subscribe(0, chatroomBo.getId(), idsList);
-		if (!IMUtil.FINISH.equals(res)) {
-			return res;
-		}
-		JPushUtil.pushTo(userBo.getUserName() + JPushUtil.MULTI_INSERT, idsList);
-		addMessage(messageService, "", userBo.getUserName() + JPushUtil.MULTI_INSERT, pushTitle, userBo.getId(),
-				idsList);
-
-		// 某人被邀请加入群聊通知
-		if (nameAndIds[0] != null) {
-			JSONObject json = new JSONObject();
-			json.put("masterId", userBo.getId());
-			json.put("masterName", userBo.getUserName());
-			json.put("hitIds", nameAndIds[1]);
-			json.put("hitNames", nameAndIds[0]);
-			json.put("otherIds", new ArrayList<String>());
-			json.put("otherNames", new ArrayList<String>());
-
-			IMUtil.notifyInChatRoom(Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, chatroomBo.getId(),
-					json.toString());
-
-			// if(!IMUtil.FINISH.equals(res2)){
-			// logger.error("failed notifyInChatRoom
-			// Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, %s",res2);
-			// }
-		}
-
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("channelId", chatroomBo.getId());
 		return JSONObject.fromObject(map).toString();
 	}
 
@@ -778,8 +809,12 @@ public class FriendsController extends BaseContorller {
 				vo.setTag(tagList);
 				if (StringUtils.isEmpty(friendsBo.getBackname())) {
 					UserBo friend = userService.getUser(friendid);
-					vo.setBackname(friend.getUserName());
-					vo.setUsername(friend.getUserName());
+					if(friend!=null) {
+						vo.setBackname(friend.getUserName());
+						vo.setUsername(friend.getUserName());
+					}else {
+						continue;
+					}
 				} else {
 					vo.setBackname(friendsBo.getBackname());
 					vo.setUsername(friendsBo.getUsername());
@@ -848,15 +883,15 @@ public class FriendsController extends BaseContorller {
 					vo.setBackname(friend.getUserName());
 					vo.setUsername(friend.getUserName());
 				}
-				
-				vo.setSex(friend.getSex()==null?"男":friend.getSex());
+
+				vo.setSex(friend.getSex() == null ? "男" : friend.getSex());
 				vo.setLevel(friend.getLevel());
-				if(StringUtils.isEmpty(friend.getBirthDay())){
+				if (StringUtils.isEmpty(friend.getBirthDay())) {
 					vo.setAge(0);
-				}else{
+				} else {
 					vo.setAge(CommonUtil.getAge(friend.getBirthDay()));
 				}
-				
+
 				vo.setChannelId(friendsBo.getChatroomid());
 				double dis = Double.parseDouble(df.format(disMap.get(friendid)));
 				vo.setDistance(dis);
@@ -1057,5 +1092,85 @@ public class FriendsController extends BaseContorller {
 		JPushUtil.push(pushTitle, message, path, friendsBo.getFriendid());
 		addMessage(messageService, path, message, pushTitle, friendsBo.getFriendid());
 		return Constant.COM_RESP;
+	}
+	
+	
+	@Autowired
+	private RedisServer redisServer;
+	
+	@Autowired
+	private ITokenService tokenService;
+	
+	/**
+	 * 收信方为单个id
+	 * 
+	 * @param alias
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String alias, String content, String path) {
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokenBo!=null) {
+			tokenSet.add(tokenBo.getHuaweiToken());
+		}
+
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, alias);
+	}
+
+	/**
+	 * 收信方为一个id的Collection集合
+	 * 
+	 * @param useridSet
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(Collection<String> useridSet, String content, String path) {
+		List<String> aliasList = new ArrayList<>(useridSet);
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		String[] pushUser = new String[useridSet.size()];
+		useridSet.toArray(pushUser);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, pushUser);
+	}
+
+	/**
+	 * 收信方为一个id数组
+	 * 
+	 * @param useridArr
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String[] useridArr, String content, String path) {
+		List<String> aliasList = Arrays.asList(useridArr);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

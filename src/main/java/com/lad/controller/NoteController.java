@@ -500,11 +500,11 @@ public class NoteController extends BaseContorller {
 			String userid = "";
 			if (userBo != null) {
 				userid = userBo.getId();
-				logger.info("com.lad.controller.NoteController.noteInfo=====[user:{},userid:{}]", userBo.getUserName(),
-						userid);
+				logger.info("com.lad.controller.NoteController.noteInfo=====[user:{},userid:{}]", userBo.getUserName(),userid);
 				// 添加访问历史
 				updateHistory(userBo.getId(), noteBo.getCircleId(), locationService, circleService);
 				// 处理是否已读
+				// TODO
 				userReasonHander(userid, noteBo.getCircleId(), noteBo.getId());
 				// 这个帖子自己是否点赞
 				ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(noteid, userid);
@@ -1811,7 +1811,7 @@ public class NoteController extends BaseContorller {
 						noteVo.setSubject(dailyNewsBo.getTitle());
 						noteVo.setVisitCount((long) dailyNewsBo.getVisitNum());
 						noteVo.setContent(dailyNewsBo.getText());
-						noteVo.setInforTypeName(dailyNewsBo.getModule());
+						noteVo.setInforTypeName(dailyNewsBo.getClassName());
 						noteVo.setClassName(dailyNewsBo.getClassName() == null ? "" : dailyNewsBo.getClassName());
 					}
 					break;
@@ -1821,7 +1821,7 @@ public class NoteController extends BaseContorller {
 						noteVo.setSubject(yaolaoBo.getTitle());
 						noteVo.setVisitCount((long) yaolaoBo.getVisitNum());
 						noteVo.setContent(yaolaoBo.getText());
-						noteVo.setInforTypeName(yaolaoBo.getModule());
+						noteVo.setInforTypeName(yaolaoBo.getClassName() == null ? "" : yaolaoBo.getClassName());
 						noteVo.setClassName(yaolaoBo.getClassName() == null ? "" : yaolaoBo.getClassName());
 					}
 					break;
@@ -1983,8 +1983,7 @@ public class NoteController extends BaseContorller {
 		// 处理是否已读
 		ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, circleId, 1);
 		if (reasonBo != null) {
-			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>()
-					: reasonBo.getUnReadSet();
+			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>(): reasonBo.getUnReadSet();
 			unReadSet.remove(noteId);
 			reasonService.updateUnReadSet(userid, circleId, unReadSet);
 		}
@@ -2021,7 +2020,9 @@ public class NoteController extends BaseContorller {
 		String message = JSON.toJSONString(msgMap);
 		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
 		Set<String> tokenSet = new HashSet<>();
-		tokenSet.add(tokenBo.getHuaweiToken());
+		if(tokenBo!=null) {
+			tokenSet.add(tokenBo.getHuaweiToken());
+		}
 
 		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, alias);
 	}
@@ -2045,9 +2046,12 @@ public class NoteController extends BaseContorller {
 
 		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
 		Set<String> tokenSet = new HashSet<>();
-		for (PushTokenBo pushTokenBo : tokens) {
-			tokenSet.add(pushTokenBo.getHuaweiToken());
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
 		}
+
 		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, pushUser);
 	}
 
@@ -2066,10 +2070,11 @@ public class NoteController extends BaseContorller {
 
 		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
 		Set<String> tokenSet = new HashSet<>();
-		for (PushTokenBo pushTokenBo : tokens) {
-			tokenSet.add(pushTokenBo.getHuaweiToken());
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
 		}
-
 		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

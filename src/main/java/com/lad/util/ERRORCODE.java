@@ -106,6 +106,7 @@ public enum ERRORCODE {
 	PARTY_HAS_END(140009, "聚会已经结束"),
 	PARTY_NOTICE_NULL(140010, "聚会通知不存在"),
 	PARTY_ENROLL_MAX(1400011, "报名人数已超过聚会人数上限"),
+	PARTY_CIRCLE_NULL(1400012, "聚会所在圈子不存在或已解散"),
 
 	COLLECT_IS_NULL(150001, "收藏不存在"),
 	COLLECT_TYPE_ERR(150002, "收藏类型错误"),

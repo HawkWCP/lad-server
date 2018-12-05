@@ -784,10 +784,9 @@ public class CommonUtil {
 	 * @param key
 	 * @return
 	 */
-	public static Map<String, List<Integer>> getIndex(String source, String key) {
+	public static List<List<Integer>> getIndex(String source, String key) {
 		int formIndex = 0;
-		Map<String, List<Integer>> position = new HashMap<>();
-		int keyIndex = 1;
+		List<List<Integer>> position = new ArrayList<>();
 
 		while (true) {
 			int indexOf = source.indexOf(key, formIndex);
@@ -798,8 +797,7 @@ public class CommonUtil {
 			List<Integer> temp = new ArrayList<>(2);
 			temp.add(indexOf);
 			temp.add(endIndex);
-			position.put("position-" + keyIndex, temp);
-			keyIndex++;
+			position.add(temp);
 			formIndex = endIndex;
 			if (formIndex >= source.length()) {
 				break;

@@ -2,7 +2,9 @@ package com.lad.controller;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -31,11 +34,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleNoticeBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.PartyBo;
+import com.lad.bo.PushTokenBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
@@ -45,6 +50,7 @@ import com.lad.service.IFriendsService;
 import com.lad.service.IMessageService;
 import com.lad.service.IPartyService;
 import com.lad.service.IReasonService;
+import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
@@ -99,29 +105,27 @@ public class ChatroomController extends BaseContorller {
 	@Autowired
 	private AsyncController asyncController;
 
-
 	private String titlePush = "互动通知";
-	
+
 	@ApiOperation("搜索")
-	@ApiImplicitParams({
-		@ApiImplicitParam(name = "keyword", value = "关键词", dataType = "string", paramType = "query"),
-		@ApiImplicitParam(name = "page", value = "页码",paramType = "query",dataType = "int"),
-		@ApiImplicitParam(name = "limit", value = "显示条数",paramType = "query",dataType = "int")
-		})
+	@ApiImplicitParams({ @ApiImplicitParam(name = "keyword", value = "关键词", dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "page", value = "页码", paramType = "query", dataType = "int"),
+			@ApiImplicitParam(name = "limit", value = "显示条数", paramType = "query", dataType = "int") })
 	@PostMapping("/chatroom-search")
-	public String chatroomSearch(String keyword, int page,int limit,HttpServletRequest request,HttpServletResponse response) {
+	public String chatroomSearch(String keyword, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		
+
 		List<ChatroomVo> chatroomVos = new ArrayList<>();
-		if(StringUtils.isNotEmpty(keyword)) {
+		if (StringUtils.isNotEmpty(keyword)) {
 			List<Integer> typeList = new ArrayList<Integer>();
 			typeList.add(2);
 			typeList.add(3);
-			List<ChatroomBo> myChatrooms = chatroomService.findChatroomByKeyword(keyword,page,limit,typeList);
+			List<ChatroomBo> myChatrooms = chatroomService.findChatroomByKeyword(keyword, page, limit, typeList);
 			for (ChatroomBo chatroomBo : myChatrooms) {
 				ChatroomVo chatroomVo = new ChatroomVo();
 				chatroomBo2Vo(chatroomBo, chatroomVo);
@@ -129,38 +133,62 @@ public class ChatroomController extends BaseContorller {
 			}
 		}
 
-		
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("result", chatroomVos);
 		return JSONObject.fromObject(map).toString();
 	}
-	
+
 	@ApiOperation("群聊聊天室列表")
-	@ApiImplicitParams({
-		@ApiImplicitParam(name = "userid", value = "用户id", dataType = "string", paramType = "query"),
-		@ApiImplicitParam(name = "page", value = "页码",paramType = "query",dataType = "int"),
-		@ApiImplicitParam(name = "limit", value = "显示条数",paramType = "query",dataType = "int")
-		})
+	@ApiImplicitParams({ @ApiImplicitParam(name = "userid", value = "用户id", dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "page", value = "页码", paramType = "query", dataType = "int"),
+			@ApiImplicitParam(name = "limit", value = "显示条数", paramType = "query", dataType = "int") })
 	@PostMapping("/chatroom-list")
-	public String chatroomList(String userid,int page,int limit, HttpServletRequest request,HttpServletResponse response) {
+	public String chatroomList(String userid, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@PostMapping(\"/chatroom-list\")=====userid:{},page:{},limit:{}", userid, page, limit);
+
 		List<Integer> typeList = new ArrayList<Integer>();
+		// type=2 群聊;
 		typeList.add(2);
+		// type=3 面对面群聊
 		typeList.add(3);
-		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid,page,limit,typeList);
+		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid, page, limit, typeList);
+		List<ReasonBo> resonList = reasonService.findByUserAddChatroom(userid);
 //		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid);
+
 		List<ChatroomVo> chatroomVos = new ArrayList<>();
-		for (ChatroomBo chatroomBo : myChatrooms) {
-			ChatroomVo chatroomVo = new ChatroomVo();
-			chatroomBo2Vo(chatroomBo, chatroomVo);
-			chatroomVos.add(chatroomVo);
+		Set<String> temp = new HashSet<>();
+
+		for (ReasonBo reason : resonList) {
+			for (ChatroomBo chatroomBo : myChatrooms) {
+				if (reason.getChatroomid() != null && reason.getChatroomid().equals(chatroomBo.getId())
+						&& !temp.contains(reason.getChatroomid())) {
+					ChatroomVo chatroomVo = new ChatroomVo();
+					chatroomBo2Vo(chatroomBo, chatroomVo);
+					chatroomVos.add(chatroomVo);
+					temp.add(reason.getChatroomid());
+				}
+			}
 		}
-		
+		for (ChatroomBo chatroomBo : myChatrooms) {
+			if (!temp.contains(chatroomBo.getId())) {
+				ChatroomVo chatroomVo = new ChatroomVo();
+				chatroomBo2Vo(chatroomBo, chatroomVo);
+				chatroomVos.add(chatroomVo);
+			}
+		}
+
+		/*
+		 * List<ChatroomVo> chatroomVos = new ArrayList<>(); for (ChatroomBo chatroomBo
+		 * : myChatrooms) { ChatroomVo chatroomVo = new ChatroomVo();
+		 * chatroomBo2Vo(chatroomBo, chatroomVo); chatroomVos.add(chatroomVo); }
+		 */
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("result", chatroomVos);
@@ -170,8 +198,7 @@ public class ChatroomController extends BaseContorller {
 	@ApiOperation("创建群聊")
 	@ApiImplicitParam(name = "name", value = "群聊名称", dataType = "string", paramType = "query")
 	@PostMapping("/create")
-	public String create(String name, HttpServletRequest request,
-			HttpServletResponse response) {
+	public String create(String name, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -185,7 +212,7 @@ public class ChatroomController extends BaseContorller {
 		HashSet<String> users = chatroomBo.getUsers();
 		users.add(userBo.getId());
 		chatroomService.insert(chatroomBo);
-		//第一个为返回结果信息，第二位term信息
+		// 第一个为返回结果信息，第二位term信息
 		String result = IMUtil.subscribe(0, chatroomBo.getId(), userBo.getId());
 		if (!result.equals(IMUtil.FINISH)) {
 			chatroomService.remove(chatroomBo.getId());
@@ -194,142 +221,161 @@ public class ChatroomController extends BaseContorller {
 		userService.updateChatrooms(userBo);
 		addChatroomUser(chatroomService, userBo, chatroomBo.getId(), userBo.getUserName());
 		updateUserSession(request, userService);
+
+		ReasonBo reasonBo = reasonService.findByUserAndChatroom(userBo.getId(), chatroomBo.getId());
+		if (reasonBo == null) {
+			reasonBo = new ReasonBo();
+			reasonBo.setStatus(1);
+			reasonBo.setCreateuid(userBo.getId());
+			reasonBo.setReasonType(1);
+			reasonBo.setChatroomid(chatroomBo.getId());
+			reasonBo.setOperUserid(userBo.getId());
+			reasonBo.setReason(userBo.getUserName().concat("创建群聊"));
+			reasonService.insert(reasonBo);
+		}
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("channelId", chatroomBo.getId());
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	@ApiOperation("群聊添加好友")
 	@ApiImplicitParams({
-			@ApiImplicitParam(name = "userids", value = "好友userid,多个以逗号隔开", required = true, paramType = "query",
-					dataType = "string"),
-			@ApiImplicitParam(name = "chatroomid", value = "群聊id",paramType = "query",dataType = "string")})
+			@ApiImplicitParam(name = "userids", value = "好友userid,多个以逗号隔开", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "chatroomid", value = "群聊id", paramType = "query", dataType = "string") })
 	@PostMapping("/insert-user")
-	public String insertUser(String userids, String chatroomid,
-							 HttpServletRequest request, HttpServletResponse response) {
-		UserBo userBo = getUserLogin(request);
-		if (userBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
-					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
-		}
-		if (StringUtils.isEmpty(userids)) {
-			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
-					ERRORCODE.ACCOUNT_ID.getReason());
-		}
-		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
-		if (null == chatroomBo) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
-		}
-		if (!chatroomBo.isOpen()) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NOT_OPEN.getIndex(),
-					ERRORCODE.CHATROOM_NOT_OPEN.getReason());
-		}
-		//判断参数是一个还是多个
-		String[] useridArr;
-		if (userids.indexOf(',') > 0) {
-			useridArr = userids.trim().split(",");
-		} else {
-			useridArr = new String[]{userids};
-		}
-		if (chatroomBo.isVerify() && !chatroomBo.getMaster().equals(userBo.getId())) {
+	public String insertUser(String userids, String chatroomid, HttpServletRequest request,
+			HttpServletResponse response) {
+		logger.info("@PostMapping(\"/insert-user\")=====userids:{},chatroomid:{}", userids, chatroomid);
+		Map<String, Object> map = new HashMap<String, Object>();
+		try {
+			UserBo userBo = getUserLogin(request);
+			if (userBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+			}
+			if (StringUtils.isEmpty(userids)) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
+			}
+			ChatroomBo chatroomBo = chatroomService.get(chatroomid);
+			if (null == chatroomBo) {
+				return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
+						ERRORCODE.CHATROOM_NULL.getReason());
+			}
+			if (!chatroomBo.isOpen()) {
+				return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NOT_OPEN.getIndex(),
+						ERRORCODE.CHATROOM_NOT_OPEN.getReason());
+			}
+			// 判断参数是一个还是多个
+			String[] useridArr;
+			if (userids.indexOf(',') > 0) {
+				useridArr = userids.trim().split(",");
+			} else {
+				useridArr = new String[] { userids };
+			}
 			for (String userid : useridArr) {
 				ReasonBo reasonBo = reasonService.findByUserAndChatroom(userid, chatroomid);
 				if (reasonBo == null) {
 					reasonBo = new ReasonBo();
-					reasonBo.setStatus(0);
+					reasonBo.setStatus(chatroomBo.getMaster().equals(userBo.getId()) ? 1 : 0);
 					reasonBo.setCreateuid(userid);
 					reasonBo.setReasonType(1);
 					reasonBo.setChatroomid(chatroomid);
 					reasonBo.setOperUserid(userBo.getId());
 					reasonBo.setReason(userBo.getUserName().concat("邀请加入群聊"));
 					reasonService.insert(reasonBo);
-				} 
+				}
 			}
-			String path = "";
-			String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
-			JPushUtil.push(titlePush, content, path,  useridArr);
-			addMessage(messageService, path, content, titlePush, userBo.getId(),useridArr);
-			return Constant.COM_RESP;
-		}
-		//第一个为返回结果信息，第二位term信息
-		String result = IMUtil.subscribe(1,chatroomid, useridArr);
-		if (!result.equals(IMUtil.FINISH)) {
-			return result;
+			if (chatroomBo.isVerify() && !chatroomBo.getMaster().equals(userBo.getId())) {
+				String path = "";
+				String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
+				usePush(useridArr, content, path);
+//				JPushUtil.push(titlePush, content, path, useridArr);
+				addMessage(messageService, path, content, titlePush, userBo.getId(), useridArr);
+				return Constant.COM_RESP;
+			}
+			// 第一个为返回结果信息，第二位term信息
+			String result = IMUtil.subscribe(1, chatroomid, useridArr);
+			if (!result.equals(IMUtil.FINISH)) {
+				return result;
+			}
+
+			// 为IMUtil通知做数据准备
+			LinkedHashSet<String> set = chatroomBo.getUsers();
+			String[] tt = new String[set.size() - 1];
+			int i = 0;
+			for (String uu : set) {
+				if (uu.equals(userBo.getId())) {
+					continue;
+				}
+				tt[i] = uu;
+				i++;
+			}
+			Object[] otherNameAndId = ChatRoomUtil.getUserNamesAndIds(userService, tt, logger);
+			ArrayList<String> imNames = new ArrayList<>();
+			ArrayList<String> imIds = new ArrayList<>();
+
+			for (String userid : useridArr) {
+				if (set.contains(userid)) {
+					continue;
+				}
+				UserBo user = userService.getUser(userid);
+				if (null != user) {
+					asyncController.updateUserChatroom(userid, chatroomid, true);
+					addChatroomUser(chatroomService, user, chatroomBo.getId(), user.getUserName());
+					set.add(userid);
+					imNames.add(user.getUserName());
+					imIds.add(user.getId());
+					String msg = String.format("“%s”邀请您加入群聊", userBo.getUserName());
+					// TODO
+					usePush(user.getId(), msg, "");
+//					JPushUtil.pushTo(msg, userid);
+					addMessage(messageService, "", msg, titlePush, userid);
+				}
+			}
+			String name = chatroomBo.getName();
+			// 如果群聊没有修改过名称，自动修改名称
+			RLock lock = redisServer.getRLock(chatroomid.concat("users"));
+			try {
+				lock.lock(3, TimeUnit.SECONDS);
+				if (!chatroomBo.isNameSet()) {
+					String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
+					name = newChatRoomName != null ? newChatRoomName : name;
+				}
+				chatroomService.updateNameAndUsers(chatroomid, name, chatroomBo.isNameSet(), set);
+			} finally {
+				lock.unlock();
+			}
+			asyncController.addRoomInfo(userBo, chatroomid, imIds, imNames, otherNameAndId);
+
+			map.put("ret", 0);
+			map.put("channelId", chatroomBo.getId());
+			map.put("chatroomUser", set.size());
+			map.put("chatroomName", name);
+		} catch (Exception e) {
+			logger.error("@PostMapping(\"/insert-user\")=====throw exception:{}", e);
 		}
 
-		// 为IMUtil通知做数据准备
-		LinkedHashSet<String> set = chatroomBo.getUsers();
-		String[] tt = new String[set.size() -1];
-		int i=0;
-		for(String uu: set){
-			if(uu.equals(userBo.getId())) continue;
-			tt[i++] = uu;
-		}
-		Object[] otherNameAndId = ChatRoomUtil.getUserNamesAndIds(userService, tt, logger);
-		ArrayList<String> imNames = new ArrayList<>();
-		ArrayList<String> imIds = new ArrayList<>();
-
-		for (String userid : useridArr) {
-			if (set.contains(userid)) {
-				continue;
-			}
-			UserBo user = userService.getUser(userid);
-			if (null != user) {
-				asyncController.updateUserChatroom(userid, chatroomid, true);
-				addChatroomUser(chatroomService, user, chatroomBo.getId(), user.getUserName());
-				set.add(userid);
-				imNames.add(user.getUserName());
-				imIds.add(user.getId());
-				String msg = String.format("“%s”邀请您加入群聊", userBo.getUserName());
-				JPushUtil.pushTo(msg, userid);
-				addMessage(messageService, "", msg, titlePush, userid);
-			}
-		}
-		String name = chatroomBo.getName();
-		// 如果群聊没有修改过名称，自动修改名称
-		RLock lock = redisServer.getRLock(chatroomid.concat("users"));
-		try {
-			lock.lock(3, TimeUnit.SECONDS);
-			if(!chatroomBo.isNameSet()){
-				String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
-				name = newChatRoomName != null ? newChatRoomName : name;
-			}
-			chatroomService.updateNameAndUsers(chatroomid, name, chatroomBo.isNameSet(), set);
-		} finally {
-			lock.unlock();
-		}
-		asyncController.addRoomInfo(userBo, chatroomid, imIds, imNames, otherNameAndId);
-
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("channelId", chatroomBo.getId());
-		map.put("chatroomUser", set.size());
-		map.put("chatroomName", name);
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	@ApiOperation("群聊删除用户")
 	@PostMapping("/delete-user")
-	public String deltetUser(String userids, String chatroomid,
-							 HttpServletRequest request, HttpServletResponse response) {
+	public String deltetUser(String userids, String chatroomid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		if (StringUtils.isEmpty(userids)) {
-			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(),
-					ERRORCODE.ACCOUNT_ID.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_ID.getIndex(), ERRORCODE.ACCOUNT_ID.getReason());
 		}
 		String[] useridArr = CommonUtil.getIds(userids.trim());
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (null == chatroomBo) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (!userBo.getId().equals(chatroomBo.getMaster())) {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_NOT_MASTER.getIndex(),
@@ -341,7 +387,7 @@ public class ChatroomController extends BaseContorller {
 		 * 之所以先发通知，是因为调用了IMUtil.unSubscribe这个后，订阅的关系都解除了，就没法基于群聊发通知了，被踢出的人就不能收到消息
 		 */
 		Object[] nameAndIds = ChatRoomUtil.getUserNamesAndIds(userService, useridArr, logger);
-		if (nameAndIds[0] != null){
+		if (nameAndIds[0] != null) {
 			JSONObject json = new JSONObject();
 			json.put("masterId", userBo.getId());
 			json.put("masterName", userBo.getUserName());
@@ -349,14 +395,15 @@ public class ChatroomController extends BaseContorller {
 			json.put("hitNames", nameAndIds[0]);
 
 			// 向群中发踢人通知
-			String res = IMUtil.notifyInChatRoom(Constant.SOME_ONE_EXPELLED_FROM_CHAT_ROOM, chatroomid, json.toString());
-			if(!IMUtil.FINISH.equals(res)){
-				logger.error("failed notifyInChatRoom Constant.SOME_ONE_EXPELLED_FROM_CHAT_ROOM, %s",res);
+			String res = IMUtil.notifyInChatRoom(Constant.SOME_ONE_EXPELLED_FROM_CHAT_ROOM, chatroomid,
+					json.toString());
+			if (!IMUtil.FINISH.equals(res)) {
+				logger.error("failed notifyInChatRoom Constant.SOME_ONE_EXPELLED_FROM_CHAT_ROOM, %s", res);
 				return res;
 			}
 		}
 
-		//第一个为返回结果信息，第二位term信息
+		// 第一个为返回结果信息，第二位term信息
 		String result = IMUtil.unSubscribe(chatroomid, useridArr);
 		if (!result.equals(IMUtil.FINISH) && !result.contains("not found")) {
 			return result;
@@ -369,7 +416,7 @@ public class ChatroomController extends BaseContorller {
 
 		LinkedHashSet<String> deleteUsers = new LinkedHashSet<>();
 		for (String userid : useridArr) {
-			//只能删除非自己以外人员，自己需要退出
+			// 只能删除非自己以外人员，自己需要退出
 			if (!set.contains(userid) || userid.equals(userBo.getId())) {
 				continue;
 			}
@@ -387,7 +434,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		String name = chatroomBo.getName();
 
-		//聊天室最后1人退出人则直接删除
+		// 聊天室最后1人退出人则直接删除
 		if (set.size() < 1) {
 			String res = IMUtil.disolveRoom(chatroomid);
 			if (!res.equals(IMUtil.FINISH) && !res.contains("not found")) {
@@ -395,7 +442,7 @@ public class ChatroomController extends BaseContorller {
 			}
 			deletePartyChatroom(chatroomBo, set);
 		} else {
-			if(!chatroomBo.isNameSet()){
+			if (!chatroomBo.isNameSet()) {
 				String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
 				name = newChatRoomName != null ? newChatRoomName : name;
 			}
@@ -443,20 +490,20 @@ public class ChatroomController extends BaseContorller {
 		json.put("masterId", userBo.getId());
 		json.put("masterName", userBo.getUserName());
 		String res2 = IMUtil.notifyInChatRoom(Constant.SOME_ONE_QUIT_CHAT_ROOM, chatroomid, json.toString());
-		if(!IMUtil.FINISH.equals(res2)){
-			logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s",res2);
+		if (!IMUtil.FINISH.equals(res2)) {
+			logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s", res2);
 			return res2;
 		}
 
 		String userid = userBo.getId();
-		//第一个为返回结果信息，第二位term信息
+		// 第一个为返回结果信息，第二位term信息
 		String result = IMUtil.unSubscribe(chatroomid, userid);
 		if (!result.equals(IMUtil.FINISH) && !result.contains("not found")) {
 			return result;
 		}
 		LinkedHashSet<String> set = chatroomBo.getUsers();
 		if (set.size() > 1) {
-			//如果是群主退出，则由下一个人担当
+			// 如果是群主退出，则由下一个人担当
 			if (userid.equals(chatroomBo.getMaster())) {
 				set.remove(userid);
 				String nextId = set.iterator().next();
@@ -464,13 +511,14 @@ public class ChatroomController extends BaseContorller {
 
 				// 通知群主变更通知
 				UserBo nextMaster = userService.getUser(nextId);
-				if(nextMaster != null){
+				if (nextMaster != null) {
 					JSONObject json2 = new JSONObject();
 					json2.put("masterId", nextMaster.getId());
 					json2.put("masterName", nextMaster.getUserName());
-					String res3 = IMUtil.notifyInChatRoom(Constant.MASTER_CHANGE_CHAT_ROOM, chatroomid, json2.toString());
-					if(!IMUtil.FINISH.equals(res3)){
-						logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s",res3);
+					String res3 = IMUtil.notifyInChatRoom(Constant.MASTER_CHANGE_CHAT_ROOM, chatroomid,
+							json2.toString());
+					if (!IMUtil.FINISH.equals(res3)) {
+						logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s", res3);
 						return res3;
 					}
 				}
@@ -494,7 +542,7 @@ public class ChatroomController extends BaseContorller {
 			RLock lock = redisServer.getRLock(chatroomid.concat("users"));
 			try {
 				lock.lock(3, TimeUnit.SECONDS);
-				if(!chatroomBo.isNameSet()){
+				if (!chatroomBo.isNameSet()) {
 					String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
 					name = newChatRoomName != null ? newChatRoomName : name;
 				}
@@ -511,12 +559,9 @@ public class ChatroomController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
-
 	@ApiOperation("获取所有聊天室信息")
 	@PostMapping("/get-my-chatrooms")
-	public String getChatrooms(HttpServletRequest request,
-			HttpServletResponse response) {
+	public String getChatrooms(HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -576,8 +621,7 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更具时间戳，获取好友列表")
 	@PostMapping("/my-chatrooms")
-	public String getChatrooms(String timestamp, HttpServletRequest request,
-							   HttpServletResponse response) {
+	public String getChatrooms(String timestamp, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -592,9 +636,8 @@ public class ChatroomController extends BaseContorller {
 		Date times;
 		try {
 			times = CommonUtil.getDate(timestamp);
-		} catch (ParseException e){
-			return CommonUtil.toErrorResult(ERRORCODE.FORMAT_ERROR.getIndex(),
-					ERRORCODE.FORMAT_ERROR.getReason());
+		} catch (ParseException e) {
+			return CommonUtil.toErrorResult(ERRORCODE.FORMAT_ERROR.getIndex(), ERRORCODE.FORMAT_ERROR.getReason());
 		}
 
 		List<ChatroomVo> chats = new LinkedList<>();
@@ -604,9 +647,9 @@ public class ChatroomController extends BaseContorller {
 		String timeStr = "";
 		if (chatroomBos != null && !chatroomBos.isEmpty()) {
 			ChatroomBo first = chatroomBos.get(0);
-			timeStr = CommonUtil.getDateStr(first.getCreateTime(),"yyyy-MM-dd HH:mm:ss");
+			timeStr = CommonUtil.getDateStr(first.getCreateTime(), "yyyy-MM-dd HH:mm:ss");
 			for (ChatroomBo chatroomBo : chatroomBos) {
-				//如果在展示的窗口中没有，表示已经删除
+				// 如果在展示的窗口中没有，表示已经删除
 				if (!showRooms.contains(chatroomBo.getId())) {
 					continue;
 				}
@@ -640,11 +683,12 @@ public class ChatroomController extends BaseContorller {
 
 	/**
 	 * 临时聊天室名称
+	 * 
 	 * @param chatroomBo
 	 * @param chatroomVo
 	 */
-	private void addName(ChatroomBo chatroomBo, ChatroomVo chatroomVo){
-		if (chatroomBo.getType() == 1 && StringUtils.isNotEmpty(chatroomBo.getTargetid())){
+	private void addName(ChatroomBo chatroomBo, ChatroomVo chatroomVo) {
+		if (chatroomBo.getType() == 1 && StringUtils.isNotEmpty(chatroomBo.getTargetid())) {
 			UserBo userBo = userService.getUser(chatroomBo.getFriendid());
 			if (userBo != null) {
 				chatroomVo.setName(userBo.getUserName());
@@ -652,7 +696,7 @@ public class ChatroomController extends BaseContorller {
 		}
 	}
 
-	private void bo2vo(ChatroomBo chatroomBo, ChatroomVo vo){
+	private void bo2vo(ChatroomBo chatroomBo, ChatroomVo vo) {
 		LinkedHashSet<ChatroomUserVo> userVos = vo.getUserVos();
 		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomBo.getId());
 		for (ChatroomUserBo chatroomUser : chatroomUserBos) {
@@ -676,8 +720,8 @@ public class ChatroomController extends BaseContorller {
 			userVos.add(userVo);
 		}
 	}
-	
-	private void chatroomBo2Vo(ChatroomBo chatroomBo, ChatroomVo chatroomVo){
+
+	private void chatroomBo2Vo(ChatroomBo chatroomBo, ChatroomVo chatroomVo) {
 		BeanUtils.copyProperties(chatroomBo, chatroomVo);
 		LinkedHashSet<ChatroomUserVo> userVos = chatroomVo.getUserVos();
 		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomBo.getId());
@@ -707,8 +751,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("获取聊天室详情")
 	@PostMapping("/get-chatroom-info")
-	public String getChatroomInfo(@RequestParam String chatroomid,
-			HttpServletRequest request, HttpServletResponse response){
+	public String getChatroomInfo(@RequestParam String chatroomid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -717,7 +761,7 @@ public class ChatroomController extends BaseContorller {
 		ChatroomBo temp = chatroomService.get(chatroomid);
 		ChatroomVo vo = new ChatroomVo();
 		if (null != temp) {
-			BeanUtils.copyProperties(temp,vo);
+			BeanUtils.copyProperties(temp, vo);
 
 			ChatroomUserBo chatroomUserBo = chatroomService.findChatUserByUserAndRoomid(userBo.getId(), chatroomid);
 			if (chatroomUserBo == null) {
@@ -739,13 +783,12 @@ public class ChatroomController extends BaseContorller {
 				vo.setUserNum(temp.getUsers().size());
 				vo.setShowNick(chatroomUserBo.isShowNick());
 			} else {
-				FriendsBo bo = friendsService.getFriendByIdAndVisitorIdAgree(temp.getUserid(), temp
-						.getFriendid());
+				FriendsBo bo = friendsService.getFriendByIdAndVisitorIdAgree(temp.getUserid(), temp.getFriendid());
 				if (bo != null && StringUtils.isNotEmpty(bo.getBackname())) {
 					vo.setName(bo.getBackname());
 				} else {
 					UserBo friend = userService.getUser(temp.getFriendid());
-					if (friend != null){
+					if (friend != null) {
 						vo.setName(friend.getUserName());
 					} else {
 						vo.setName(chatroomUserBo.getUsername());
@@ -754,8 +797,8 @@ public class ChatroomController extends BaseContorller {
 			}
 			vo.setDisturb(chatroomUserBo.isDisturb());
 		} else {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.CHATROOM_ID_NULL.getIndex(), ERRORCODE.CHATROOM_ID_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_ID_NULL.getIndex(),
+					ERRORCODE.CHATROOM_ID_NULL.getReason());
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
@@ -765,8 +808,7 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("置顶聊天室")
 	@PostMapping("/set-top")
-	public String setTop(String chatroomid, HttpServletRequest request,
-			HttpServletResponse response) {
+	public String setTop(String chatroomid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -774,8 +816,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (null == chatroomBo) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		HashSet<String> chatrooms = userBo.getChatrooms();
 		LinkedList<String> chatroomsTop = userBo.getChatroomsTop();
@@ -793,8 +834,7 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("取消聊天室置顶")
 	@PostMapping("/cancel-top")
-	public String cancelTop(String chatroomid, HttpServletRequest request,
-			HttpServletResponse response) {
+	public String cancelTop(String chatroomid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -802,8 +842,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (null == chatroomBo) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		userBo.getChatrooms().add(chatroomid);
 		userBo.getChatroomsTop().remove(chatroomid);
@@ -816,8 +855,7 @@ public class ChatroomController extends BaseContorller {
 	@PostMapping("/facetoface-create")
 	public String faceToFaceCreate(@RequestParam int seq, @RequestParam double px, @RequestParam double py,
 			HttpServletRequest request, HttpServletResponse response) {
-		// TODO
-		UserBo userBo;		
+		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
 		} catch (MyException e) {
@@ -825,10 +863,10 @@ public class ChatroomController extends BaseContorller {
 		}
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		boolean isNew = false;
-		double[] position = new double[]{px,py};
+		double[] position = new double[] { px, py };
 		ChatroomBo chatroom = null;
 		try {
-			//10s自动解锁
+			// 10s自动解锁
 			lock.lock(4, TimeUnit.SECONDS);
 			chatroom = chatroomService.selectBySeqInTen(seq, position, 100);
 			if (null == chatroom) {
@@ -841,25 +879,25 @@ public class ChatroomController extends BaseContorller {
 			}
 			if (isNew) {
 				chatroom.setName(userBo.getUserName());
-                chatroomService.insert(chatroom);
-            } else {
+				chatroomService.insert(chatroom);
+			} else {
 				// 如果群聊没有修改过名称，自动修改名称
 				String name = chatroom.getName();
-				if(!chatroom.isNameSet()){
-					String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService,
-							chatroom.getUsers(), chatroom.getId(), logger);
+				if (!chatroom.isNameSet()) {
+					String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, chatroom.getUsers(),
+							chatroom.getId(), logger);
 					name = newChatRoomName != null ? newChatRoomName : name;
 				}
 				chatroomService.updateNameAndUsers(chatroom.getId(), name, chatroom.isNameSet(), chatroom.getUsers());
-            }
+			}
 		} finally {
 			lock.unlock();
 		}
 		int type = isNew ? 0 : 1;
-		String res = IMUtil.subscribe(type,chatroom.getId(), userBo.getId());
+		String res = IMUtil.subscribe(type, chatroom.getId(), userBo.getId());
 		logger.info("face  user {}, chatroom {},  res {}", userBo.getId(), chatroom.getId(), res);
 		if (!res.equals(IMUtil.FINISH)) {
-			//失败需要还原
+			// 失败需要还原
 			if (isNew) {
 				chatroomService.remove(chatroom.getId());
 			} else {
@@ -878,17 +916,18 @@ public class ChatroomController extends BaseContorller {
 		addChatroomUser(chatroomService, userBo, chatroom.getId(), userBo.getUserName());
 
 		// 发送通知推送
-		if(!isNew){
+		if (!isNew) {
 			LinkedHashSet<String> users = chatroom.getUsers();
-			String[] tt = new String[users.size()-1];
-			int i=0;
-			for(String uu: users){
-				if(uu.equals(userBo.getId())) continue;
+			String[] tt = new String[users.size() - 1];
+			int i = 0;
+			for (String uu : users) {
+				if (uu.equals(userBo.getId()))
+					continue;
 				tt[i++] = uu;
 			}
 			Object[] otherNameAndId = ChatRoomUtil.getUserNamesAndIds(userService, tt, logger);
 
-			if(otherNameAndId[0] != null){
+			if (otherNameAndId[0] != null) {
 				JSONObject json = new JSONObject();
 				json.put("masterId", userBo.getId());
 				json.put("masterName", userBo.getUserName());
@@ -896,32 +935,42 @@ public class ChatroomController extends BaseContorller {
 				json.put("otherNames", otherNameAndId[0]);
 
 				// 向群中发某人加入群聊通知
-				String res2 = IMUtil.notifyInChatRoom(
-						Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM,
-						chatroom.getId(),
+				String res2 = IMUtil.notifyInChatRoom(Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, chatroom.getId(),
 						json.toString());
-				logger.info("===============================old chatroot,  user [{}], chatroom {},  res {}",userBo.getId(),chatroom.getId(), res2);
-				if(!IMUtil.FINISH.equals(res2)){
-					logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s",res2);
+				logger.info("===============================old chatroot,  user [{}], chatroom {},  res {}",
+						userBo.getId(), chatroom.getId(), res2);
+				if (!IMUtil.FINISH.equals(res2)) {
+					logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s", res2);
 				}
 			}
 
-		}else{
+		} else {
 
 			JSONObject json = new JSONObject();
 			json.put("masterId", userBo.getId());
 			json.put("masterName", userBo.getUserName());
 			json.put("number", seq);
 
-			String res2 = IMUtil.notifyInChatRoom(
-					Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM,
-					chatroom.getId(),
+			String res2 = IMUtil.notifyInChatRoom(Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, chatroom.getId(),
 					json.toString());
-			logger.info("===============================new chatroot,  user [{}], chatroom {},  res {}",userBo.getId(),chatroom.getId(), res2);
+			logger.info("===============================new chatroot,  user [{}], chatroom {},  res {}", userBo.getId(),
+					chatroom.getId(), res2);
 
-			if(!IMUtil.FINISH.equals(res2)){
-				logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s",res2);
+			if (!IMUtil.FINISH.equals(res2)) {
+				logger.error("failed notifyInChatRoom Constant.FACE_TO_FACE_SOME_ONE_JOIN_CHAT_ROOM, %s", res2);
 			}
+		}
+
+		ReasonBo reasonBo = reasonService.findByUserAndChatroom(userBo.getId(), chatroom.getId());
+		if (reasonBo == null) {
+			reasonBo = new ReasonBo();
+			reasonBo.setStatus(1);
+			reasonBo.setCreateuid(userBo.getId());
+			reasonBo.setReasonType(1);
+			reasonBo.setChatroomid(chatroom.getId());
+			reasonBo.setOperUserid(userBo.getId());
+			reasonBo.setReason(userBo.getUserName().concat("加入面对面群聊"));
+			reasonService.insert(reasonBo);
 		}
 
 		Map<String, Object> map = new HashMap<>();
@@ -930,8 +979,7 @@ public class ChatroomController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
-	private ChatroomBo getChatroomBo(int seq, double[] position, UserBo userBo){
+	private ChatroomBo getChatroomBo(int seq, double[] position, UserBo userBo) {
 		ChatroomBo chatroom = new ChatroomBo();
 		chatroom.setSeq(seq);
 		chatroom.setCreateuid(userBo.getId());
@@ -945,20 +993,16 @@ public class ChatroomController extends BaseContorller {
 		return chatroom;
 	}
 
-
 	@ApiOperation("面对面群聊添加好友")
 	@PostMapping("/factoface-add")
-	public String faceToFaceAdd(int seq, double px, double py,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String faceToFaceAdd(int seq, double px, double py, HttpServletRequest request,
+			HttpServletResponse response) {
 		return faceToFaceCreate(seq, px, py, request, response);
 	}
 
-
-
 	@ApiOperation("转让群聊")
 	@PostMapping("/trans-chatroom")
-	public String tansRoom(String chatroomid, String userid,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String tansRoom(String chatroomid, String userid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -967,13 +1011,11 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		UserBo master = userService.getUser(userid);
 		if (master == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
 		if (userBo.getId().equals(chatroomBo.getMaster())) {
 			chatroomService.updateMaster(chatroomid, userid);
@@ -987,22 +1029,20 @@ public class ChatroomController extends BaseContorller {
 		json.put("masterId", master.getId());
 		json.put("masterName", master.getUserName());
 		String res3 = IMUtil.notifyInChatRoom(Constant.MASTER_CHANGE_CHAT_ROOM, chatroomid, json.toString());
-		if(!IMUtil.FINISH.equals(res3)){
-			logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s",res3);
+		if (!IMUtil.FINISH.equals(res3)) {
+			logger.error("failed notifyInChatRoom Constant.SOME_ONE_QUIT_CHAT_ROOM, %s", res3);
 			return res3;
 		}
 
-		String content = String.format("“%s将群聊【%s】转让给了您，快去看看吧", userBo.getUserName(),
-				chatroomBo.getName());
-        JPushUtil.push(titlePush, content, "", userid);
+		String content = String.format("“%s将群聊【%s】转让给了您，快去看看吧", userBo.getUserName(), chatroomBo.getName());
+		JPushUtil.push(titlePush, content, "", userid);
 		addMessage(messageService, "", content, titlePush, userid);
 		return Constant.COM_RESP;
 	}
 
 	@ApiOperation("更新群聊名称")
 	@PostMapping("/update-name")
-	public String updateName(String chatroomid, String name,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String updateName(String chatroomid, String name, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1011,8 +1051,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (chatroomBo.getUsers().contains(userBo.getId())) {
 			chatroomService.updateName(chatroomid, name, true);
@@ -1027,8 +1066,8 @@ public class ChatroomController extends BaseContorller {
 		json.put("masterName", userBo.getUserName());
 		json.put("chatRoomName", name);
 		String res2 = IMUtil.notifyInChatRoom(Constant.SOME_ONE_MODIFY_NAME_OF_CHAT_ROOM, chatroomid, json.toString());
-		if(!IMUtil.FINISH.equals(res2)){
-			logger.error("failed notifyInChatRoom Constant.SOME_ONE_MODIFY_NAME_OF_CHAT_ROOM, %s",res2);
+		if (!IMUtil.FINISH.equals(res2)) {
+			logger.error("failed notifyInChatRoom Constant.SOME_ONE_MODIFY_NAME_OF_CHAT_ROOM, %s", res2);
 		}
 
 		return Constant.COM_RESP;
@@ -1036,8 +1075,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更新群聊描述")
 	@PostMapping("/update-description")
-	public String updateDescription(String chatroomid, String description,
-							 HttpServletRequest request, HttpServletResponse response) {
+	public String updateDescription(String chatroomid, String description, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1046,8 +1085,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (userBo.getId().equals(chatroomBo.getMaster())) {
 			chatroomService.updateDescription(chatroomid, description);
@@ -1060,8 +1098,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更新群聊加入开发状态")
 	@PostMapping("/update-open")
-	public String updateOpen(String chatroomid, boolean isOpen,
-									HttpServletRequest request, HttpServletResponse response) {
+	public String updateOpen(String chatroomid, boolean isOpen, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1070,8 +1108,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (userBo.getId().equals(chatroomBo.getMaster())) {
 			chatroomService.updateOpen(chatroomid, isOpen);
@@ -1084,8 +1121,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更新群聊加入验证状态")
 	@PostMapping("/update-verify")
-	public String updateVerify(String chatroomid, boolean isVerify,
-									HttpServletRequest request, HttpServletResponse response) {
+	public String updateVerify(String chatroomid, boolean isVerify, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1094,8 +1131,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (userBo.getId().equals(chatroomBo.getMaster())) {
 			chatroomService.updateVerify(chatroomid, isVerify);
@@ -1114,8 +1150,8 @@ public class ChatroomController extends BaseContorller {
 				ids.add(userid);
 				names.add(user.getUserName());
 			}
-			if(ids.size() > 0){
-				//异步推送群聊信息
+			if (ids.size() > 0) {
+				// 异步推送群聊信息
 				Callable call = () -> {
 					JSONObject json = new JSONObject();
 					json.put("masterId", userBo.getId());
@@ -1124,15 +1160,15 @@ public class ChatroomController extends BaseContorller {
 					json.put("otherNames", names);
 					json.put("verify", isVerify);
 					// 向群中发某人加入群聊通知
-					String res = IMUtil.notifyInChatRoom(
-							Constant.MASTER_CHANGE_CHAT_VERIFY, chatroomid, json.toString());
-					if(!IMUtil.FINISH.equals(res)){
-						logger.error("failed notifyInChatRoom Constant.MASTER_CHANGE_CHAT_VERIFY , %s",res);
+					String res = IMUtil.notifyInChatRoom(Constant.MASTER_CHANGE_CHAT_VERIFY, chatroomid,
+							json.toString());
+					if (!IMUtil.FINISH.equals(res)) {
+						logger.error("failed notifyInChatRoom Constant.MASTER_CHANGE_CHAT_VERIFY , %s", res);
 					}
 					return null;
 				};
 			}
-			//删除不存在的用户
+			// 删除不存在的用户
 			if (!removes.isEmpty()) {
 				set.add(userBo.getId());
 				set.removeAll(removes);
@@ -1145,18 +1181,13 @@ public class ChatroomController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-
-
-
 	@ApiOperation("修改群聊里面的个人昵称")
 	@ApiImplicitParams({
-			@ApiImplicitParam(name = "chatroomid", value = "群聊id", required = true, dataType =
-					"string", paramType = "query"),
-			@ApiImplicitParam(name = "nickname", value = "昵称", required = true, dataType = "string", paramType =
-					"query")})
+			@ApiImplicitParam(name = "chatroomid", value = "群聊id", required = true, dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "nickname", value = "昵称", required = true, dataType = "string", paramType = "query") })
 	@PostMapping("/update-nickname")
-	public String updateNickname(String chatroomid, String nickname,
-							   HttpServletRequest request, HttpServletResponse response) {
+	public String updateNickname(String chatroomid, String nickname, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1165,29 +1196,26 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		ChatroomUserBo chatroomUserBo = chatroomService.findChatUserByUserAndRoomid(userBo.getId(), chatroomid);
 		if (chatroomUserBo == null) {
-			 chatroomUserBo = new ChatroomUserBo();
-			 chatroomUserBo.setNickname(nickname);
-			 chatroomUserBo.setUserid(userBo.getId());
-			 chatroomUserBo.setChatroomid(chatroomid);
-			 chatroomService.insertUser(chatroomUserBo);
+			chatroomUserBo = new ChatroomUserBo();
+			chatroomUserBo.setNickname(nickname);
+			chatroomUserBo.setUserid(userBo.getId());
+			chatroomUserBo.setChatroomid(chatroomid);
+			chatroomService.insertUser(chatroomUserBo);
 		} else {
-			chatroomService.updateUserNickname(userBo.getId(),chatroomid, nickname);
+			chatroomService.updateUserNickname(userBo.getId(), chatroomid, nickname);
 		}
 		return Constant.COM_RESP;
 	}
 
 	@ApiOperation("获取群聊用户的昵称信息")
-	@ApiImplicitParam(name = "chatroomid", value = "群聊id", required = true, dataType =
-					"string", paramType = "query")
+	@ApiImplicitParam(name = "chatroomid", value = "群聊id", required = true, dataType = "string", paramType = "query")
 	@PostMapping("/get-nicknames")
 	@ResponseBody
-	public String getNickname(String chatroomid,
-								 HttpServletRequest request, HttpServletResponse response) {
+	public String getNickname(String chatroomid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1195,8 +1223,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomid);
 		List<ChatroomUserVo> userVos = new ArrayList<>();
@@ -1224,8 +1251,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更新昵称显示状态")
 	@PostMapping("/update-shownick")
-	public String updateShowNickname(String chatroomid, boolean isShowNick,
-								 HttpServletRequest request, HttpServletResponse response) {
+	public String updateShowNickname(String chatroomid, boolean isShowNick, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1235,8 +1262,7 @@ public class ChatroomController extends BaseContorller {
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
 			asyncController.deleteNickname(userBo.getId(), chatroomid);
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		ChatroomUserBo chatroomUserBo = chatroomService.findChatUserByUserAndRoomid(userBo.getId(), chatroomid);
 		if (chatroomUserBo == null) {
@@ -1254,8 +1280,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("更新群聊免打扰状态")
 	@PostMapping("/update-disturb")
-	public String updateDisturb(String chatroomid, boolean isDisturb,
-								 HttpServletRequest request, HttpServletResponse response) {
+	public String updateDisturb(String chatroomid, boolean isDisturb, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1265,11 +1291,10 @@ public class ChatroomController extends BaseContorller {
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
 			asyncController.deleteNickname(userBo.getId(), chatroomid);
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		ChatroomUserBo chatroomUserBo = chatroomService.findChatUserByUserAndRoomid(userBo.getId(), chatroomid);
-		//单人聊天也存在免打扰信息
+		// 单人聊天也存在免打扰信息
 		if (chatroomUserBo == null) {
 			chatroomUserBo = new ChatroomUserBo();
 			chatroomUserBo.setChatroomid(chatroomid);
@@ -1284,11 +1309,10 @@ public class ChatroomController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-
 	@ApiOperation("申请加入群聊，包括通过二维码扫描")
 	@PostMapping("/apply-insert")
-	public String applyInsert(String chatroomid, String shareUserid,
-							 HttpServletRequest request, HttpServletResponse response) {
+	public String applyInsert(String chatroomid, String shareUserid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1297,11 +1321,10 @@ public class ChatroomController extends BaseContorller {
 		String userid = userBo.getId();
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (chatroomBo.isVerify()) {
-			String reason = String.format("“%s”通过二维码申请加入群聊",userBo.getUserName());
+			String reason = String.format("“%s”通过二维码申请加入群聊", userBo.getUserName());
 			ReasonBo reasonBo = reasonService.findByUserAndChatroom(userid, chatroomid);
 			if (reasonBo == null) {
 				reasonBo = new ReasonBo();
@@ -1313,7 +1336,7 @@ public class ChatroomController extends BaseContorller {
 				reasonBo.setAddType(2);
 				reasonBo.setReason(reason);
 				reasonService.insert(reasonBo);
-			} else if (reasonBo.getStatus() == Constant.ADD_APPLY){
+			} else if (reasonBo.getStatus() == Constant.ADD_APPLY) {
 				return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_APPLY_EXIST.getIndex(),
 						ERRORCODE.CHATROOM_APPLY_EXIST.getReason());
 			} else if (reasonBo.getStatus() == Constant.ADD_AGREE) {
@@ -1324,14 +1347,14 @@ public class ChatroomController extends BaseContorller {
 			}
 			return Constant.RESP_SUCCES;
 		} else {
-			//第一个为返回结果信息，第二位term信息
-			String result = IMUtil.subscribe(1,chatroomid, userBo.getId());
+			// 第一个为返回结果信息，第二位term信息
+			String result = IMUtil.subscribe(1, chatroomid, userBo.getId());
 			if (!result.equals(IMUtil.FINISH)) {
 				return result;
 			}
 			addChatroomUser(chatroomService, userBo, chatroomid, userBo.getUserName());
 			HashSet<String> chatroom = userBo.getChatrooms();
-			//个人聊天室中没有当前聊天室，则添加到个人的聊天室
+			// 个人聊天室中没有当前聊天室，则添加到个人的聊天室
 			if (!chatroom.contains(chatroomid)) {
 				chatroom.add(chatroomid);
 				userBo.setChatrooms(chatroom);
@@ -1341,20 +1364,21 @@ public class ChatroomController extends BaseContorller {
 			LinkedHashSet<String> set = chatroomBo.getUsers();
 			int size = set.size();
 			if (set.contains(userBo.getId())) {
-				size --;
+				size--;
 			}
 			String name = chatroomBo.getName();
 			String[] tt = new String[size];
-			int i=0;
-			for(String uu: set){
-				if (uu.equals(userBo.getId())) continue;
+			int i = 0;
+			for (String uu : set) {
+				if (uu.equals(userBo.getId()))
+					continue;
 				tt[i++] = uu;
 			}
 			Object[] otherNameAndId = ChatRoomUtil.getUserNamesAndIds(userService, tt, logger);
 			ArrayList<String> imNames = new ArrayList<>();
 			ArrayList<String> imIds = new ArrayList<>();
 			// 如果群聊没有修改过名称，自动修改名称
-			if(!chatroomBo.isNameSet()){
+			if (!chatroomBo.isNameSet()) {
 				String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
 				name = newChatRoomName != null ? newChatRoomName : name;
 			}
@@ -1371,6 +1395,7 @@ public class ChatroomController extends BaseContorller {
 
 	/**
 	 * 加群验证信息提交
+	 * 
 	 * @param chatroomid
 	 * @param reason
 	 * @param request
@@ -1379,8 +1404,8 @@ public class ChatroomController extends BaseContorller {
 	 */
 	@ApiOperation("申请加群聊验证信息提交")
 	@PostMapping("/add-verify")
-	public String addVerify(String chatroomid, String reason,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String addVerify(String chatroomid, String reason, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1395,7 +1420,7 @@ public class ChatroomController extends BaseContorller {
 			reasonBo.setChatroomid(chatroomid);
 			reasonBo.setReason(reason);
 			reasonService.insert(reasonBo);
-		} else if (reasonBo.getStatus() == Constant.ADD_APPLY){
+		} else if (reasonBo.getStatus() == Constant.ADD_APPLY) {
 			reasonService.updateApply(reasonBo.getId(), Constant.ADD_APPLY, reason);
 			return Constant.COM_RESP;
 		} else if (reasonBo.getStatus() == Constant.ADD_AGREE) {
@@ -1409,6 +1434,7 @@ public class ChatroomController extends BaseContorller {
 
 	/**
 	 * 加群验证申请信息
+	 * 
 	 * @param chatroomid
 	 * @param request
 	 * @param response
@@ -1416,8 +1442,8 @@ public class ChatroomController extends BaseContorller {
 	 */
 	@ApiOperation("群聊申请加入列表")
 	@PostMapping("/apply-list")
-	public String roomVerifyList(String chatroomid, int page, int limit,
-							HttpServletRequest request, HttpServletResponse response) {
+	public String roomVerifyList(String chatroomid, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1447,6 +1473,7 @@ public class ChatroomController extends BaseContorller {
 
 	/**
 	 * 加群验证操作
+	 * 
 	 * @param chatroomid
 	 * @param refues
 	 * @param request
@@ -1456,7 +1483,7 @@ public class ChatroomController extends BaseContorller {
 	@ApiOperation("操作加入群聊信息的申请")
 	@PostMapping("/apply-operate")
 	public String applyVerify(String chatroomid, String applyid, boolean isAgree, String refues,
-							HttpServletRequest request, HttpServletResponse response) {
+			HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1464,8 +1491,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		ReasonBo reasonBo = reasonService.findById(applyid);
 		if (reasonBo == null) {
@@ -1479,15 +1505,15 @@ public class ChatroomController extends BaseContorller {
 		if (isAgree) {
 			UserBo user = userService.getUser(reasonBo.getCreateuid());
 			reasonService.updateApply(applyid, 1, refues);
-			//第一个为返回结果信息，第二位term信息
-			String result = IMUtil.subscribe(1,chatroomid, user.getId());
+			// 第一个为返回结果信息，第二位term信息
+			String result = IMUtil.subscribe(1, chatroomid, user.getId());
 			if (!result.equals(IMUtil.FINISH)) {
 				return result;
 			}
-			
-			addChatroomUser(chatroomService, user, chatroomid, user.getUserName());	
+
+			addChatroomUser(chatroomService, user, chatroomid, user.getUserName());
 			HashSet<String> chatroom = user.getChatrooms();
-			//个人聊天室中没有当前聊天室，则添加到个人的聊天室
+			// 个人聊天室中没有当前聊天室，则添加到个人的聊天室
 			if (!chatroom.contains(chatroomid)) {
 				chatroom.add(chatroomid);
 				user.setChatrooms(chatroom);
@@ -1497,19 +1523,20 @@ public class ChatroomController extends BaseContorller {
 			LinkedHashSet<String> set = chatroomBo.getUsers();
 			int size = set.size();
 			if (set.contains(user.getId())) {
-				size --;
+				size--;
 			}
 			String[] tt = new String[size];
-			int i=0;
-			for(String uu: set){
-				if (uu.equals(user.getId())) continue;
+			int i = 0;
+			for (String uu : set) {
+				if (uu.equals(user.getId()))
+					continue;
 				tt[i++] = uu;
 			}
 			Object[] otherNameAndId = ChatRoomUtil.getUserNamesAndIds(userService, tt, logger);
 			ArrayList<String> imNames = new ArrayList<>();
 			ArrayList<String> imIds = new ArrayList<>();
 			// 如果群聊没有修改过名称，自动修改名称
-			if(!chatroomBo.isNameSet()){
+			if (!chatroomBo.isNameSet()) {
 				String newChatRoomName = ChatRoomUtil.generateChatRoomName(userService, set, chatroomid, logger);
 				name = newChatRoomName != null ? newChatRoomName : name;
 			}
@@ -1520,7 +1547,7 @@ public class ChatroomController extends BaseContorller {
 
 			String path = "";
 			String content = String.format("%s已通过您的加群申请", user.getUserName());
-			JPushUtil.push(titlePush, content, path,  reasonBo.getCreateuid());
+			JPushUtil.push(titlePush, content, path, reasonBo.getCreateuid());
 			addMessage(messageService, path, content, titlePush, reasonBo.getCreateuid());
 			map.put("chatroomUser", set.size());
 		} else {
@@ -1533,6 +1560,7 @@ public class ChatroomController extends BaseContorller {
 
 	/**
 	 * 删除用户群聊窗口
+	 * 
 	 * @param chatroomid
 	 * @param request
 	 * @param response
@@ -1540,8 +1568,7 @@ public class ChatroomController extends BaseContorller {
 	 */
 	@ApiOperation("客户端删除群聊窗口")
 	@PostMapping("/delete-show")
-	public String deleteChatroomTable(String chatroomid,
-							  HttpServletRequest request, HttpServletResponse response) {
+	public String deleteChatroomTable(String chatroomid, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		HttpSession session = request.getSession();
 		if (userBo == null) {
@@ -1552,27 +1579,24 @@ public class ChatroomController extends BaseContorller {
 		if (showChatrooms.contains(chatroomid)) {
 			showChatrooms.remove(chatroomid);
 			userService.updateShowChatrooms(userBo.getId(), showChatrooms);
-			//刷新session中个人信息
+			// 刷新session中个人信息
 			session.setAttribute("userBo", userBo);
 		}
 		return Constant.COM_RESP;
 	}
-
 
 	/**
 	 * 添加公告
 	 */
 	@ApiOperation("添加群聊公告")
 	@ApiImplicitParams({
-			@ApiImplicitParam(name = "circleid", value = "群聊id", required = true, paramType = "query",
-					dataType = "string"),
-			@ApiImplicitParam(name = "title", value = "公告标题", paramType = "query",dataType = "string"),
-			@ApiImplicitParam(name = "content", value = "公告内容", paramType = "query",dataType = "string"),
-			@ApiImplicitParam(name = "images", value = "公告图片数组", dataType = "file")})
+			@ApiImplicitParam(name = "circleid", value = "群聊id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "title", value = "公告标题", paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "content", value = "公告内容", paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "images", value = "公告图片数组", dataType = "file") })
 	@PostMapping("/add-notice")
-	public String chatroomAddNotice(@RequestParam String chatroomid,
-								  String title, String content, MultipartFile[] images,
-								  HttpServletRequest request, HttpServletResponse response) {
+	public String chatroomAddNotice(@RequestParam String chatroomid, String title, String content,
+			MultipartFile[] images, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1581,8 +1605,7 @@ public class ChatroomController extends BaseContorller {
 		String userid = userBo.getId();
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (chatroomBo.getMaster().equals(userid)) {
 			CircleNoticeBo noticeBo = new CircleNoticeBo();
@@ -1591,7 +1614,7 @@ public class ChatroomController extends BaseContorller {
 			noticeBo.setCreateuid(userid);
 			noticeBo.setChatroomid(chatroomid);
 			noticeBo.setNoticeType(1);
-			//发布人默认阅读
+			// 发布人默认阅读
 			LinkedHashSet<String> readUsers = noticeBo.getReadUsers();
 			readUsers.add(userid);
 			HashSet<String> users = chatroomBo.getUsers();
@@ -1605,8 +1628,7 @@ public class ChatroomController extends BaseContorller {
 				for (MultipartFile file : images) {
 					long time = Calendar.getInstance().getTimeInMillis();
 					String fileName = String.format("%s-%d-%s", userid, time, file.getOriginalFilename());
-					String path = CommonUtil.upload(file,
-							Constant.CHATROOM_PICTURE_PATH, fileName, 0);
+					String path = CommonUtil.upload(file, Constant.CHATROOM_PICTURE_PATH, fileName, 0);
 					logger.info("chatroom add notice pic path: {},  size: {} ", path, file.getSize());
 					files.add(path);
 				}
@@ -1625,17 +1647,14 @@ public class ChatroomController extends BaseContorller {
 	 */
 	@ApiOperation("修改群聊公告,不修改参数可为空")
 	@ApiImplicitParams({
-			@ApiImplicitParam(name = "noticeid", value = "公告id", required = true, paramType = "query",
-					dataType = "string"),
-			@ApiImplicitParam(name = "title", value = "公告标题", paramType = "query",dataType = "string"),
-			@ApiImplicitParam(name = "content", value = "公告内容", paramType = "query",dataType = "string"),
+			@ApiImplicitParam(name = "noticeid", value = "公告id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "title", value = "公告标题", paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "content", value = "公告内容", paramType = "query", dataType = "string"),
 			@ApiImplicitParam(name = "addImages", value = "新增的公告图片", dataType = "file"),
-			@ApiImplicitParam(name = "delImages", value = "要删除的公告图片url，多个以逗号隔开", paramType = "query",
-					dataType = "string")})
+			@ApiImplicitParam(name = "delImages", value = "要删除的公告图片url，多个以逗号隔开", paramType = "query", dataType = "string") })
 	@PostMapping("/update-notice")
-	public String updateNotice(@RequestParam String noticeid, String title, String content,
-							   MultipartFile[] addImages, String delImages,
-							   HttpServletRequest request, HttpServletResponse response) {
+	public String updateNotice(@RequestParam String noticeid, String title, String content, MultipartFile[] addImages,
+			String delImages, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1649,8 +1668,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(noticeBo.getChatroomid());
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (!chatroomBo.getMaster().contains(userid)) {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_MASTER_NULL.getIndex(),
@@ -1670,12 +1688,11 @@ public class ChatroomController extends BaseContorller {
 			for (MultipartFile file : addImages) {
 				long time = Calendar.getInstance().getTimeInMillis();
 				String fileName = String.format("%s-%d-%s", userid, time, file.getOriginalFilename());
-				String path = CommonUtil.upload(file,
-						Constant.CHATROOM_PICTURE_PATH, fileName, 0);
+				String path = CommonUtil.upload(file, Constant.CHATROOM_PICTURE_PATH, fileName, 0);
 				files.add(path);
 			}
 		}
-		if(StringUtils.isNotEmpty(delImages)){
+		if (StringUtils.isNotEmpty(delImages)) {
 			String[] urls = CommonUtil.getIds(delImages);
 			for (String url : urls) {
 				files.remove(url);
@@ -1686,14 +1703,12 @@ public class ChatroomController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-
 	/**
 	 * 添加或修改公告
 	 */
 	@ApiOperation("获取群聊公告详情")
 	@PostMapping("/get-notice")
-	public String getNotice(@RequestParam String noticeid,
-							HttpServletRequest request, HttpServletResponse response) {
+	public String getNotice(@RequestParam String noticeid, HttpServletRequest request, HttpServletResponse response) {
 		CircleNoticeBo noticeBo = circleService.findNoticeById(noticeid);
 		if (noticeBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NOTICE_NULL.getIndex(),
@@ -1701,8 +1716,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(noticeBo.getChatroomid());
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		UserBo loginUser = getUserLogin(request);
 		LinkedHashSet<String> readUsers = noticeBo.getReadUsers();
@@ -1711,13 +1725,13 @@ public class ChatroomController extends BaseContorller {
 		if (loginUser != null) {
 			String userid = loginUser.getId();
 			HashSet<String> users = chatroomBo.getUsers();
-			asyncController.updateNoticeRead(users,noticeid, loginUser.getId());
-			readNum = !readUsers.contains(userid) && users.contains(userid) ? readNum+1 : readNum;
+			asyncController.updateNoticeRead(users, noticeid, loginUser.getId());
+			readNum = !readUsers.contains(userid) && users.contains(userid) ? readNum + 1 : readNum;
 		}
 		UserBo userBo = userService.getUser(noticeBo.getCreateuid());
 		Map<String, Object> map = new LinkedHashMap<>();
 		map.put("ret", 0);
-		map.put("noticeid",noticeBo.getId());
+		map.put("noticeid", noticeBo.getId());
 		map.put("noticeTitle", noticeBo.getTitle());
 		map.put("notice", noticeBo.getContent());
 		map.put("noticeTime", noticeBo.getCreateTime());
@@ -1736,8 +1750,8 @@ public class ChatroomController extends BaseContorller {
 	 */
 	@ApiOperation("群聊公告阅读详情")
 	@PostMapping("/notice-read")
-	public String getNoticeRead(@RequestParam String noticeid,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String getNoticeRead(@RequestParam String noticeid, HttpServletRequest request,
+			HttpServletResponse response) {
 		CircleNoticeBo noticeBo = circleService.findNoticeById(noticeid);
 		if (noticeBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_NOTICE_NULL.getIndex(),
@@ -1775,8 +1789,8 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("删除群聊公告")
 	@PostMapping("/delete-notice")
-	public String deleteNoticeRead(@RequestParam String noticeid,
-								   HttpServletRequest request, HttpServletResponse response) {
+	public String deleteNoticeRead(@RequestParam String noticeid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1790,8 +1804,7 @@ public class ChatroomController extends BaseContorller {
 		String userid = userBo.getId();
 		ChatroomBo chatroomBo = chatroomService.get(noticeBo.getChatroomid());
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		if (chatroomBo.getMaster().contains(userid)) {
 			circleService.deleteNotice(noticeid, userid);
@@ -1804,21 +1817,20 @@ public class ChatroomController extends BaseContorller {
 
 	@ApiOperation("获取圈子公告历史列表, 返回最近10条")
 	@PostMapping("/get-notice-list")
-	public String getNoticeList(@RequestParam String chatroomid,int page, int limit,
-								HttpServletRequest request, HttpServletResponse response) {
+	public String getNoticeList(@RequestParam String chatroomid, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		ChatroomBo chatroomBo = chatroomService.get(chatroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
-		List<CircleNoticeBo> noticeBos = circleService.findCircleNotice(chatroomid,1, page, limit);
+		List<CircleNoticeBo> noticeBos = circleService.findCircleNotice(chatroomid, 1, page, limit);
 		JSONArray array = new JSONArray();
 		if (!CommonUtil.isEmpty(noticeBos)) {
 			for (CircleNoticeBo noticeBo : noticeBos) {
 				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("noticeid",noticeBo.getId());
+				jsonObject.put("noticeid", noticeBo.getId());
 				jsonObject.put("noticeTitle", noticeBo.getTitle());
 				jsonObject.put("notice", noticeBo.getContent());
 				jsonObject.put("noticeTime", noticeBo.getCreateTime());
@@ -1837,14 +1849,13 @@ public class ChatroomController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	/**
 	 * 添加或修改公告
 	 */
 	@ApiOperation("获取所有未读公告信息")
 	@PostMapping("/unRead-notice-list")
-	public String unReadNotices(String chatroomid,int page, int limit, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String unReadNotices(String chatroomid, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1852,13 +1863,12 @@ public class ChatroomController extends BaseContorller {
 		}
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
-		List<CircleNoticeBo> noticeBos = circleService.findUnReadNotices(userBo.getId(),
-				chatroomid, 1, page, limit);
+		List<CircleNoticeBo> noticeBos = circleService.findUnReadNotices(userBo.getId(), chatroomid, 1, page, limit);
 		JSONArray array = new JSONArray();
 		if (!CommonUtil.isEmpty(noticeBos)) {
 			for (CircleNoticeBo noticeBo : noticeBos) {
 				JSONObject jsonObject = new JSONObject();
-				jsonObject.put("noticeid",noticeBo.getId());
+				jsonObject.put("noticeid", noticeBo.getId());
 				jsonObject.put("noticeTitle", noticeBo.getTitle());
 				jsonObject.put("notice", noticeBo.getContent());
 				jsonObject.put("noticeTime", noticeBo.getCreateTime());
@@ -1877,15 +1887,14 @@ public class ChatroomController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	/**
 	 * 添加或修改公告
 	 */
 	@ApiOperation("将指定的公告集合设置为已读")
-	@ApiImplicitParam(name = "noticeids", value = "公告id,多个以逗号隔开", required = true, paramType = "query",
-			dataType = "string")
+	@ApiImplicitParam(name = "noticeids", value = "公告id,多个以逗号隔开", required = true, paramType = "query", dataType = "string")
 	@PostMapping("/update-unRead-list")
-	public String readNotices(@RequestParam String noticeids, HttpServletRequest request, HttpServletResponse response) {
+	public String readNotices(@RequestParam String noticeids, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1899,17 +1908,14 @@ public class ChatroomController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-
-
 	/**
 	 * 添加或修改公告
 	 */
 	@ApiOperation("创建临时聊天室")
-	@ApiImplicitParam(name = "tempUserid", value = "临时聊天的用户", required = true, paramType = "query",
-			dataType = "string")
+	@ApiImplicitParam(name = "tempUserid", value = "临时聊天的用户", required = true, paramType = "query", dataType = "string")
 	@PostMapping("/temp-chatroom")
-	public String tempChatroom(@RequestParam String tempUserid, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String tempChatroom(@RequestParam String tempUserid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1917,8 +1923,7 @@ public class ChatroomController extends BaseContorller {
 		}
 		UserBo tempUser = userService.getUser(tempUserid);
 		if (tempUser == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
 		ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(userBo.getId(), tempUserid);
 		if (chatroomBo == null) {
@@ -1930,7 +1935,7 @@ public class ChatroomController extends BaseContorller {
 				chatroomBo.setUserid(userBo.getId());
 				chatroomBo.setFriendid(tempUserid);
 				chatroomService.insert(chatroomBo);
-				String res = IMUtil.subscribe(0 ,chatroomBo.getId(), userBo.getId(), tempUserid);
+				String res = IMUtil.subscribe(0, chatroomBo.getId(), userBo.getId(), tempUserid);
 				if (!res.equals(IMUtil.FINISH)) {
 					chatroomService.remove(chatroomBo.getId());
 					return res;
@@ -1950,11 +1955,10 @@ public class ChatroomController extends BaseContorller {
 	}
 
 	@ApiOperation("删除临时聊天室")
-	@ApiImplicitParam(name = "charroomid", value = "临时聊天室id", required = true, paramType = "query",
-			dataType = "string")
+	@ApiImplicitParam(name = "charroomid", value = "临时聊天室id", required = true, paramType = "query", dataType = "string")
 	@PostMapping("/delete-temp-chatroom")
-	public String deleteTempChatroom(@RequestParam String charroomid, HttpServletRequest request, HttpServletResponse
-			response) {
+	public String deleteTempChatroom(@RequestParam String charroomid, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1962,36 +1966,35 @@ public class ChatroomController extends BaseContorller {
 		}
 		ChatroomBo chatroomBo = chatroomService.get(charroomid);
 		if (chatroomBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(),
-					ERRORCODE.CHATROOM_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.CHATROOM_NULL.getIndex(), ERRORCODE.CHATROOM_NULL.getReason());
 		}
-		//4 和 5表示临时聊天室
+		// 4 和 5表示临时聊天室
 		if (chatroomBo.getType() == 4 || chatroomBo.getType() == 5) {
 			String result = IMUtil.disolveRoom(charroomid);
 			if (!result.equals(IMUtil.FINISH) && !result.contains("not found")) {
 				return result;
 			}
 			chatroomService.delete(charroomid);
-			//删除好友互相设置信息user
+			// 删除好友互相设置信息user
 		}
 		return Constant.COM_RESP;
 	}
 
-
 	/**
 	 * 判断退出是不是聚会的群聊
+	 * 
 	 * @param chatroomBo
 	 * @param set
 	 */
-	private void deletePartyChatroom(ChatroomBo chatroomBo, HashSet<String> set){
+	private void deletePartyChatroom(ChatroomBo chatroomBo, HashSet<String> set) {
 
 		boolean isPartyEnd = true;
-		if (StringUtils.isNotEmpty(chatroomBo.getTargetid())){
+		if (StringUtils.isNotEmpty(chatroomBo.getTargetid())) {
 			PartyBo partyBo = partyService.findById(chatroomBo.getTargetid());
 			isPartyEnd = (partyBo != null && partyBo.getStatus() != 3);
 		}
 		if (!isPartyEnd) {
-			//删除最后一人的聊天室
+			// 删除最后一人的聊天室
 			if (set.size() < 1) {
 				String friendid = set.iterator().next();
 				asyncController.updateUserChatroom(friendid, chatroomBo.getId(), false);
@@ -2001,6 +2004,79 @@ public class ChatroomController extends BaseContorller {
 		}
 	}
 
+	@Autowired
+	private ITokenService tokenService;
 
+	/**
+	 * 收信方为单个id
+	 * 
+	 * @param alias
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String alias, String content, String path) {
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
+		Set<String> tokenSet = new HashSet<>();
+		if (tokenBo != null) {
+			tokenSet.add(tokenBo.getHuaweiToken());
+		}
 
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, alias);
+	}
+
+	/**
+	 * 收信方为一个id的Collection集合
+	 * 
+	 * @param useridSet
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(Collection<String> useridSet, String content, String path) {
+		List<String> aliasList = new ArrayList<>(useridSet);
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		String[] pushUser = new String[useridSet.size()];
+		useridSet.toArray(pushUser);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		Set<String> tokenSet = new HashSet<>();
+		if (tokens != null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, pushUser);
+	}
+
+	/**
+	 * 收信方为一个id数组
+	 * 
+	 * @param useridArr
+	 * @param content
+	 * @param path
+	 */
+	private void usePush(String[] useridArr, String content, String path) {
+		List<String> aliasList = Arrays.asList(useridArr);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		Set<String> tokenSet = new HashSet<>();
+		if (tokens != null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, useridArr);
+	}
 }

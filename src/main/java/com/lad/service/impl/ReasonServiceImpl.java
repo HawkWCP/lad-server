@@ -134,4 +134,9 @@ public class ReasonServiceImpl implements IReasonService {
 	public ReasonBo findByUserAndCircle(String userid, String circleid, int status, int reasonType) {
 		return reasonDao.findByUserAndCircle(userid, circleid, status, reasonType);
 	}
+
+	@Override
+	public List<ReasonBo> findByUserAddChatroom(String userid) {
+		return reasonDao.findByUserAddChatroom(userid);
+	}
 }

@@ -1,6 +1,8 @@
 package com.lad.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -16,7 +18,7 @@ import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
 import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
-import com.lad.util.OppoPush;
+import com.lad.util.VivoPushUtil;
 
 @RestController
 @RequestMapping("push")
@@ -88,8 +90,11 @@ public class PushController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 	
-	@PostMapping("oppo")
+	@PostMapping("vivo")
 	public void oppoPush() {
-		OppoPush.send2One("pushTitle", "title", "content", "59d9b12431f0a57ce97a522d");
+		List<String> list = new ArrayList<>();
+		list.add("59ef501131f0a54720f189b3");
+
+		VivoPushUtil.sendToMany("标题---vivo", "内容---vivo", list, "http://www.vivo.com");
 	}
 }

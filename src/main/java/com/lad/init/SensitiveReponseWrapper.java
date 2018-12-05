@@ -115,13 +115,11 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 					int num = (int) entry.getValue();
 					sensiwordWrapper.setNum(num);
 
-					List<Map<String, Object>> position = new ArrayList<>();
+					List<List<Integer>> index = new ArrayList<>();
 					for (Entry<String, Object> resEntry : response.entrySet()) {
 						if (resEntry.getValue().toString().contains(sensiword)) {
-							Map<String, Object> map = new HashMap<>(
-									CommonUtil.getIndex(resEntry.getValue().toString(), sensiword));
-							map.put("field", resEntry.getKey());
-							position.add(map);
+							index = CommonUtil.getIndex(resEntry.getValue().toString(), sensiword);
+
 
 							if (resEntry.getValue() instanceof java.lang.String) {
 								String value = (String) resEntry.getValue();
@@ -138,7 +136,7 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 							}
 						}
 					}
-					sensiwordWrapper.setPosition(position);
+					sensiwordWrapper.setPosition(index);
 					sensitiveAnalysis.add(sensiwordWrapper);
 				}
 				response.put("sensitiveAnalysis", sensitiveAnalysis);
@@ -197,7 +195,7 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 	private class SensiwordWrapper {
 		private String sensitiveWord;
 		private int num;
-		private List<Map<String, Object>> position = new ArrayList<Map<String, Object>>();
+		private List<List<Integer>> position = new ArrayList<>();
 
 		public String getSensitiveWord() {
 			return sensitiveWord;
@@ -215,11 +213,11 @@ public class SensitiveReponseWrapper extends HttpServletResponseWrapper {
 			this.num = num;
 		}
 
-		public List<Map<String, Object>> getPosition() {
+		public List<List<Integer>> getPosition() {
 			return position;
 		}
 
-		public void setPosition(List<Map<String, Object>> position) {
+		public void setPosition(List<List<Integer>> position) {
 			this.position = position;
 		}
 	}

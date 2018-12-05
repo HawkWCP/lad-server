@@ -32,6 +32,7 @@ public class MiPushUtil {
 	 * @throws Exception
 	 */
 	public static void sendMessageToAliases(String title, String messagePayload,String description, String path,List<String> aliasList) {
+		logger.info("小米推送=====title:{},messagePayload:{},description:{},path:{},aliasList:{}", title,messagePayload,description,path,aliasList);
 		try {
 			Constants.useOfficial();
 			Sender sender = new Sender(APP_SECRET_KEY);
