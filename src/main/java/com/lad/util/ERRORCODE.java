@@ -56,7 +56,7 @@ public enum ERRORCODE {
 	FRIEND_NULL(80001, "朋友为空"),
 	FRIEND_VIP_NULL(80002, "VIP为空"),
 	FRIEND_BLACK_NULL(80003, "黑名单为空"),
-	FRIEND_EXIST(80004, "朋友关系已经存在"),
+	FRIEND_EXIST(80004, "你们已经是好友了"),
 	TAG_NULL(80005, "标签不存在"),
 	FRIEND_PHONE_NULL(80006, "朋友电话为空"),
 	FRIEND_DESCRIPTION_NULL(80007, "朋友描述为空"),

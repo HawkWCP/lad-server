@@ -50,4 +50,32 @@ public class TokenDao implements ITokenDao {
 		mongoTemplate.remove(new Query(Criteria.where("huaweiToken").is(token).and("userId").is(userId)), PushTokenBo.class);
 	}
 
+	@Override
+	public WriteResult updateOtherStatus(String token, String userId) {
+		Query query = new Query(Criteria.where("huaweiToken").is(token).and("userId").ne(userId));
+		Update update = new Update();
+		update.set("status", PushTokenBo.TOKEN_CLOSE);
+		
+		return mongoTemplate.updateMulti(query, update, PushTokenBo.class);
+	}
+
+	@Override
+	public PushTokenBo findTokenByUserIdAndToken(String userId, String token) {
+		return mongoTemplate.findOne(new Query(Criteria.where("userId").is(userId).and("huaweiToken").is(token).and("status").is(PushTokenBo.TOKEN_ENABLE)), PushTokenBo.class);
+	}
+
+	@Override
+	public WriteResult closeTokenByUseridAndToken(String userId, String token) {
+		Query query = new Query(Criteria.where("userId").is(userId).and("huaweiToken").is(token).and("status").is(PushTokenBo.TOKEN_ENABLE));
+		Update update = new Update();
+		update.set("status", PushTokenBo.TOKEN_CLOSE);
+		
+		return mongoTemplate.updateFirst(query, update, PushTokenBo.class);
+	}
+
+	@Override
+	public PushTokenBo findTokenEnableByUserId(String alias) {
+		Query query = new Query(Criteria.where("userId").is(alias).and("status").is(PushTokenBo.TOKEN_ENABLE));
+		return mongoTemplate.findOne(query, PushTokenBo.class);	}
+
 }

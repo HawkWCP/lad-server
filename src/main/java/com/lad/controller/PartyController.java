@@ -106,9 +106,6 @@ public class PartyController extends BaseContorller {
 	private IThumbsupService thumbsupService;
 
 	@Autowired
-	private RedisServer redisServer;
-
-	@Autowired
 	private IDynamicService dynamicService;
 
 	@Autowired
@@ -125,9 +122,7 @@ public class PartyController extends BaseContorller {
 
 	@Autowired
 	private AsyncController asyncController;
-	
-	@Autowired
-	private ITokenService tokenService;
+
 
 	private String titlePush = "聚会通知";
 
@@ -186,7 +181,7 @@ public class PartyController extends BaseContorller {
 			if (circleUsers.size() > 0) {
 				String[] userids = new String[circleUsers.size()];
 
-				usePush(circleUsers, content, path);
+				usePush(circleUsers,titlePush, content, path);
 
 				addMessage(messageService, path, content, titlePush, userId, userids);
 			}
@@ -496,7 +491,7 @@ public class PartyController extends BaseContorller {
 			masters = new LinkedHashSet<>();
 		}
 		masters.add(partyBo.getCreateuid());
-		usePush(masters, content, path);
+		usePush(masters, titlePush,content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		return Constant.COM_RESP;
 	}
@@ -711,48 +706,49 @@ public class PartyController extends BaseContorller {
 	@ApiOperation("收藏聚会")
 	@PostMapping("/collect-party")
 	public String collectParty(@RequestParam String partyid, HttpServletRequest request, HttpServletResponse response) {
-		UserBo userBo;
+		logger.info("@PostMapping(\"/collect-party\")=====partyid:{}", partyid);
+		Map<String, Object> map = new HashMap<>();
 		try {
-			userBo = checkSession(request, userService);
+			UserBo userBo = checkSession(request, userService);
+			PartyBo partyBo = partyService.findById(partyid);
+			if (partyBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.PARTY_NULL.getIndex(), ERRORCODE.PARTY_NULL.getReason());
+			}
+			CollectBo collectBo = collectService.findByUseridAndTargetid(userBo.getId(), partyid);
+			if (collectBo == null) {
+				collectBo = new CollectBo();
+				collectBo.setUserid(userBo.getId());
+				collectBo.setTitle(partyBo.getTitle());
+				collectBo.setType(Constant.COLLET_URL);
+				collectBo.setSub_type(Constant.PARTY_TYPE);
+				collectBo.setTargetPic(partyBo.getBackPic()==null?"":partyBo.getBackPic());
+				CircleBo circleBo = circleService.selectById(partyBo.getCircleid());
+				if (circleBo != null) {
+					collectBo.setSource(circleBo.getName());
+					collectBo.setSourceType(5);
+					collectBo.setSourceid(circleBo.getId());
+				}
+				collectBo.setTargetid(partyid);
+				collectService.insert(collectBo);
+			}
+			PartyUserBo partyUserBo = partyService.findPartyUserIgnoreDel(partyid, userBo.getId());
+			if (partyUserBo == null) {
+				partyUserBo = new PartyUserBo();
+				partyUserBo.setUserid(userBo.getId());
+				partyUserBo.setPartyid(partyid);
+				partyUserBo.setStatus(0);
+				partyUserBo.setCollectParty(1);
+				partyService.addParty(partyUserBo);
+			} else {
+				partyService.collectParty(partyid, userBo.getId(), true);
+			}
+			asyncController.updatePartyCollectNum(partyid, 1);
+			map.put("ret", 0);
+			map.put("col-time", CommonUtil.time2str(collectBo.getCreateTime()));
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		PartyBo partyBo = partyService.findById(partyid);
-		if (partyBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.PARTY_NULL.getIndex(), ERRORCODE.PARTY_NULL.getReason());
-		}
-		CollectBo collectBo = collectService.findByUseridAndTargetid(userBo.getId(), partyid);
-		if (collectBo == null) {
-			collectBo = new CollectBo();
-			collectBo.setUserid(userBo.getId());
-			collectBo.setTitle(partyBo.getTitle());
-			collectBo.setType(Constant.COLLET_URL);
-			collectBo.setSub_type(Constant.PARTY_TYPE);
-			collectBo.setTargetPic(partyBo.getBackPic());
-			CircleBo circleBo = circleService.selectById(partyBo.getCircleid());
-			if (circleBo != null) {
-				collectBo.setSource(circleBo.getName());
-				collectBo.setSourceType(5);
-				collectBo.setSourceid(circleBo.getId());
-			}
-			collectBo.setTargetid(partyid);
-			collectService.insert(collectBo);
-		}
-		PartyUserBo partyUserBo = partyService.findPartyUserIgnoreDel(partyid, userBo.getId());
-		if (partyUserBo == null) {
-			partyUserBo = new PartyUserBo();
-			partyUserBo.setUserid(userBo.getId());
-			partyUserBo.setPartyid(partyid);
-			partyUserBo.setStatus(0);
-			partyUserBo.setCollectParty(1);
-			partyService.addParty(partyUserBo);
-		} else {
-			partyService.collectParty(partyid, userBo.getId(), true);
-		}
-		asyncController.updatePartyCollectNum(partyid, 1);
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("col-time", CommonUtil.time2str(collectBo.getCreateTime()));
+
 		return JSONObject.fromObject(map).toString();
 	}
 
@@ -898,7 +894,7 @@ public class PartyController extends BaseContorller {
 //		msgMap.put("path", path);
 //		String message = JSON.toJSONString(msgMap);
 //		push(redisServer, titlePush, message, content, path, aliasList, userids);
-		usePush(userids, content, path);
+		usePush(userids,titlePush, content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		if (!StringUtils.isEmpty(comment.getParentid())) {
 			CommentBo commentBo1 = commentService.findById(comment.getParentid());
@@ -906,7 +902,7 @@ public class PartyController extends BaseContorller {
 				content = "有人刚刚回复了你的评论，快去看看吧!";
 //				JPushUtil.pushMessage(titlePush, content, path, commentBo1.getCreateuid());
 //				push(redisServer, titlePush, message, content, path, aliasList, userids);
-				usePush(userids, content, path);
+				usePush(userids, titlePush,content, path);
 				addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 			}
 		}
@@ -999,6 +995,7 @@ public class PartyController extends BaseContorller {
 	@PostMapping("/all-partys")
 	public String getAllPartys(String circleid, int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
+		// TODO
 		List<PartyBo> partyBos = partyService.findByCircleid(circleid, page, limit);
 		List<PartyListVo> partyListVos = new ArrayList<>();
 		bo2listVo(partyBos, partyListVos, getUserLogin(request), circleid);
@@ -1173,7 +1170,7 @@ public class PartyController extends BaseContorller {
 //				aliasList.add(userids);
 //				String message = "";
 //				push(redisServer, titlePush, message, "有人刚刚赞了你的聚会，快去看看吧!", path, aliasList, userids);
-				usePush(commentBo.getCreateuid(), "有人刚刚赞了你的聚会，快去看看吧!", path);
+				usePush(commentBo.getCreateuid(), titlePush,"有人刚刚赞了你的聚会，快去看看吧!", path);
 				addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 			}
 		}
@@ -1287,7 +1284,7 @@ public class PartyController extends BaseContorller {
 				String[] userids = new String[users.size()];
 				users.toArray(userids);
 				String pushContent = String.format("{%s} 感谢您报名参与聚会，{%s }通知您:"+content, partyBo.getPayName(),userBo.getUserName()); 
-				usePush(userids, pushContent, path);
+				usePush(userids, titlePush,pushContent, path);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), userids);
 			}
 		} catch (MyException e) {
@@ -1643,10 +1640,20 @@ public class PartyController extends BaseContorller {
 	}
 
 	private void bo2listVo(List<PartyBo> partyBos, List<PartyListVo> partyListVos, UserBo userBo, String circleid) {
+		Set<String> partyIds = new LinkedHashSet<>();
+		for (PartyBo party : partyBos) {
+			if(party.getForward()!=1) {
+				partyIds.add(party.getId());
+			}
+		}
 		HashSet<String> temp = new HashSet<>();
 		for (PartyBo partyBo : partyBos) {
+
 			PartyListVo listVo = new PartyListVo();
 			if (partyBo.getForward() == 1) {
+				if(partyBo.getSourcePartyid()!=null && partyIds.contains(partyBo.getSourcePartyid())) {
+					continue;
+				}
 				PartyBo forward = partyService.findById(partyBo.getSourcePartyid());
 				if (forward == null) {
 					continue;
@@ -1758,78 +1765,5 @@ public class PartyController extends BaseContorller {
 		}
 		chatroomBo.setUsers(users);
 		chatroomService.updateUsers(chatroomBo);
-	}
-	
-	/**
-	 * 收信方为单个id
-	 * 
-	 * @param alias
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String alias, String content, String path) {
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(alias);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokenBo!=null) {
-			tokenSet.add(tokenBo.getHuaweiToken());
-		}
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, alias);
-	}
-
-	/**
-	 * 收信方为一个id的Collection集合
-	 * 
-	 * @param useridSet
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(Collection<String> useridSet, String content, String path) {
-		List<String> aliasList = new ArrayList<>(useridSet);
-
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		String[] pushUser = new String[useridSet.size()];
-		useridSet.toArray(pushUser);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, pushUser);
-	}
-
-	/**
-	 * 收信方为一个id数组
-	 * 
-	 * @param useridArr
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String[] useridArr, String content, String path) {
-		List<String> aliasList = Arrays.asList(useridArr);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		// 获取华为token
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

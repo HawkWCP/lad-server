@@ -12,9 +12,15 @@ import lombok.ToString;
 @Getter
 @ToString
 public class PushTokenBo {
+	public static final int TOKEN_ENABLE = 1;
+	public static final int TOKEN_CLOSE = 2;
+	
+	
 	@Id
 	private String id;
 	private String userId;
 	private String huaweiToken;
 	private String xiaomiAlias;
+	// 1:启动;2:关闭
+	private int status; 
 }

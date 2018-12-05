@@ -18,4 +18,12 @@ public interface ITokenService {
 
 	void deletedTokenByTokenAndUserId(String token, String userId);
 
+	WriteResult updateOtherStatus(String token, String userId);
+
+	PushTokenBo findTokenByUserIdAndToken(String userId, String token);
+
+	WriteResult closeTokenByUseridAndToken(String userId, String token);
+
+	PushTokenBo findTokenEnableByUserId(String alias);
+
 }

@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
-import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.VivoPushUtil;
+import com.mongodb.WriteResult;
 
 @RestController
 @RequestMapping("push")
@@ -28,9 +28,7 @@ public class PushController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 
-	@Autowired
-	private ITokenService tokenService;
-
+	@Deprecated
 	@PostMapping("/huaweiToken")
 	public String saveHuaweiToken(String userId, String token) {
 		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
@@ -48,18 +46,28 @@ public class PushController extends BaseContorller {
 				return JSON.toJSONString(map);
 			}
 
+			// 查找当前用户关联的token
 			PushTokenBo tokenBo = tokenService.findTokenByUserId(userId);
+			
 			if (tokenBo != null) {
+				// 如果存在当前token,将状态修改为1
 				if (!token.equals(tokenBo.getHuaweiToken())) {
+					// 如果已存在的token值与传入的token不符合,则修改数据库的token值
 					tokenBo.setHuaweiToken(token);
-					tokenService.updateHuaweiToken(tokenBo);
-				}
+				}				
+				tokenBo.setStatus(1);
+				tokenService.updateHuaweiToken(tokenBo);
 			} else {
 				tokenBo = new PushTokenBo();
 				tokenBo.setHuaweiToken(token);
 				tokenBo.setUserId(userId);
+				tokenBo.setStatus(1);
 				tokenBo = tokenService.insert(tokenBo);
 			}
+			
+			// 将其他用户的token的状态设置为2
+			WriteResult result = tokenService.updateOtherStatus(token,userId);
+
 		} catch (Exception e) {
 			logger.error("@PostMapping(\"/huaweiToken\")=====error:{}", e);
 			map.put("ret", -1);
@@ -68,6 +76,86 @@ public class PushController extends BaseContorller {
 		}
 		map.put("ret", 0);
 		map.put("result", "token保存成功");
+		return JSON.toJSONString(map);
+	}
+	
+	@PostMapping("/token-enable-huawei")
+	public String enableHuaweiToken(String userId, String token) {
+		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
+		Map<String, Object> map = new HashMap<>();
+		try {
+			if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(token)) {
+				map.put("ret", -1);
+				map.put("message", "参数错误");
+				return JSON.toJSONString(map);
+			}
+			UserBo userBo = userService.getUser(userId);
+			if (userBo == null) {
+				map.put("ret", -1);
+				map.put("message", "userId无效");
+				return JSON.toJSONString(map);
+			}
+
+			// 查找当前用户关联的token
+			PushTokenBo tokenBo = tokenService.findTokenByUserId(userId);
+			
+			if (tokenBo != null) {
+				// 如果存在当前token,将状态修改为1
+				if (!token.equals(tokenBo.getHuaweiToken())) {
+					// 如果已存在的token值与传入的token不符合,则修改数据库的token值
+					tokenBo.setHuaweiToken(token);
+				}				
+				tokenBo.setStatus(1);
+				tokenService.updateHuaweiToken(tokenBo);
+			} else {
+				tokenBo = new PushTokenBo();
+				tokenBo.setHuaweiToken(token);
+				tokenBo.setUserId(userId);
+				tokenBo.setStatus(1);
+				tokenBo = tokenService.insert(tokenBo);
+			}
+			
+			// 将其他用户的token的状态设置为2
+			WriteResult result = tokenService.updateOtherStatus(token,userId);
+			map.put("ret", 0);
+			map.put("result", "token保存成功");
+
+		} catch (Exception e) {
+			logger.error("@PostMapping(\"/huaweiToken\")=====error:{}", e);
+			map.put("ret", -1);
+			map.put("message", "服务器发生错误:" + e.toString());
+			return JSON.toJSONString(map);
+		}
+		return JSON.toJSONString(map);
+	}
+	
+	@PostMapping("/token-close-huawei")
+	public String closeHuaweiToken(String userId, String token) {
+		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
+		Map<String, Object> map = new HashMap<>();
+		try {
+			if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(token)) {
+				map.put("ret", -1);
+				map.put("message", "参数错误");
+				return JSON.toJSONString(map);
+			}
+			
+			PushTokenBo tokenBo = tokenService.findTokenByUserIdAndToken(userId,token);
+			if(tokenBo == null) {
+				map.put("ret", -1);
+				map.put("message", "请求关闭的token不存在或未启用");
+				return JSON.toJSONString(map);			
+			}
+			
+			WriteResult result = tokenService.closeTokenByUseridAndToken(userId,token);
+			map.put("ret", 0);
+			map.put("result", "token关闭成功");
+		} catch (Exception e) {
+			logger.error("@PostMapping(\"/huaweiToken\")=====error:{}", e);
+			map.put("ret", -1);
+			map.put("message", "服务器发生错误:" + e.toString());
+			return JSON.toJSONString(map);
+		}
 		return JSON.toJSONString(map);
 	}
 

@@ -84,8 +84,6 @@ public class ChatroomController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 
-	@Autowired
-	private RedisServer redisServer;
 
 	@Autowired
 	private IReasonService reasonService;
@@ -290,7 +288,7 @@ public class ChatroomController extends BaseContorller {
 			if (chatroomBo.isVerify() && !chatroomBo.getMaster().equals(userBo.getId())) {
 				String path = "";
 				String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
-				usePush(useridArr, content, path);
+				usePush(useridArr, titlePush,content, path);
 //				JPushUtil.push(titlePush, content, path, useridArr);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), useridArr);
 				return Constant.COM_RESP;
@@ -329,7 +327,7 @@ public class ChatroomController extends BaseContorller {
 					imIds.add(user.getId());
 					String msg = String.format("“%s”邀请您加入群聊", userBo.getUserName());
 					// TODO
-					usePush(user.getId(), msg, "");
+					usePush(user.getId(), titlePush,msg, "");
 //					JPushUtil.pushTo(msg, userid);
 					addMessage(messageService, "", msg, titlePush, userid);
 				}
@@ -2002,81 +2000,5 @@ public class ChatroomController extends BaseContorller {
 			}
 			chatroomService.delete(chatroomBo.getId());
 		}
-	}
-
-	@Autowired
-	private ITokenService tokenService;
-
-	/**
-	 * 收信方为单个id
-	 * 
-	 * @param alias
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String alias, String content, String path) {
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(alias);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
-		Set<String> tokenSet = new HashSet<>();
-		if (tokenBo != null) {
-			tokenSet.add(tokenBo.getHuaweiToken());
-		}
-
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, alias);
-	}
-
-	/**
-	 * 收信方为一个id的Collection集合
-	 * 
-	 * @param useridSet
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(Collection<String> useridSet, String content, String path) {
-		List<String> aliasList = new ArrayList<>(useridSet);
-
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		String[] pushUser = new String[useridSet.size()];
-		useridSet.toArray(pushUser);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
-		Set<String> tokenSet = new HashSet<>();
-		if (tokens != null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, pushUser);
-	}
-
-	/**
-	 * 收信方为一个id数组
-	 * 
-	 * @param useridArr
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String[] useridArr, String content, String path) {
-		List<String> aliasList = Arrays.asList(useridArr);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
-		Set<String> tokenSet = new HashSet<>();
-		if (tokens != null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-		push(redisServer, titlePush, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

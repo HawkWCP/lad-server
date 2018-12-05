@@ -87,8 +87,9 @@ public class FriendsController extends BaseContorller {
 
 	@Autowired
 	private IMessageService messageService;
-
+	
 	private String pushTitle = "好友通知";
+
 
 //	@ApiOperation("获取健康养生指定分类下资讯信息列表")
 //	@ApiImplicitParams({
@@ -125,7 +126,7 @@ public class FriendsController extends BaseContorller {
 			friendsService.insert(friendsBo);
 			String path = "/friends/apply-list.do";
 //			JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
-			usePush(friendid, userBo.getUserName() + JPushUtil.APPLY, path);
+			usePush(friendid, pushTitle,userBo.getUserName() + JPushUtil.APPLY, path);
 			addMessage(messageService, path, userBo.getUserName() + JPushUtil.APPLY, pushTitle, friendid);
 			map.put("ret", 0);
 		} catch (MyException e) {
@@ -571,7 +572,6 @@ public class FriendsController extends BaseContorller {
 			LinkedHashSet<String> userSet = new LinkedHashSet<String>();
 			for (String id : idsList) {
 				boolean uidAlive = userService.checkUidAlive(id);
-				System.out.println("user id " + id + " is alibe:" + uidAlive);
 				if (uidAlive) {
 					FriendsBo temp = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), id);
 					if (temp == null) {
@@ -631,8 +631,9 @@ public class FriendsController extends BaseContorller {
 			if (!IMUtil.FINISH.equals(res)) {
 				return res;
 			}
-//			JPushUtil.pushTo(userBo.getUserName() + JPushUtil.MULTI_INSERT, idsList);
-			usePush(idsList, userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
+			
+			userSet.remove(userBo.getId());
+			usePush(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
 			addMessage(messageService, "", userBo.getUserName() + JPushUtil.MULTI_INSERT, pushTitle, userBo.getId(),
 					idsList);
 
@@ -648,10 +649,6 @@ public class FriendsController extends BaseContorller {
 
 				IMUtil.notifyInChatRoom(Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, chatroomBo.getId(), json.toString());
 
-				// if(!IMUtil.FINISH.equals(res2)){
-				// logger.error("failed notifyInChatRoom
-				// Constant.SOME_ONE_BE_INVITED_OT_CHAT_ROOM, %s",res2);
-				// }
 			}
 
 			map.put("ret", 0);
@@ -1094,83 +1091,4 @@ public class FriendsController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 	
-	
-	@Autowired
-	private RedisServer redisServer;
-	
-	@Autowired
-	private ITokenService tokenService;
-	
-	/**
-	 * 收信方为单个id
-	 * 
-	 * @param alias
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String alias, String content, String path) {
-		List<String> aliasList = new ArrayList<>();
-		aliasList.add(alias);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-		PushTokenBo tokenBo = tokenService.findTokenByUserId(alias);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokenBo!=null) {
-			tokenSet.add(tokenBo.getHuaweiToken());
-		}
-
-		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, alias);
-	}
-
-	/**
-	 * 收信方为一个id的Collection集合
-	 * 
-	 * @param useridSet
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(Collection<String> useridSet, String content, String path) {
-		List<String> aliasList = new ArrayList<>(useridSet);
-
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		String[] pushUser = new String[useridSet.size()];
-		useridSet.toArray(pushUser);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-
-		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, pushUser);
-	}
-
-	/**
-	 * 收信方为一个id数组
-	 * 
-	 * @param useridArr
-	 * @param content
-	 * @param path
-	 */
-	private void usePush(String[] useridArr, String content, String path) {
-		List<String> aliasList = Arrays.asList(useridArr);
-		Map<String, String> msgMap = new HashMap<>();
-		msgMap.put("path", path);
-		String message = JSON.toJSONString(msgMap);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
-		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
-			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
-			}
-		}
-		push(redisServer, pushTitle, message, content, path, tokenSet, aliasList, useridArr);
-	}
 }

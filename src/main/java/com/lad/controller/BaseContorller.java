@@ -1,10 +1,16 @@
 package com.lad.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,14 +23,17 @@ import javax.servlet.http.HttpSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.ui.ModelMap;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleHistoryBo;
 import com.lad.bo.DynamicNumBo;
 import com.lad.bo.LocationBo;
 import com.lad.bo.MessageBo;
+import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
@@ -32,6 +41,7 @@ import com.lad.service.ICircleService;
 import com.lad.service.IDynamicService;
 import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
+import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -60,7 +70,7 @@ public abstract class BaseContorller {
 	 * @param alias
 	 */
 	@Async
-	public void push(RedisServer redisServer, String title, String message, String description, String path,
+	private void push(RedisServer redisServer, String title, String message, String description, String path,
 			Set<String> userTokens, List<String> aliasList, String... alias) {
 
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
@@ -393,5 +403,87 @@ public abstract class BaseContorller {
 		messageBo.setCircleid(circleid);
 		messageBo.setCreateuid(createuid);
 		service.insert(messageBo);
+	}
+	
+	
+	@Autowired
+	protected RedisServer redisServer;
+	
+	@Autowired
+	protected ITokenService tokenService;
+	
+
+	
+	/**
+	 * 收信方为单个id
+	 * 
+	 * @param alias
+	 * @param content
+	 * @param path
+	 */
+	protected void usePush(String alias, String title,String content, String path) {
+		List<String> aliasList = new ArrayList<>();
+		aliasList.add(alias);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+		PushTokenBo tokenBo = tokenService.findTokenEnableByUserId(alias);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokenBo!=null) {
+			tokenSet.add(tokenBo.getHuaweiToken());
+		}
+
+		push(redisServer, title, message, content, path, tokenSet, aliasList, alias);
+	}
+
+	/**
+	 * 收信方为一个id的Collection集合
+	 * 
+	 * @param useridSet
+	 * @param content
+	 * @param path
+	 */
+	protected void usePush(Collection<String> useridSet, String title,String content, String path) {
+		List<String> aliasList = new ArrayList<>(useridSet);
+
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		String[] pushUser = new String[useridSet.size()];
+		useridSet.toArray(pushUser);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+
+		push(redisServer, title, message, content, path, tokenSet, aliasList, pushUser);
+	}
+
+	/**
+	 * 收信方为一个id数组
+	 * 
+	 * @param useridArr
+	 * @param content
+	 * @param path
+	 */
+	protected void usePush(String[] useridArr, String title, String content, String path) {
+		List<String> aliasList = Arrays.asList(useridArr);
+		Map<String, String> msgMap = new HashMap<>();
+		msgMap.put("path", path);
+		String message = JSON.toJSONString(msgMap);
+
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		Set<String> tokenSet = new HashSet<>();
+		if(tokens!=null) {
+			for (PushTokenBo pushTokenBo : tokens) {
+				tokenSet.add(pushTokenBo.getHuaweiToken());
+			}
+		}
+		push(redisServer, title, message, content, path, tokenSet, aliasList, useridArr);
 	}
 }

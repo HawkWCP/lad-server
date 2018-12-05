@@ -42,4 +42,24 @@ public class TokenService implements ITokenService {
 		tokenDao.deletedTokenByTokenAndUserId(token, userId);
 	}
 
+	@Override
+	public WriteResult updateOtherStatus(String token, String userId) {
+		return tokenDao.updateOtherStatus( token,  userId);
+	}
+
+	@Override
+	public PushTokenBo findTokenByUserIdAndToken(String userId, String token) {
+		return tokenDao.findTokenByUserIdAndToken( userId,  token);
+	}
+
+	@Override
+	public WriteResult closeTokenByUseridAndToken(String userId, String token) {
+		return tokenDao.closeTokenByUseridAndToken( userId,  token);
+	}
+
+	@Override
+	public PushTokenBo findTokenEnableByUserId(String alias) {
+		return tokenDao.findTokenEnableByUserId( alias);
+	}
+
 }
