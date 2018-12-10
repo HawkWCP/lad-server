@@ -364,7 +364,6 @@ public class CircleController extends BaseContorller {
 			int addType, String partyid, HttpServletRequest request, HttpServletResponse response) {
 		logger.info("@PostMapping(\"/party-apply-insert\")=====circleid:{},reason:{},isNotice:{},addType:{},partyid:{}", circleid,reason,isNotice,addType,partyid);
 		
-		// TODO
 		try {
 			UserBo userBo = checkSession(request, userService);
 			CircleBo circleBo = circleService.selectById(circleid);
@@ -628,14 +627,6 @@ public class CircleController extends BaseContorller {
 					if (reasonBo.getAddType() == 1) {
 						String party = String.format("/party/party-info.do?partyid=%s", reasonBo.getPartyid());
 
-//						JPushUtil.push(titlePush, content, party, userid);
-//						List<String> aliasList = new ArrayList<>();
-//						aliasList.add(userid);
-//						Map<String, String> msgMap = new HashMap<>();
-//						msgMap.put("path", party);
-//						String message = JSON.toJSONString(msgMap);
-//						push(redisServer, titlePush, message, content, party, aliasList, userid);
-
 						usePush(userid, titlePush,content, party);
 
 						addMessage(messageService, party, content, titlePush, userid);
@@ -659,13 +650,6 @@ public class CircleController extends BaseContorller {
 			String[] userArr = new String[accepts.size()];
 			accepts.toArray(userArr);
 
-//			JPushUtil.push(titlePush, content, path, userArr);
-//			List<String> aliasList = new ArrayList<>(accepts);
-//			Map<String, String> msgMap = new HashMap<>();
-//			msgMap.put("path", path);
-//			String message = JSON.toJSONString(msgMap);
-//
-//			push(redisServer, titlePush, message, content, path, aliasList, userArr);
 			usePush(accepts,titlePush, content, path);
 
 			addMessage(messageService, path, content, titlePush, userBo.getId(), userArr);
@@ -839,14 +823,6 @@ public class CircleController extends BaseContorller {
 		CircleHistoryBo historyBo = addCircleOperateHis(userid, circleid, userBo.getId(), "圈主转让通知", content);
 		String path = "/circle/get-circle-his.do?circleid=" + historyBo.getId();
 
-//		JPushUtil.push("圈主转让通知", content, path, userid);
-//		List<String> aliasList = new ArrayList<>();
-//		aliasList.add(userid);
-//		Map<String, String> msgMap = new HashMap<>();
-//		msgMap.put("path", path);
-//		String message = JSON.toJSONString(msgMap);
-//
-//		push(redisServer, titlePush, message, content, path, aliasList, userid);
 		usePush(userid,titlePush, content, path);
 
 		addMessage(messageService, path, content, titlePush, userid);
@@ -900,14 +876,6 @@ public class CircleController extends BaseContorller {
 					CircleHistoryBo historyBo = addCircleOperateHis(id, circleid, userBo.getId(), title, content);
 					String path = "/circle/get-circle-his.do?circleid=".concat(historyBo.getId());
 
-//					JPushUtil.push(title, content, path, id);
-//					List<String> aliasList = new ArrayList<>();
-//					aliasList.add(id);
-//					Map<String, String> msgMap = new HashMap<>();
-//					msgMap.put("path", path);
-//					String message = JSON.toJSONString(msgMap);
-//
-//					push(redisServer, titlePush, message, content, path, aliasList, id);
 					usePush(id, titlePush,content, path);
 					addMessage(messageService, path, content, title, id);
 				}
@@ -922,14 +890,6 @@ public class CircleController extends BaseContorller {
 					CircleHistoryBo historyBo = addCircleOperateHis(id, circleid, userBo.getId(), title, content);
 					String path = "/circle/get-circle-his.do?circleid=".concat(historyBo.getId());
 
-//					JPushUtil.push(title, content, path, id);
-//					List<String> aliasList = new ArrayList<>();
-//					aliasList.add(id);
-//					Map<String, String> msgMap = new HashMap<>();
-//					msgMap.put("path", path);
-//					String message = JSON.toJSONString(msgMap);
-//
-//					push(redisServer, titlePush, message, content, path, aliasList, id);
 					usePush(id, titlePush,content, path);
 					addMessage(messageService, path, content, title, id);
 				}
@@ -2100,13 +2060,6 @@ public class CircleController extends BaseContorller {
 			String[] str = new String[users.size()];
 			str = users.toArray(str);
 
-//			JPushUtil.push(noticePush, pushContent, path, str);
-//			List<String> aliasList = new ArrayList<>(users);
-//			Map<String, String> msgMap = new HashMap<>();
-//			msgMap.put("path", path);
-//			String message = JSON.toJSONString(msgMap);
-//
-//			push(redisServer, titlePush, message, pushContent, path, aliasList, str);
 			usePush(users, titlePush,pushContent, path);
 
 		} else {
@@ -2595,21 +2548,9 @@ public class CircleController extends BaseContorller {
 					reasonService.updateMasterApply(reasonBo.getId(), Constant.ADD_APPLY, true);
 				}
 			}
-//			JPushUtil.push(titlePush, content, path, useridArr);
-//			List<String> aliasList = Arrays.asList(userids);
-//			Map<String, String> msgMap = new HashMap<>();
-//			msgMap.put("path", path);
-//			String message = JSON.toJSONString(msgMap);
-//
-//			push(redisServer, titlePush, message, content, path, aliasList, useridArr);
+
 			usePush(useridArr, titlePush,content, path);
 		} else {
-//			List<String> aliasList = Arrays.asList(userids);
-//			Map<String, String> msgMap = new HashMap<>();
-//			msgMap.put("path", path);
-//			String message = JSON.toJSONString(msgMap);
-//
-//			push(redisServer, titlePush, message, content, path, aliasList, useridArr);
 			usePush(useridArr, titlePush,content, path);
 		}
 		addMessage(messageService, path, content, titlePush, userid, useridArr);

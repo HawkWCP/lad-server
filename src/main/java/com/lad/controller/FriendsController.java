@@ -3,8 +3,6 @@ package com.lad.controller;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,21 +29,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.LocationBo;
-import com.lad.bo.PushTokenBo;
 import com.lad.bo.TagBo;
 import com.lad.bo.UserBo;
-import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
 import com.lad.service.ITagService;
-import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
@@ -437,9 +430,15 @@ public class FriendsController extends BaseContorller {
 		map.put("ret", 0);
 		return JSONObject.fromObject(map).toString();
 	}
-
+	
+	
+	@ApiOperation("好友列表")
+	/*@ApiImplicitParams({ @ApiImplicitParam(name = "keyword", value = "关键词", dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "page", value = "页码", paramType = "query", dataType = "int"),
+			@ApiImplicitParam(name = "limit", value = "显示条数", paramType = "query", dataType = "int") })*/
 	@RequestMapping(value = "/get-friends", method = { RequestMethod.GET, RequestMethod.POST })
 	public String getFriends(HttpServletRequest request, HttpServletResponse response) {
+		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);

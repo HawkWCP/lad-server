@@ -2,9 +2,7 @@ package com.lad.controller;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,18 +37,18 @@ import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleNoticeBo;
 import com.lad.bo.FriendsBo;
+import com.lad.bo.MsgLogBo;
 import com.lad.bo.PartyBo;
-import com.lad.bo.PushTokenBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.UserBo;
-import com.lad.redis.RedisServer;
+import com.lad.bo.UserTasteBo;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IMessageService;
+import com.lad.service.IMsgLogService;
 import com.lad.service.IPartyService;
 import com.lad.service.IReasonService;
-import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
@@ -61,8 +59,11 @@ import com.lad.util.JPushUtil;
 import com.lad.util.MyException;
 import com.lad.vo.ChatroomUserVo;
 import com.lad.vo.ChatroomVo;
+import com.lad.vo.MsgBaseVo;
+import com.lad.vo.MsgLogVo;
 import com.lad.vo.ReasonVo;
 import com.lad.vo.UserBaseVo;
+import com.lad.vo.UserInfoVo;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -84,7 +85,6 @@ public class ChatroomController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 
-
 	@Autowired
 	private IReasonService reasonService;
 
@@ -103,7 +103,169 @@ public class ChatroomController extends BaseContorller {
 	@Autowired
 	private AsyncController asyncController;
 
+	@Autowired
+	private IMsgLogService msgLogService;
+
 	private String titlePush = "互动通知";
+
+	@ApiOperation("获取群成员列表")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "chatroomId", value = "聊天室房间号", dataType = "string", paramType = "query") })
+	@PostMapping(value = "chatroom-users")
+	public String getChartroomUsers(String chatroomId, HttpServletRequest request, HttpServletResponse response) {
+
+		Map<String, Object> map = new HashMap<>();
+		UserBo userBo = null;
+		try {
+			userBo = getUserLogin(request);
+			if (userBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+			}
+			logger.info("@PostMapping(value = \"chatroom-users\")=====chatroomId:{},userName:{}({})", chatroomId,
+					userBo.getUserName(), userBo.getId());
+			ChatroomBo chatroomBo = chatroomService.get(chatroomId);
+			if (chatroomBo == null) {
+				map.put("ret", -1);
+				map.put("message", "聊天室不存在");
+				return JSON.toJSONString(map);
+			}
+			LinkedHashSet<String> users = chatroomBo.getUsers();
+			/*if (!users.contains(userBo.getId())) {
+				map.put("ret", -1);
+				map.put("message", "请先加入该圈子");
+				return JSON.toJSONString(map);
+			}*/
+			
+			List<ChatroomUserVo> chatUsers = new ArrayList<>();
+			
+			for (String userid : users) {
+				UserBo user = userService.getUser(userid);
+				ChatroomUserBo chatroomUserBo = chatroomService.findChatUserByUserAndRoomid(userid, chatroomId);
+				if (user != null&&chatroomUserBo!=null) {
+					ChatroomUserVo userVo = new ChatroomUserVo();
+					userVo.setNickname(user.getUserName());
+					FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorId(userBo.getId(), user.getId());
+					if(friendsBo!=null) {
+						if(friendsBo.getBackname()!=null) {
+							userVo.setNickname(friendsBo.getBackname());
+						}
+					}
+					
+					userVo.setUserid(user.getId());
+					userVo.setUserPic(user.getHeadPictureName());
+					
+					chatUsers.add(userVo);
+				}
+
+			}
+			map.put("ret", 0);
+			map.put("result", chatUsers);
+		} catch (Exception e) {
+			logger.error("@PostMapping(value = \"chatroom-users\")=====loginUser:{}({}),e:{}",userBo.getUserName(),userBo.getId(), e);
+			e.printStackTrace();
+			map.put("ret", -1);
+			map.put("message", "出现错误:" + e.getMessage());
+		}
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("获取消息历史记录")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "channel", value = "聊天室房间号", dataType = "string", paramType = "query") })
+	@PostMapping(value = "msg-record")
+	public String getFileMsg(String channel, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@PostMapping(value = \"msg-record\")=====channel:{}", channel);
+
+		Map<String, Object> map = new HashMap<>();
+
+		try {
+			UserBo userBo = getUserLogin(request);
+			if (userBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+			}
+			ChatroomBo chatroomBo = chatroomService.get(channel);
+			Date start = new Date();
+
+//			boolean userInChannel = msgLogService.checkUserInChannel(userBo.getId(), channel);
+
+//			logger.info("@PostMapping(value = \"msg-record\")=====chatroomBo != null:{},userInChannel:{}", chatroomBo != null, userInChannel);
+
+			if (chatroomBo != null) {
+				MsgLogVo logVo = new MsgLogVo();
+
+				if (chatroomBo.getType() == 2 || chatroomBo.getType() == 3) {
+					// 需要知道当前用户的加圈时间,但加圈时间暂时无法获知,以圈子创建时间暂代
+					start = chatroomBo.getCreateTime();
+					ChatroomVo chatroomVo = new ChatroomVo();
+					chatroomBo2Vo(chatroomBo, chatroomVo);
+					logVo.setChatRoom(chatroomVo);
+				}
+				start = chatroomBo.getCreateTime();
+
+				// 需要知道聊天服务器的ts计算方式,当前的计算方式是错误的
+				Long startTs = start.getTime();
+				List<MsgLogBo> logs = msgLogService.findLogByChannel(channel, startTs, 1, 10);
+
+				List<MsgBaseVo> files = new ArrayList<>();
+				List<MsgBaseVo> words = new ArrayList<>();
+
+				Date date = null;
+				for (MsgLogBo msgLogBo : logs) {
+					// 过滤push消息
+					if (msgLogBo.getUuid() == null) {
+						continue;
+					}
+					MsgBaseVo baseVo = new MsgBaseVo();
+					// 设定消息体的发送时间
+					String ts = msgLogBo.getTs();
+
+					if (ts.length() > 13) {
+						date = new Date(Long.valueOf(ts.substring(0, 13)));
+					}
+					baseVo.setSendTime(date);
+
+					// 设定消息体的发送者
+					String uuid = msgLogBo.getUuid();
+					boolean alive = userService.checkUidAlive(uuid);
+					UserBaseVo userBaseVo = new UserBaseVo();
+					if (alive) {
+						UserBo user = userService.getUser(uuid);
+						bo2vo(user, userBaseVo);
+					}
+					baseVo.setSender(userBaseVo);
+
+					BeanUtils.copyProperties(msgLogBo, baseVo);
+					// 判断消息类型
+					if (msgLogBo.getMsg().startsWith("[pic]") || msgLogBo.getMsg().startsWith("[video]")) {
+						files.add(baseVo);
+					} else {
+						words.add(baseVo);
+					}
+				}
+				logVo.setFile(files);
+				logVo.setWord(words);
+
+				map.put("ret", 0);
+				map.put("result", logVo);
+			} else {
+				map.put("ret", -1);
+				map.put("message", "用户未加入改聊天室或该聊天室不存在");
+			}
+
+		} catch (Exception e) {
+			logger.error("@PostMapping(value = \"msg-record\")=====e:{}", e);
+			map.put("ret", -1);
+			map.put("message", "出现错误:" + e.getMessage());
+		}
+		return JSON.toJSONString(map);
+	}
+
+	// 考虑到后期可能会添加新的内容
+	private void bo2vo(UserBo userBo, UserBaseVo baseVo) {
+		BeanUtils.copyProperties(userBo, baseVo);
+	}
 
 	@ApiOperation("搜索")
 	@ApiImplicitParams({ @ApiImplicitParam(name = "keyword", value = "关键词", dataType = "string", paramType = "query"),
@@ -167,10 +329,14 @@ public class ChatroomController extends BaseContorller {
 			for (ChatroomBo chatroomBo : myChatrooms) {
 				if (reason.getChatroomid() != null && reason.getChatroomid().equals(chatroomBo.getId())
 						&& !temp.contains(reason.getChatroomid())) {
+
 					ChatroomVo chatroomVo = new ChatroomVo();
 					chatroomBo2Vo(chatroomBo, chatroomVo);
-					chatroomVos.add(chatroomVo);
 					temp.add(reason.getChatroomid());
+					if(chatroomVo.getUserVos().size()<=0) {
+						continue;
+					}
+					chatroomVos.add(chatroomVo);
 				}
 			}
 		}
@@ -178,6 +344,9 @@ public class ChatroomController extends BaseContorller {
 			if (!temp.contains(chatroomBo.getId())) {
 				ChatroomVo chatroomVo = new ChatroomVo();
 				chatroomBo2Vo(chatroomBo, chatroomVo);
+				if(chatroomVo.getUserVos().size()<=0) {
+					continue;
+				}
 				chatroomVos.add(chatroomVo);
 			}
 		}
@@ -288,7 +457,7 @@ public class ChatroomController extends BaseContorller {
 			if (chatroomBo.isVerify() && !chatroomBo.getMaster().equals(userBo.getId())) {
 				String path = "";
 				String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
-				usePush(useridArr, titlePush,content, path);
+				usePush(useridArr, titlePush, content, path);
 //				JPushUtil.push(titlePush, content, path, useridArr);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), useridArr);
 				return Constant.COM_RESP;
@@ -327,7 +496,7 @@ public class ChatroomController extends BaseContorller {
 					imIds.add(user.getId());
 					String msg = String.format("“%s”邀请您加入群聊", userBo.getUserName());
 					// TODO
-					usePush(user.getId(), titlePush,msg, "");
+					usePush(user.getId(), titlePush, msg, "");
 //					JPushUtil.pushTo(msg, userid);
 					addMessage(messageService, "", msg, titlePush, userid);
 				}
@@ -719,6 +888,7 @@ public class ChatroomController extends BaseContorller {
 		}
 	}
 
+	// 常用
 	private void chatroomBo2Vo(ChatroomBo chatroomBo, ChatroomVo chatroomVo) {
 		BeanUtils.copyProperties(chatroomBo, chatroomVo);
 		LinkedHashSet<ChatroomUserVo> userVos = chatroomVo.getUserVos();

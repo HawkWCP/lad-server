@@ -20,6 +20,10 @@ import com.lad.service.IUserService;
 import com.lad.util.VivoPushUtil;
 import com.mongodb.WriteResult;
 
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
+
 @RestController
 @RequestMapping("push")
 public class PushController extends BaseContorller {
@@ -79,6 +83,11 @@ public class PushController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 	
+	
+	@ApiOperation("注册或启动华为token")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "userId", value = "用户id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "token", value = "用户token", paramType = "query", required = true, dataType = "string") })
 	@PostMapping("/token-enable-huawei")
 	public String enableHuaweiToken(String userId, String token) {
 		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
@@ -129,6 +138,11 @@ public class PushController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 	
+	
+	@ApiOperation("关闭华为token")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "userId", value = "用户id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "token", value = "用户token", paramType = "query", required = true, dataType = "string") })
 	@PostMapping("/token-close-huawei")
 	public String closeHuaweiToken(String userId, String token) {
 		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);

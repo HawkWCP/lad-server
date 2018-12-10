@@ -37,13 +37,14 @@ import net.sf.json.JSONException;
 @RestController
 @RequestMapping("sensitive")
 public class SensitiveController {
-
+	private static final String url = "http://localhost:8090/v1/query";
+	
 	private Logger logger = LogManager.getLogger();
 
 	@PostMapping("sensitive-check")
 	public String sensitiveChecky(String fieldJson) {
-		String url = "http://localhost:8090/v1/query";
-
+//		String url = "http://localhost:8090/v1/query";
+		logger.info("@PostMapping(\"sensitive-check\")", fieldJson);
 		Map<String, Object> map = new HashMap<>();
 		map.put("sensitiveWord", false);
 
@@ -104,6 +105,7 @@ public class SensitiveController {
 
 	@PostMapping("sensitive-query")
 	public String sensitiveQuery(String str) {
+		logger.info("sensitive-query=====str:{}", str);
 		String url = "http://localhost:8090/v1/query";
 		Map<String, String> params = new HashMap<>();
 		params.put("q", str);

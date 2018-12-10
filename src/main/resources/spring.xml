@@ -54,6 +54,12 @@
         <constructor-arg name="databaseName" value="${mongo.databaseName2}" />
     </bean>
     
+    <!-- 聊天信息的数据源配置 -->
+    <bean id="chatRoomDate" class="org.springframework.data.mongodb.core.MongoTemplate">
+        <constructor-arg ref="mongo" />
+        <constructor-arg name="databaseName" value="${mongo.databaseName3}" />
+    </bean>
+    
 	<!-- redis相关配置 -->
     <bean id="jedisPoolConfig"  class="redis.clients.jedis.JedisPoolConfig">
     </bean>

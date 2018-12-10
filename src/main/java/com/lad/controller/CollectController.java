@@ -45,9 +45,9 @@ import net.sf.json.JSONObject;
 @Controller
 @RequestMapping("/collect")
 public class CollectController extends BaseContorller {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(CollectController.class);
-	
+
 	@Autowired
 	private ICollectService collectService;
 	@Autowired
@@ -61,11 +61,11 @@ public class CollectController extends BaseContorller {
 
 	@Autowired
 	private IInforService inforService;
-	
+
 	@RequestMapping("/chat")
 	@ResponseBody
-	public String chat(String title, String content, String userid,
-			HttpServletRequest request, HttpServletResponse response){
+	public String chat(String title, String content, String userid, HttpServletRequest request,
+			HttpServletResponse response) {
 
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
@@ -74,8 +74,7 @@ public class CollectController extends BaseContorller {
 		}
 		UserBo user = userService.getUser(userid);
 		if (user == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(),
-					ERRORCODE.USER_NULL.getReason());
+			return CommonUtil.toErrorResult(ERRORCODE.USER_NULL.getIndex(), ERRORCODE.USER_NULL.getReason());
 		}
 		CollectBo chatBo = new CollectBo();
 		chatBo.setCreateuid(userBo.getId());
@@ -87,7 +86,7 @@ public class CollectController extends BaseContorller {
 		chatBo.setTargetPic(user.getHeadPictureName());
 		chatBo.setSource(user.getUserName());
 		chatBo = collectService.insert(chatBo);
-		
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("col-time", CommonUtil.time2str(chatBo.getCreateTime()));
@@ -97,15 +96,15 @@ public class CollectController extends BaseContorller {
 	@RequestMapping("/my-chats")
 	@ResponseBody
 	public String myChats(@RequestParam(required = false) String start_id, @RequestParam int limit,
-					   HttpServletRequest request, HttpServletResponse response){
+			HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		List<CollectBo> collectBos = collectService.findChatByUserid(userBo.getId(),
-				start_id, limit, Constant.CHAT_TYPE);
+		List<CollectBo> collectBos = collectService.findChatByUserid(userBo.getId(), start_id, limit,
+				Constant.CHAT_TYPE);
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("col-chats", collectBos);
@@ -114,8 +113,7 @@ public class CollectController extends BaseContorller {
 
 	@RequestMapping("/add-tag")
 	@ResponseBody
-	public String addTag(String name,
-						  HttpServletRequest request, HttpServletResponse response){
+	public String addTag(String name, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -126,12 +124,12 @@ public class CollectController extends BaseContorller {
 		userTagBo.setTagName(name);
 		userTagBo.setTagType(0);
 		collectService.insertTag(userTagBo);
-		return  Constant.COM_RESP;
+		return Constant.COM_RESP;
 	}
 
 	@RequestMapping("/my-tags")
 	@ResponseBody
-	public String myTag(HttpServletRequest request, HttpServletResponse response){
+	public String myTag(HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -148,10 +146,19 @@ public class CollectController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
+	/**
+	 * 我的收藏
+	 * 
+	 * @param page
+	 * @param limit
+	 * @param request
+	 * @param response
+	 * @return
+	 */
 	@RequestMapping("/my-collects")
 	@ResponseBody
-	public String myCols(int page, int limit,
-						 HttpServletRequest request, HttpServletResponse response){
+	public String myCols(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(\"/my-collects\")=====page:{},limit:{}",page,limit);
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -166,22 +173,21 @@ public class CollectController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
 	@RequestMapping("/col-files")
 	@ResponseBody
 	public String colFile(String path, int fileType, String videoPic, String userid, HttpServletRequest request,
-						  HttpServletResponse
-			response){
-		
+			HttpServletResponse response) {
+
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
-			logger.info("com.lad.controller.CollectController.colFile-----{userName:未登录用户,path:"+
-					path+",fileType:"+fileType+",videoPic:"+videoPic+",userid:"+userid+"}");
+			logger.info("com.lad.controller.CollectController.colFile-----{userName:未登录用户,path:" + path + ",fileType:"
+					+ fileType + ",videoPic:" + videoPic + ",userid:" + userid + "}");
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("com.lad.controller.CollectController.colFile-----{userName:"+userBo.getUserName()+",userId:"+userBo.getId()+",path:"+
-		path+",fileType:"+fileType+",videoPic:"+videoPic+",userid:"+userid+"}");
+		logger.info("com.lad.controller.CollectController.colFile-----{userName:" + userBo.getUserName() + ",userId:"
+				+ userBo.getId() + ",path:" + path + ",fileType:" + fileType + ",videoPic:" + videoPic + ",userid:"
+				+ userid + "}");
 		CollectBo chatBo = new CollectBo();
 		chatBo.setCreateuid(userBo.getId());
 		chatBo.setUserid(userBo.getId());
@@ -192,7 +198,7 @@ public class CollectController extends BaseContorller {
 		chatBo.setSourceid(userid);
 		chatBo.setPath(path);
 		chatBo.setType(fileType);
-		if (fileType ==  Constant.COLLET_URL) {
+		if (fileType == Constant.COLLET_URL) {
 			chatBo.setSub_type(Constant.FILE_TYPE);
 		}
 		collectService.insert(chatBo);
@@ -202,12 +208,10 @@ public class CollectController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
-
 	@RequestMapping("/by-tagName")
 	@ResponseBody
-	public String findByTag(String tagName, int page, int limit, HttpServletRequest request, HttpServletResponse
-			response){
+	public String findByTag(String tagName, int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -225,8 +229,7 @@ public class CollectController extends BaseContorller {
 
 	@RequestMapping("/by-type")
 	@ResponseBody
-	public String findByTag(int type, int page, int limit, HttpServletRequest request, HttpServletResponse
-			response){
+	public String findByTag(int type, int page, int limit, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -243,6 +246,7 @@ public class CollectController extends BaseContorller {
 
 	/**
 	 * 给收藏添加分类
+	 * 
 	 * @param tags
 	 * @param request
 	 * @param response
@@ -250,33 +254,32 @@ public class CollectController extends BaseContorller {
 	 */
 	@RequestMapping("/add-col-tag")
 	@ResponseBody
-	public String addCollectTag(String tags, String collectid,
-								HttpServletRequest request, HttpServletResponse response){
+	public String addCollectTag(String tags, String collectid, HttpServletRequest request,
+			HttpServletResponse response) {
 		CollectBo collectBo = collectService.findById(collectid);
 		if (collectBo == null) {
-			return CommonUtil.toErrorResult(
-					ERRORCODE.COLLECT_IS_NULL.getIndex(),
+			return CommonUtil.toErrorResult(ERRORCODE.COLLECT_IS_NULL.getIndex(),
 					ERRORCODE.COLLECT_IS_NULL.getReason());
 		}
 		String[] tagArr = tags.split(",");
-		LinkedHashSet<String> userTags =  collectBo.getUserTags();
-		for (String tag: tagArr) {
+		LinkedHashSet<String> userTags = collectBo.getUserTags();
+		for (String tag : tagArr) {
 			userTags.add(tag);
 		}
 		collectService.updateTags(collectid, userTags);
-		return  Constant.COM_RESP;
+		return Constant.COM_RESP;
 	}
 
 	/**
 	 * 给收藏添加分类
+	 * 
 	 * @param request
 	 * @param response
 	 * @return
 	 */
 	@RequestMapping("/del-collect")
 	@ResponseBody
-	public String delCollect(String collectids,
-								HttpServletRequest request, HttpServletResponse response){
+	public String delCollect(String collectids, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -295,14 +298,14 @@ public class CollectController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-	private void bo2vos(List<CollectBo> collectBos, List<CollectVo> collectVos){
+	private void bo2vos(List<CollectBo> collectBos, List<CollectVo> collectVos) {
 		for (CollectBo collectBo : collectBos) {
 			CollectVo vo = new CollectVo();
 			BeanUtils.copyProperties(collectBo, vo);
 			vo.setCollectid(collectBo.getId());
 			vo.setCollectTime(collectBo.getCreateTime());
 			vo.setCollectPic(collectBo.getTargetPic());
-			int type =  collectBo.getType();
+			int type = collectBo.getType();
 			if (type == Constant.CHAT_TYPE || (Constant.COLLET_PIC <= type && type <= Constant.COLLET_VOICE)) {
 				UserBo userBo = userService.getUser(collectBo.getSourceid());
 				vo.setCollectUserid(collectBo.getSourceid());
@@ -322,12 +325,12 @@ public class CollectController extends BaseContorller {
 					if (partyBo != null) {
 						vo.setCollectPic(partyBo.getBackPic());
 					}
-				}  else if (collectBo.getSub_type() == Constant.INFOR_TYPE) {
+				} else if (collectBo.getSub_type() == Constant.INFOR_TYPE) {
 					String inforid = "";
 					vo.setCollectPic(collectBo.getTargetPic());
 					int inforType = collectBo.getSourceType();
 					vo.setSourceType(inforType);
-					//表示收藏的为合集
+					// 表示收藏的为合集
 					if (!StringUtils.isEmpty(collectBo.getFirstid())) {
 						vo.setInforGroups(true);
 						vo.setModule(collectBo.getModule());
@@ -336,40 +339,40 @@ public class CollectController extends BaseContorller {
 					} else {
 						inforid = collectBo.getTargetid();
 						vo.setTargetid(inforid);
-						switch (inforType){
-							case Constant.INFOR_HEALTH:
-								InforBo inforBo = inforService.findById(inforid);
-								if (inforBo != null) {
-									vo.setModule(inforBo.getModule());
-									vo.setClassName(inforBo.getClassName());
-									vo.setTitle(inforBo.getTitle());
-								}
-								break;
-							case Constant.INFOR_SECRITY:
-								SecurityBo securityBo = inforService.findSecurityById(inforid);
-								if (securityBo != null) {
-									vo.setModule(securityBo.getNewsType());
-									vo.setTitle(securityBo.getTitle());
-								}
-								break;
-							case Constant.INFOR_RADIO:
-								BroadcastBo broadcastBo = inforService.findBroadById(inforid);
-								if (broadcastBo != null) {
-									vo.setModule(broadcastBo.getModule());
-									vo.setClassName(broadcastBo.getClassName());
-									vo.setTitle(broadcastBo.getTitle());
-								}
-								break;
-							case Constant.INFOR_VIDEO:
-								VideoBo videoBo = inforService.findVideoById(inforid);
-								if (videoBo != null) {
-									vo.setModule(videoBo.getModule());
-									vo.setClassName(videoBo.getClassName());
-									vo.setTitle(videoBo.getTitle());
-								}
-								break;
-							default:
-								break;
+						switch (inforType) {
+						case Constant.INFOR_HEALTH:
+							InforBo inforBo = inforService.findById(inforid);
+							if (inforBo != null) {
+								vo.setModule(inforBo.getModule());
+								vo.setClassName(inforBo.getClassName());
+								vo.setTitle(inforBo.getTitle());
+							}
+							break;
+						case Constant.INFOR_SECRITY:
+							SecurityBo securityBo = inforService.findSecurityById(inforid);
+							if (securityBo != null) {
+								vo.setModule(securityBo.getNewsType());
+								vo.setTitle(securityBo.getTitle());
+							}
+							break;
+						case Constant.INFOR_RADIO:
+							BroadcastBo broadcastBo = inforService.findBroadById(inforid);
+							if (broadcastBo != null) {
+								vo.setModule(broadcastBo.getModule());
+								vo.setClassName(broadcastBo.getClassName());
+								vo.setTitle(broadcastBo.getTitle());
+							}
+							break;
+						case Constant.INFOR_VIDEO:
+							VideoBo videoBo = inforService.findVideoById(inforid);
+							if (videoBo != null) {
+								vo.setModule(videoBo.getModule());
+								vo.setClassName(videoBo.getClassName());
+								vo.setTitle(videoBo.getTitle());
+							}
+							break;
+						default:
+							break;
 						}
 					}
 				}
@@ -378,6 +381,5 @@ public class CollectController extends BaseContorller {
 			collectVos.add(vo);
 		}
 	}
-
 
 }
