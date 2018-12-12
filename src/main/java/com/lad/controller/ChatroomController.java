@@ -3,6 +3,7 @@ package com.lad.controller;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -351,11 +352,7 @@ public class ChatroomController extends BaseContorller {
 			}
 		}
 
-		/*
-		 * List<ChatroomVo> chatroomVos = new ArrayList<>(); for (ChatroomBo chatroomBo
-		 * : myChatrooms) { ChatroomVo chatroomVo = new ChatroomVo();
-		 * chatroomBo2Vo(chatroomBo, chatroomVo); chatroomVos.add(chatroomVo); }
-		 */
+		// TODO
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("result", chatroomVos);

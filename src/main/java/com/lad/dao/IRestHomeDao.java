@@ -61,4 +61,8 @@ public interface IRestHomeDao extends IBaseDao {
 
 	List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList,String price, int page, int limit);
 
+	void updateTransCount(String shareId, int num);
+
+	void updateHomeHot(String homeId, int num, int type);
+
 }

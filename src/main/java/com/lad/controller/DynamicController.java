@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -316,9 +317,7 @@ public class DynamicController extends BaseContorller {
 	 * @param response
 	 * @return
 	 */
-	@ApiOperation("添加动态信息")
-	@RequestMapping(value = "/insert", method = { RequestMethod.GET, RequestMethod.POST })
-	public String insert(double px, double py, String title, String content, String landmark, MultipartFile[] pictures,
+	private String insert(double px, double py, String title, String content, String landmark, MultipartFile[] pictures,
 			String type, HttpServletRequest request, HttpServletResponse response) {
 		UserBo userBo;
 		try {
@@ -331,7 +330,9 @@ public class DynamicController extends BaseContorller {
 				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type);
 		String userId = userBo.getId();
 		DynamicBo dynamicBo = new DynamicBo();
-		dynamicBo.setTitle(title);
+		if(title!=null) {
+			dynamicBo.setTitle(title);
+		}
 		dynamicBo.setLandmark(landmark);
 		dynamicBo.setContent(content);
 		dynamicBo.setPostion(new double[] { px, py });
@@ -359,6 +360,27 @@ public class DynamicController extends BaseContorller {
 		map.put("ret", 0);
 		map.put("dynamicid", dynamicBo.getId());
 		return JSONObject.fromObject(map).toString();
+	}
+	
+	/**
+	 * 添加动态
+	 * 
+	 * @param px
+	 * @param py
+	 * @param title
+	 * @param content
+	 * @param landmark
+	 * @param pictures
+	 * @param type
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	@ApiOperation("添加动态信息")
+	@PostMapping(value = "/insert")
+	public String insert(double px, double py, String content, String landmark, MultipartFile[] pictures,
+			String type, HttpServletRequest request, HttpServletResponse response) {
+		return insert(px, py, null, content, landmark, pictures, type, request, response);
 	}
 
 	/**

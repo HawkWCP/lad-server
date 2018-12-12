@@ -150,4 +150,14 @@ public class RestHomeServiceImpl extends BaseServiceImpl implements IRestHomeSer
 		return restHomeDao.findPeopleListByPrice(uid, conditionList,price, page, limit);
 	}
 
+	@Override
+	public void updateTransCount(String shareId, int num) {
+		restHomeDao.updateTransCount( shareId,  num);
+	}
+
+	@Override
+	public void updateHomeHot(String homeId, int num, int type) {
+		restHomeDao.updateHomeHot( homeId,  num,  type);
+	}
+
 }

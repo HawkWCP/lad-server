@@ -60,4 +60,8 @@ public interface IRestHomeService {
 	List<RestHomeBo> findRecommendHome(String id, List<Map<String, String>> areaList, int page, int limit);
 
 	List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList,String price, int page, int limit);
+
+	void updateTransCount(String shareId, int num);
+
+	void updateHomeHot(String homeId, int num, int type);
 }

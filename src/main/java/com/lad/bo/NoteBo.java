@@ -54,7 +54,7 @@ public class NoteBo extends BaseBo {
 	//帖子中@的用户
 	private LinkedList<String> atUsers;
 
-	//0 表示帖子， 1表示资讯
+	//0 表示帖子， 1表示资讯, 2.表示养老院
 	private int noteType;
 	//资讯类型
 	private int inforType;

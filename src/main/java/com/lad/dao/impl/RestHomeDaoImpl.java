@@ -21,6 +21,7 @@ import org.springframework.stereotype.Repository;
 import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.lad.dao.IRestHomeDao;
+import com.lad.util.Constant;
 import com.mongodb.WriteResult;
 
 @Repository("restHomeDao")
@@ -48,6 +49,7 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	@Override
 	public RestHomeBo findHomeById(String homeId) {
 		Query query = new Query(Criteria.where("_id").is(homeId).and("deleted").is(0));
+		System.out.println(query);
 		return mongoTemplate.findOne(query, RestHomeBo.class);
 	}
 
@@ -312,5 +314,43 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 		}
 
 		return result;
+	}
+
+	@Override
+	public void updateTransCount(String shareId, int num) {
+		Query query  = new Query(Criteria.where("_id").is(shareId).and("deleted").is(0));
+		RestHomeBo findOne = mongoTemplate.findOne(query, RestHomeBo.class);
+		Update update = new Update();
+		if(findOne!=null) {
+			if(findOne.getShareCount()!=0) {
+				update.set("shareCount", findOne.getShareCount()+num);
+			}else {
+				update.set("shareCount", num);
+			}
+		}
+		mongoTemplate.updateFirst(query, update, RestHomeBo.class);
+
+	}
+
+	@Override
+	public void updateHomeHot(String homeId, int num, int type) {
+		Query query  = new Query(Criteria.where("_id").is(homeId).and("deleted").is(0));
+		RestHomeBo findOne = mongoTemplate.findOne(query, RestHomeBo.class);
+		Update update = new Update();
+		if(findOne!=null) {
+			switch(type) {
+			case Constant.HOME_SHARE:
+				if(findOne.getShareCount()!=0) {
+					update.set("homeHot", findOne.getShareCount()+num);
+				}else {
+					update.set("homeHot", num);
+				}
+				break;
+			default:
+				break;
+			}
+
+		}
+		mongoTemplate.updateFirst(query, update, RestHomeBo.class);
 	}
 }

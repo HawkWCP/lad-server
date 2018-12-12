@@ -50,6 +50,7 @@ import com.lad.bo.NoteBo;
 import com.lad.bo.ReadHistoryBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.RedstarBo;
+import com.lad.bo.RestHomeBo;
 import com.lad.bo.SearchBo;
 import com.lad.bo.ShowBo;
 import com.lad.bo.ThumbsupBo;
@@ -67,6 +68,7 @@ import com.lad.service.INoteService;
 import com.lad.service.IPartyService;
 import com.lad.service.IReadHistoryService;
 import com.lad.service.IReasonService;
+import com.lad.service.IRestHomeService;
 import com.lad.service.ISearchService;
 import com.lad.service.IShowService;
 import com.lad.service.IThumbsupService;
@@ -419,19 +421,7 @@ public class CircleController extends BaseContorller {
 			String[] pushUser = new String[masters.size()];
 			masters.toArray(pushUser);
 			addMessage(messageService, path, content, titlePush, userBo.getId(), pushUser);
-			
-			
-			if(isNotice) {
-				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
-				for (FriendsBo friendsBo : friendByUserid) {
-					String friendid = friendsBo.getFriendid();
-					if(userService.checkUidAlive(friendid)) {
-						String pushContent = String.format("{%s}已申请加入圈子{【%s】},你也快去看看吧！", userBo.getUserName(),circleBo.getName());
-						String pushPath = "/circle/circle-info.do?circleid=" + circleid;
-						usePush(friendid,titlePush, pushContent, pushPath);
-					}
-				}
-			}
+
 		} catch (MyException e) {
 			logger.error("@PostMapping(\"/party-apply-insert\")====={}", e);
 			return e.getMessage();
@@ -620,8 +610,22 @@ public class CircleController extends BaseContorller {
 					if (reasonBo.getStatus() != Constant.ADD_AGREE) {
 						reasonService.updateApply(reasonBo.getId(), Constant.ADD_AGREE, "");
 					}
+					// TODO
 					if (reasonBo.isNotice()) {
 						pushFriends.add(userid);
+						
+						List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
+						for (FriendsBo friendsBo : friendByUserid) {
+							String friendid = friendsBo.getFriendid();
+							if(friendid.equals(userBo.getId())) {
+								continue;
+							}
+							if(userService.checkUidAlive(friendid)) {
+								String pushContent = String.format("\"%s\"已申请加入圈子\"%s\",你也快去看看吧！", userBo.getUserName(),circleBo.getName());
+								String pushPath = "/circle/circle-info.do?circleid=" + circleid;
+								usePush(friendid,titlePush, pushContent, pushPath);
+							}
+						}
 					}
 					// 是否通过聚会页面加入圈子
 					if (reasonBo.getAddType() == 1) {
@@ -3222,6 +3226,9 @@ public class CircleController extends BaseContorller {
 		return circleVo;
 	}
 
+	
+	@Autowired
+	private IRestHomeService restHomeService;
 	/**
 	 *
 	 * @param noteBo
@@ -3307,7 +3314,44 @@ public class CircleController extends BaseContorller {
 				default:
 					break;
 				}
-			} else {
+			} else if(noteBo.getNoteType() == 2){
+				// 转发自养老院
+				RestHomeBo sourceNote = restHomeService.findHomeById(noteBo.getSourceid());
+				if (sourceNote != null) {
+					noteVo.setForwardType(1);
+					noteVo.setSubject(sourceNote.getName());
+					noteVo.setContent(sourceNote.getIntroduction());
+					noteVo.setPhotos(new LinkedList<>(sourceNote.getImages()));
+					noteVo.setVisitCount(noteBo.getVisitcount());
+//					noteVo.setLandmark(sourceNote.getArea()+":"+sourceNote.getAddress());
+//					addNoteAtUsers(noteBo, noteVo, userid);
+					// 获取创建者
+					UserBo from = userService.getUser(sourceNote.getCreateuid());
+
+					if (from != null) {
+						noteVo.setFromUserid(from.getId());
+						// 如果登陆者id不为空
+						if (!org.springframework.util.StringUtils.isEmpty(userid)) {
+							// 参数1:主体id; 参数2:朋友id 判断原贴作者是否为当前登录者好友
+							FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userid, from.getId());
+							if (friendsBo != null && !StringUtils.isEmpty(friendsBo.getBackname())) {
+								noteVo.setFromUserName(friendsBo.getBackname());
+							} else {
+								noteVo.setFromUserName(from.getUserName());
+							}
+						} else {
+							noteVo.setFromUserName(from.getUserName());
+						}
+						noteVo.setFromUserPic(from.getHeadPictureName());
+						noteVo.setFromUserSex(from.getSex());
+						noteVo.setFromUserSign(from.getPersonalizedSignature());
+						noteVo.setFromUserBirth(from.getBirthDay());
+						noteVo.setFromUserLevel(from.getLevel());
+					}
+				}
+				noteVo.setClassName("发现:养老院");
+				
+			}else {
 				// 转发自帖子
 				NoteBo sourceNote = noteService.selectById(noteBo.getSourceid());
 

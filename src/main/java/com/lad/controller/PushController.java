@@ -90,7 +90,7 @@ public class PushController extends BaseContorller {
 			@ApiImplicitParam(name = "token", value = "用户token", paramType = "query", required = true, dataType = "string") })
 	@PostMapping("/token-enable-huawei")
 	public String enableHuaweiToken(String userId, String token) {
-		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
+		logger.info("@PostMapping(\"/token-enable-huawei\")=====userId:{},token:{}", userId, token);
 		Map<String, Object> map = new HashMap<>();
 		try {
 			if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(token)) {
@@ -145,7 +145,7 @@ public class PushController extends BaseContorller {
 			@ApiImplicitParam(name = "token", value = "用户token", paramType = "query", required = true, dataType = "string") })
 	@PostMapping("/token-close-huawei")
 	public String closeHuaweiToken(String userId, String token) {
-		logger.info("@PostMapping(\"/huaweiToken\")=====userId:{},token:{}", userId, token);
+		logger.info("@PostMapping(\"/token-close-huawei\")=====userId:{},token:{}", userId, token);
 		Map<String, Object> map = new HashMap<>();
 		try {
 			if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(token)) {

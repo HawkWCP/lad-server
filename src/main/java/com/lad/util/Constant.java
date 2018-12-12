@@ -337,10 +337,15 @@ public class Constant {
 	 */
 	public static final int INFOR_YANGLAO = 6;
 
+	// 邀请数
 	public static final int VISIT_NUM = 1;
+	// 评论数
 	public static final int COMMENT_NUM = 2;
+	// 分享数
 	public static final int SHARE_NUM = 3;
+	// 点赞数
 	public static final int THUMPSUB_NUM = 4;
+	// 收藏数
 	public static final int COLLECT_NUM = 5;
 
 	/**
@@ -501,4 +506,13 @@ public class Constant {
 	
 	// 养老院-机构性质-养老院
 	public static final String YL_PP_GZ = "公助民办";
+	
+	/**
+	 * 评论或点赞类型 note 帖子
+	 */
+	public static final int HOME_TYPE = 14;
+	/**
+	 * 养老院转发
+	 */
+	public static final int HOME_SHARE = 14;
 }

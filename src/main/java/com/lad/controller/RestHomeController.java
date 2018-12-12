@@ -2,34 +2,50 @@ package com.lad.controller;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
+import com.lad.bo.CircleBo;
+import com.lad.bo.DynamicBo;
+import com.lad.bo.NoteBo;
 import com.lad.bo.OptionBo;
 import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.lad.bo.UserBo;
+import com.lad.service.ICircleService;
+import com.lad.service.IDynamicService;
+import com.lad.service.IFriendsService;
 import com.lad.service.IMarriageService;
+import com.lad.service.INoteService;
 import com.lad.service.IRestHomeService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
+import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.MyException;
 import com.lad.vo.RestHomeVo;
 import com.lad.vo.RetiredPeopleVo;
 import com.lad.vo.UserBaseVo;
@@ -56,8 +72,159 @@ public class RestHomeController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 	@Autowired
-	public IMarriageService marriageService;
+	private IMarriageService marriageService;
+	
+	@Autowired
+	private IDynamicService dynamicService;
+	
+	@Autowired
+	private IFriendsService friendsService;
+	
+	@Autowired
+	private ICircleService circleService;
+	@Autowired
+	private INoteService noteService;
+	
+	@ApiOperation("转发养老院到我的动态")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "homeId", value = "被转发的养老院id", required = true, dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "view", value = "转发说明信息", required = true, dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "landmark", value = "转发时的地标", dataType = "string", paramType = "query") })
+	@PostMapping("/forward-dynamic")
+	public String forwardDynamic(String homeId, String view, String landmark, HttpServletRequest request,
+			HttpServletResponse response) {
+		
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		logger.info("@PostMapping(\"/forward-dynamic\")=====homeId:{},view:{},landmark:{},user:{}({})", homeId, view, landmark,userBo.getUserName(),userBo.getId());
 
+		RestHomeBo home = restHomeService.findHomeById(homeId);
+		if (null == home) {
+			return CommonUtil.toErrorResult(ERRORCODE.HOME_IS_NULL.getIndex(), ERRORCODE.HOME_IS_NULL.getReason());
+		}
+		DynamicBo dynamicBo = new DynamicBo();
+		dynamicBo.setTitle(home.getName());
+		dynamicBo.setView(view);
+		dynamicBo.setMsgid(homeId);
+		dynamicBo.setCreateuid(userBo.getId());
+		dynamicBo.setOwner(home.getCreateuid());
+		dynamicBo.setLandmark(landmark);
+		dynamicBo.setType(Constant.HOME_TYPE);
+		if(home.getImages()!=null&& home.getImages().size()>0) {
+			dynamicBo.setPicType("pic");
+			dynamicBo.setPhotos(home.getImages());
+		}
+		dynamicBo.setSourceName(home.getName());
+		dynamicBo.setSourceid(home.getId());
+
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
+		dynamicService.addDynamic(dynamicBo);
+		updateCount(homeId, Constant.SHARE_NUM, 1);
+		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
+		updateHomeHot(home.getId(), 1, Constant.HOME_SHARE);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("dynamicid", dynamicBo.getId());
+		return JSONObject.fromObject(map).toString();
+	}
+
+	@Autowired
+	private AsyncController asyncController;
+
+	@ApiOperation("转发指定的圈子")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "circleid", value = "转发圈子id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "homeId", value = "养老院id", required = true, paramType = "query", dataType = "string")})
+	@RequestMapping(value = "/forward-circle", method = { RequestMethod.GET, RequestMethod.POST })
+	public String forwardCircle(String circleid, String homeId, HttpServletRequest request,
+			HttpServletResponse response) {
+		return forwardCircle(circleid, homeId, null, request, response);
+	}
+
+	/**
+	 * 作为一个可扩展的私有handler
+	 * @param circleid
+	 * @param homeId
+	 * @param landmark
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	private String forwardCircle(String circleid, String homeId,String landmark, HttpServletRequest request,
+			HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		logger.info(
+				"@RequestMapping(value = \"/forward-dynamic\")=====user:{}({}),circleid:{},homeId:{}",
+				userBo.getUserName(), userBo.getId(),circleid, homeId);
+		RestHomeBo home = restHomeService.findHomeById(homeId);
+		if (null == home) {
+			return CommonUtil.toErrorResult(ERRORCODE.HOME_IS_NULL.getIndex(), ERRORCODE.HOME_IS_NULL.getReason());
+		}
+		CircleBo circleBo = circleService.selectById(circleid);
+		if (circleBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_IS_NULL.getIndex(), ERRORCODE.CIRCLE_IS_NULL.getReason());
+		}
+		
+		NoteBo noteBo = new NoteBo();
+		noteBo.setSourceid(homeId);
+		noteBo.setNoteType(2);
+		noteBo.setForward(1);
+		noteBo.setCreateuid(userBo.getId());
+		noteBo.setCircleId(circleid);
+		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
+		if(landmark!=null) {
+			noteBo.setLandmark(landmark);
+		}
+//		String[] atUser = atUserids.split(",");
+//		noteBo.setAtUsers(new LinkedList<>(Arrays.asList(atUser)));
+		
+		NoteBo insert = noteService.insert(noteBo);
+		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
+		asyncController.updateCircieNoteUnReadNum(userBo.getId(), circleid, insert.getId());
+		updateCount(homeId, Constant.SHARE_NUM, 1);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("noteId", insert.getId());
+		return JSONObject.fromObject(map).toString();	
+	}
+	
+	private void updateCount(String shareId,int type,int num) {
+		RLock lock = redisServer.getRLock(shareId.concat(String.valueOf(type)));
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			switch (type) {
+
+			case Constant.SHARE_NUM:// 分享
+				restHomeService.updateTransCount(shareId, num);
+				break;
+			default:
+				break;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	
+	private void updateHomeHot(String homeId,int num, int type){
+		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
+		try {
+			// 3s自动解锁
+			lock.lock(3, TimeUnit.SECONDS);
+			restHomeService.updateHomeHot(homeId, num, type);
+		} finally {
+			lock.unlock();
+		}
+	}
+	
 	@ApiOperation("搜索住院者")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "price", value = "住院者心理价位", required = true, paramType = "query", dataType = "int"),

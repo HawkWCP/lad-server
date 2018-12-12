@@ -31,6 +31,7 @@ public class TokenDao implements ITokenDao {
 		Query query = new Query(Criteria.where("userId").is(tokenBo.getUserId()));
 		Update update = new Update();
 		update.set("huaweiToken", tokenBo.getHuaweiToken());
+		update.set("status", tokenBo.getStatus());
 		return mongoTemplate.updateFirst(query, update, PushTokenBo.class);
 	}
 
@@ -42,7 +43,7 @@ public class TokenDao implements ITokenDao {
 
 	@Override
 	public List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet) {
-		return mongoTemplate.find(new Query(Criteria.where("userId").in(useridSet)), PushTokenBo.class);
+		return mongoTemplate.find(new Query(Criteria.where("userId").in(useridSet).and("status").is(1)), PushTokenBo.class);
 	}
 
 	@Override
