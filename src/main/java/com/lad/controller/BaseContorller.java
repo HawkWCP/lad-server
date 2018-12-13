@@ -71,7 +71,7 @@ public abstract class BaseContorller {
 	 */
 	@Async
 	private void push(RedisServer redisServer, String title, String message, String description, String path,
-			Set<String> userTokens, List<String> aliasList, String... alias) {
+			Set<String> userTokens, Set<String> userRegIds,List<String> aliasList, String... alias) {
 
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
 		
@@ -94,7 +94,7 @@ public abstract class BaseContorller {
 				@Override
 				public void run() {
 					try {
-						MiPushUtil.sendMessageToAliases(title, message, "小米推送:" + description, path, aliasList);
+						MiPushUtil.sendMessageToRegIds(title, message, "小米推送:" + description, path, userRegIds);
 					} catch (Exception e) {
 						logger.error("BaseContorller====={}", e);
 					}
@@ -427,13 +427,22 @@ public abstract class BaseContorller {
 		Map<String, String> msgMap = new HashMap<>();
 		msgMap.put("path", path);
 		String message = JSON.toJSONString(msgMap);
-		PushTokenBo tokenBo = tokenService.findTokenEnableByUserId(alias);
+		
+		// 获取华为token
+		PushTokenBo tokenBo = tokenService.findTokenEnableByUserId(alias,1);
 		Set<String> tokenSet = new HashSet<>();
 		if(tokenBo!=null) {
-			tokenSet.add(tokenBo.getHuaweiToken());
+			tokenSet.add(tokenBo.getToken());
 		}
 
-		push(redisServer, title, message, content, path, tokenSet, aliasList, alias);
+		
+		// 获取小米regId
+		PushTokenBo regIdBo = tokenService.findTokenEnableByUserId(alias,2);
+		Set<String> regIdSet = new HashSet<>();
+		if(regIdBo!=null) {
+			regIdSet.add(regIdBo.getToken());
+		}
+		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, alias);
 	}
 
 	/**
@@ -452,16 +461,25 @@ public abstract class BaseContorller {
 
 		String[] pushUser = new String[useridSet.size()];
 		useridSet.toArray(pushUser);
-
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet);
+		// 获取华为token
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet,1);
 		Set<String> tokenSet = new HashSet<>();
 		if(tokens!=null) {
 			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
+				tokenSet.add(pushTokenBo.getToken());
 			}
 		}
 
-		push(redisServer, title, message, content, path, tokenSet, aliasList, pushUser);
+		// 获取小米regId
+		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(useridSet,2);
+		Set<String> regIdSet = new HashSet<>();
+		if(regIds!=null) {
+			for (PushTokenBo pushTokenBo : regIds) {
+				regIdSet.add(pushTokenBo.getToken());
+			}
+		}
+		
+		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, pushUser);
 	}
 
 	/**
@@ -477,13 +495,23 @@ public abstract class BaseContorller {
 		msgMap.put("path", path);
 		String message = JSON.toJSONString(msgMap);
 
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList);
+		// 获取华为token
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList,1);
 		Set<String> tokenSet = new HashSet<>();
 		if(tokens!=null) {
 			for (PushTokenBo pushTokenBo : tokens) {
-				tokenSet.add(pushTokenBo.getHuaweiToken());
+				tokenSet.add(pushTokenBo.getToken());
 			}
 		}
-		push(redisServer, title, message, content, path, tokenSet, aliasList, useridArr);
+		
+		// 获取小米regId
+		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(aliasList,2);
+		Set<String> regIdSet = new HashSet<>();
+		if(regIds!=null) {
+			for (PushTokenBo pushTokenBo : regIds) {
+				regIdSet.add(pushTokenBo.getToken());
+			}
+		}
+		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, useridArr);
 	}
 }

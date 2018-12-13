@@ -148,6 +148,7 @@ public class PartyController extends BaseContorller {
 			partyUsers.add(userId);
 			partyBo.setPartyUserNum(1);
 			partyBo.setForward(0);
+			System.out.println(partyBo.isOpen());
 
 			ChatroomBo chatroomBo = new ChatroomBo();
 			chatroomBo.setName(partyBo.getTitle());
@@ -174,7 +175,7 @@ public class PartyController extends BaseContorller {
 
 			// addCircleShow(partyBo);
 			String path = "/party/party-info.do?partyid=" + partyBo.getId();
-			String content = String.format("“%s”发起了聚会【%s】，快去看看吧", userBo.getUserName(), partyBo.getTitle());
+			String content = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(), partyBo.getTitle());
 			if (circleUsers.size() > 0) {
 				String[] userids = new String[circleUsers.size()];
 
@@ -182,8 +183,23 @@ public class PartyController extends BaseContorller {
 
 				addMessage(messageService, path, content, titlePush, userId, userids);
 			}
+			
 			if (circleBo.isOpen()) {
-				asyncController.pushFriends(userId, content, path, circleUsers);
+//				asyncController.pushFriends(userId, content, path, circleUsers);
+				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
+				List<String> friendsList = new ArrayList<>();
+				for (FriendsBo friendsBo : friendByUserid) {
+					String friendid = friendsBo.getFriendid();
+					if(friendid.equals(userBo.getId())) {
+						continue;
+					}
+					if(userService.checkUidAlive(friendid)) {
+						friendsList.add(friendsBo.getFriendid());
+					}
+				}
+				// “发起人昵称”发起了聚会【聚会名称】，快去看看吧！
+				String pushContent = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(),partyBo.getTitle());
+				usePush(friendsList,titlePush, pushContent, path);
 			}
 			// 用户等级
 			userService.addUserLevel(userBo.getId(), 1, Constant.PARTY_TYPE, 0);
@@ -1284,7 +1300,7 @@ public class PartyController extends BaseContorller {
 				String path = "/party/party-notice.do?partyid=" + partyid;
 				String[] userids = new String[users.size()];
 				users.toArray(userids);
-				String pushContent = String.format("{%s} 感谢您报名参与聚会，{%s }通知您:" + content, partyBo.getPayName(),
+				String pushContent = String.format("【聚会通知】感谢您报名参与聚会，“%s”通知您:" + content, partyBo.getPayName(),
 						userBo.getUserName());
 				usePush(userids, titlePush, pushContent, path);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), userids);

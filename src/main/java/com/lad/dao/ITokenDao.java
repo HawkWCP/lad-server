@@ -8,22 +8,25 @@ import com.mongodb.WriteResult;
 
 public interface ITokenDao extends IBaseDao {
 
-	PushTokenBo findTokenByUserId(String userId);
+	PushTokenBo findHuaweiTokenByUserId(String userId);
+	PushTokenBo findXiaomiRegIdByUserId(String userId);
 
-	WriteResult updateHuaweiToken(PushTokenBo tokenBo);
+	WriteResult updateToken(PushTokenBo tokenBo);
 
 	PushTokenBo insert(PushTokenBo tokenBo);
 
-	List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet);
+	List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet,int type);
 
-	void deletedTokenByTokenAndUserId(String token, String userId);
+	void deletedTokenByTokenAndUserId(String token, String userId,int type);
 
-	WriteResult updateOtherStatus(String token, String userId);
+	WriteResult updateOtherStatus(String token, String userId,int type);
 
-	PushTokenBo findTokenByUserIdAndToken(String userId, String token);
+	PushTokenBo findTokenByUserIdAndToken(String userId, String token,int type);
 
-	WriteResult closeTokenByUseridAndToken(String userId, String token);
+	WriteResult closeTokenByUseridAndToken(String userId, String token,int type);
 
-	PushTokenBo findTokenEnableByUserId(String alias);
+	PushTokenBo findTokenEnableByUserId(String alias,int type);
+
+
 
 }

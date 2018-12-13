@@ -883,7 +883,7 @@ public class AsyncController extends BaseContorller {
      * @param content
      * @param path
      */
-    @Async
+  /*  @Async
     public void pushFriends(String userid, String content, String path, HashSet<String> circleUsers){
         List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userid);
         if (!CommonUtil.isEmpty(friendsBos)) {
@@ -901,7 +901,7 @@ public class AsyncController extends BaseContorller {
                 addMessage(messageService, path, content, "聚会通知", userid, friendids);
             }
         }
-    }
+    }*/
 
     /**
      * 聚会数据更新

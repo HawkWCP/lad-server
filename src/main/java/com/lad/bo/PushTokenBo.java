@@ -18,9 +18,11 @@ public class PushTokenBo {
 	
 	@Id
 	private String id;
+	
+	// 1. 华为;2.小米;3.vivo;4.魅族
+	private int type;
 	private String userId;
-	private String huaweiToken;
-	private String xiaomiAlias;
+	private String token;
 	// 1:启动;2:关闭
 	private int status; 
 }

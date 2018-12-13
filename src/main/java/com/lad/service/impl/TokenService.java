@@ -18,13 +18,18 @@ public class TokenService implements ITokenService {
 	private ITokenDao tokenDao;
 
 	@Override
-	public PushTokenBo findTokenByUserId(String userId) {
-		return tokenDao.findTokenByUserId(userId);
+	public PushTokenBo findHuaweiTokenByUserId(String userId) {
+		return tokenDao.findHuaweiTokenByUserId(userId);
 	}
 
 	@Override
-	public WriteResult updateHuaweiToken(PushTokenBo tokenBo) {
-		return tokenDao.updateHuaweiToken(tokenBo);
+	public PushTokenBo findXiaomiRegIdByUserId(String userId) {
+		return tokenDao.findXiaomiRegIdByUserId(userId);
+	}
+	
+	@Override
+	public WriteResult updateToken(PushTokenBo tokenBo) {
+		return tokenDao.updateToken(tokenBo);
 	}
 
 	@Override
@@ -33,33 +38,36 @@ public class TokenService implements ITokenService {
 	}
 
 	@Override
-	public List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet) {
-		return tokenDao.findTokenByUserIds(useridSet);
+	public List<PushTokenBo> findTokenByUserIds(Collection<String> useridSet,int type) {
+		return tokenDao.findTokenByUserIds(useridSet,type);
 	}
 
 	@Override
-	public void deletedTokenByTokenAndUserId(String token, String userId) {
-		tokenDao.deletedTokenByTokenAndUserId(token, userId);
+	public void deletedTokenByTokenAndUserId(String token, String userId,int type) {
+		tokenDao.deletedTokenByTokenAndUserId(token, userId,type);
 	}
 
 	@Override
-	public WriteResult updateOtherStatus(String token, String userId) {
-		return tokenDao.updateOtherStatus( token,  userId);
+	public WriteResult updateOtherStatus(String token, String userId,int type) {
+		return tokenDao.updateOtherStatus( token,  userId,type);
 	}
 
 	@Override
-	public PushTokenBo findTokenByUserIdAndToken(String userId, String token) {
-		return tokenDao.findTokenByUserIdAndToken( userId,  token);
+	public PushTokenBo findTokenByUserIdAndToken(String userId, String token,int type) {
+		return tokenDao.findTokenByUserIdAndToken( userId,  token,type);
 	}
 
 	@Override
-	public WriteResult closeTokenByUseridAndToken(String userId, String token) {
-		return tokenDao.closeTokenByUseridAndToken( userId,  token);
+	public WriteResult closeTokenByUseridAndToken(String userId, String token,int type) {
+		return tokenDao.closeTokenByUseridAndToken( userId,  token,type);
 	}
 
 	@Override
-	public PushTokenBo findTokenEnableByUserId(String alias) {
-		return tokenDao.findTokenEnableByUserId( alias);
+	public PushTokenBo findTokenEnableByUserId(String alias,int type) {
+		return tokenDao.findTokenEnableByUserId( alias,type);
 	}
+
+
+
 
 }

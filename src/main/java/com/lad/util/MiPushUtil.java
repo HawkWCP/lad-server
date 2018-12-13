@@ -3,12 +3,14 @@ package com.lad.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.Lists;
 import com.xiaomi.xmpush.server.Constants;
 import com.xiaomi.xmpush.server.Feedback;
 import com.xiaomi.xmpush.server.Message;
@@ -48,6 +50,28 @@ public class MiPushUtil {
 			//{"errorCode":{"name":"成功","description":"成功","fullDescription":"成功,0,成功","value":0},"messageId":"adm04750540195694272cS","data":{"id":"adm04750540195694272cS"}}
 			logger.info("mipush=====" + JSON.toJSON(sendToAlias));
 		} catch (Exception e) {
+			logger.error("Mipush.sendMessage throw error:{}", e.toString());
+		}
+	}
+	
+	
+	public static void sendMessageToRegIds(String title, String messagePayload,String description, String path,Set<String> regIds){
+		logger.info("小米推送=====title:{},messagePayload:{},description:{},path:{},aliasList:{}", title,messagePayload,description,path,regIds);
+		try {
+			Constants.useOfficial();
+			Sender sender = new Sender(APP_SECRET_KEY);
+
+		    Message message = new Message.Builder()
+		                .title(title)
+		                .description(description)
+		                .payload(messagePayload)
+		                .restrictedPackageName(MY_PACKAGE_NAME)
+		                .extra("path", path)
+		                .notifyType(1)     // 使用默认提示音提示
+		                .build();
+		    Result sendToAlias =  sender.send(message, new ArrayList<>(regIds), 3); //发送消息到一组设备上, regrids个数不得超过1000个
+		    logger.info("mipush=====" + JSON.toJSON(sendToAlias));
+		}catch(Exception e) {
 			logger.error("Mipush.sendMessage throw error:{}", e.toString());
 		}
 	}

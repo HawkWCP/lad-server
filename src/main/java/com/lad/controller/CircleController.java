@@ -615,17 +615,20 @@ public class CircleController extends BaseContorller {
 						pushFriends.add(userid);
 						
 						List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
+						List<String> friendsList = new ArrayList<>();
+
 						for (FriendsBo friendsBo : friendByUserid) {
 							String friendid = friendsBo.getFriendid();
 							if(friendid.equals(userBo.getId())) {
 								continue;
 							}
 							if(userService.checkUidAlive(friendid)) {
-								String pushContent = String.format("\"%s\"已申请加入圈子\"%s\",你也快去看看吧！", userBo.getUserName(),circleBo.getName());
-								String pushPath = "/circle/circle-info.do?circleid=" + circleid;
-								usePush(friendid,titlePush, pushContent, pushPath);
+								friendsList.add(friendsBo.getFriendid());
 							}
 						}
+						String pushContent = String.format("“%s”已申请加入圈子【%s】,你也快去看看吧！", userBo.getUserName(),circleBo.getName());
+						String pushPath = "/circle/circle-info.do?circleid=" + circleid;
+						usePush(friendsList,titlePush, pushContent, pushPath);
 					}
 					// 是否通过聚会页面加入圈子
 					if (reasonBo.getAddType() == 1) {

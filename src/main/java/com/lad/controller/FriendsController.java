@@ -119,8 +119,8 @@ public class FriendsController extends BaseContorller {
 			friendsService.insert(friendsBo);
 			String path = "/friends/apply-list.do";
 //			JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
-			usePush(friendid, pushTitle,userBo.getUserName() + JPushUtil.APPLY, path);
-			addMessage(messageService, path, userBo.getUserName() + JPushUtil.APPLY, pushTitle, friendid);
+			usePush(friendid, pushTitle,"“"+userBo.getUserName()+"”"+JPushUtil.APPLY, path);
+			addMessage(messageService, path, "“"+userBo.getUserName()+"”"+JPushUtil.APPLY, pushTitle, friendid);
 			map.put("ret", 0);
 		} catch (MyException e) {
 			logger.error("@RequestMapping(value = \"/apply\")=====好友请求过程中发生错误:{}", e);
