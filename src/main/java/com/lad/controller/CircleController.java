@@ -626,7 +626,7 @@ public class CircleController extends BaseContorller {
 								friendsList.add(friendsBo.getFriendid());
 							}
 						}
-						String pushContent = String.format("“%s”已申请加入圈子【%s】,你也快去看看吧！", userBo.getUserName(),circleBo.getName());
+						String pushContent = String.format("“%s”已加入圈子【%s】,你也快去看看吧！", user.getUserName(),circleBo.getName());
 						String pushPath = "/circle/circle-info.do?circleid=" + circleid;
 						usePush(friendsList,titlePush, pushContent, pushPath);
 					}
