@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -79,28 +78,36 @@ public abstract class BaseContorller {
 			// 3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
 			
-			THREADPOOL.execute(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
-					} catch (IOException e) {
-						logger.error("BaseContorller====={}", e);
+			if(userTokens.size()>0) {
+				System.out.println("==============华为token长度大于一,触发了push=================");
+				THREADPOOL.execute(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
+						} catch (IOException e) {
+							logger.error("BaseContorller====={}", e);
+						}
 					}
-				}
-			});
-			THREADPOOL.execute(new Runnable() {
+				});
+			}
 
-				@Override
-				public void run() {
-					try {
-						MiPushUtil.sendMessageToRegIds(title, message, "小米推送:" + description, path, userRegIds);
-					} catch (Exception e) {
-						logger.error("BaseContorller====={}", e);
+			if(userRegIds.size()>0) {
+				System.out.println("==============小米regId长度大于一,触发了push=================");
+				THREADPOOL.execute(new Runnable() {
+
+					@Override
+					public void run() {
+						try {
+							MiPushUtil.sendMessageToRegIds(title, message, "小米推送:" + description, path, userRegIds);
+						} catch (Exception e) {
+							logger.error("BaseContorller====={}", e);
+						}
+
 					}
+				});
+			}
 
-				}
-			});
 			THREADPOOL.execute(new Runnable() {
 
 				@Override
@@ -435,6 +442,7 @@ public abstract class BaseContorller {
 			tokenSet.add(tokenBo.getToken());
 		}
 
+		System.out.println(String.format("==================userid(%s)获取到了华为token:%s========================", alias,tokenSet.toString()));
 		
 		// 获取小米regId
 		PushTokenBo regIdBo = tokenService.findTokenEnableByUserId(alias,2);
@@ -442,6 +450,8 @@ public abstract class BaseContorller {
 		if(regIdBo!=null) {
 			regIdSet.add(regIdBo.getToken());
 		}
+		System.out.println(String.format("==================userid(%s)获取到了小米regId:%s========================", alias,regIdSet.toString()));
+
 		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, alias);
 	}
 
@@ -470,6 +480,8 @@ public abstract class BaseContorller {
 			}
 		}
 
+		System.out.println(String.format("==================userids(%s)获取到了华为token:%s========================", useridSet.toString(),tokenSet.toString()));
+		
 		// 获取小米regId
 		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(useridSet,2);
 		Set<String> regIdSet = new HashSet<>();
@@ -478,7 +490,8 @@ public abstract class BaseContorller {
 				regIdSet.add(pushTokenBo.getToken());
 			}
 		}
-		
+		System.out.println(String.format("==================userids(%s)获取到了小米regId:%s========================", useridSet.toString(),regIdSet.toString()));
+
 		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, pushUser);
 	}
 
@@ -503,7 +516,8 @@ public abstract class BaseContorller {
 				tokenSet.add(pushTokenBo.getToken());
 			}
 		}
-		
+		System.out.println(String.format("==================userids(%s)获取到了华为token:%s========================", aliasList.toString(),tokenSet.toString()));
+
 		// 获取小米regId
 		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(aliasList,2);
 		Set<String> regIdSet = new HashSet<>();
@@ -512,6 +526,8 @@ public abstract class BaseContorller {
 				regIdSet.add(pushTokenBo.getToken());
 			}
 		}
+		
+		System.out.println(String.format("==================userids(%s)获取到了小米regId:%s========================", aliasList.toString(),regIdSet.toString()));
 		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, useridArr);
 	}
 }

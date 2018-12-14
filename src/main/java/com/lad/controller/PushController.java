@@ -202,7 +202,7 @@ public class PushController extends BaseContorller {
 			@ApiImplicitParam(name = "regId", value = "用户regId", paramType = "query", required = true, dataType = "string") })
 	@PostMapping("/regId-close-xiaomi")
 	public String closeXiaomiRegid(String userId, String regId) {
-		logger.info("@PostMapping(\"/regId-close-xiaomi\")=====userId:{},token:{}", userId, regId);
+		logger.info("@PostMapping(\"/regId-close-xiaomi\")=====userId:{},regId:{}", userId, regId);
 		Map<String, Object> map = new HashMap<>();
 		try {
 			if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(regId)) {
@@ -218,7 +218,7 @@ public class PushController extends BaseContorller {
 				return JSON.toJSONString(map);			
 			}
 			
-			WriteResult result = tokenService.closeTokenByUseridAndToken(userId,regId,1);
+			WriteResult result = tokenService.closeTokenByUseridAndToken(userId,regId,2);
 			map.put("ret", 0);
 			map.put("result", "regId关闭成功");
 		} catch (Exception e) {

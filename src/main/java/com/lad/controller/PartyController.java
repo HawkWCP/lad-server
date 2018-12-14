@@ -148,7 +148,6 @@ public class PartyController extends BaseContorller {
 			partyUsers.add(userId);
 			partyBo.setPartyUserNum(1);
 			partyBo.setForward(0);
-			System.out.println(partyBo.isOpen());
 
 			ChatroomBo chatroomBo = new ChatroomBo();
 			chatroomBo.setName(partyBo.getTitle());
@@ -184,13 +183,17 @@ public class PartyController extends BaseContorller {
 				addMessage(messageService, path, content, titlePush, userId, userids);
 			}
 			
-			if (circleBo.isOpen()) {
+			if (partyBo.isOpen()) {
+				System.out.println("===================创建聚会时给好友发送push=====================");
 //				asyncController.pushFriends(userId, content, path, circleUsers);
 				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
 				List<String> friendsList = new ArrayList<>();
 				for (FriendsBo friendsBo : friendByUserid) {
 					String friendid = friendsBo.getFriendid();
 					if(friendid.equals(userBo.getId())) {
+						continue;
+					}
+					if(circleUsers.contains(friendid)) {
 						continue;
 					}
 					if(userService.checkUidAlive(friendid)) {
