@@ -143,7 +143,8 @@ public enum ERRORCODE {
 	REQUIREID_NOMATCH(210004,"用户id与requireId不匹配,请检查你传入的requireId是否正确"),
 	UPDATE_NO_CHANGE(210005,"传入数据与原数据相比无变动"),
 	USERNAME_REPEAT(210006,"用户名重复"),
-	HOME_IS_NULL(120001, "养老院不存在")
+	HOME_IS_NULL(210007, "养老院不存在"),
+	SHOW_IS_NULL(210008, "演出不存在")
 ;
 	
 

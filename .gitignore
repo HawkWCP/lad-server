@@ -13,3 +13,5 @@ rebel.xml
 target/
 /lib
 /bin/
+/.idea
+/lad-server.iml

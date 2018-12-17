@@ -28,6 +28,7 @@ public class ShowBo extends BaseBo {
      */
     public static final int PROVIDE = 2;
     
+    // 类型
     private int type;
 
     private String showTime;

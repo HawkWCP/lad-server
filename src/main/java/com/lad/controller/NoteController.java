@@ -42,6 +42,7 @@ import com.lad.bo.NoteBo;
 import com.lad.bo.ReadHistoryBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.RestHomeBo;
+import com.lad.bo.ShowBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.service.ICircleService;
@@ -56,6 +57,7 @@ import com.lad.service.INoteService;
 import com.lad.service.IReadHistoryService;
 import com.lad.service.IReasonService;
 import com.lad.service.IRestHomeService;
+import com.lad.service.IShowService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -481,7 +483,6 @@ public class NoteController extends BaseContorller {
 	@ApiOperation("获取帖子详情")
 	@ApiImplicitParam(name = "noteid", value = "帖子id", required = true, dataType = "string", paramType = "query")
 	@PostMapping("/note-info")
-	// TODO
 	public String noteInfo(String noteid, HttpServletRequest request, HttpServletResponse response) {
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
@@ -1744,6 +1745,8 @@ public class NoteController extends BaseContorller {
 	
 	@Autowired
 	private IRestHomeService restHomeService;
+	@Autowired
+	private IShowService showService;
 	/**
 	 * 
 	 * @param noteBo
@@ -1758,7 +1761,7 @@ public class NoteController extends BaseContorller {
 			noteVo.setSourceid(noteBo.getSourceid());
 			noteVo.setForward(true);
 			// 0 表示转发的帖子，1 表示转发的资讯
-			if (noteBo.getNoteType() == 1) {
+			if (noteBo.getNoteType() == NoteBo.INFOR_FORWARD) {
 				int inforType = noteBo.getInforType();
 				noteVo.setInforType(inforType);
 				noteVo.setForwardType(1);
@@ -1825,7 +1828,7 @@ public class NoteController extends BaseContorller {
 				default:
 					break;
 				}
-			}else if(noteBo.getNoteType() == 2){
+			}else if(noteBo.getNoteType() == NoteBo.REST_FORWARD){
 				// 转发自养老院
 				RestHomeBo sourceNote = restHomeService.findHomeById(noteBo.getSourceid());
 				if (sourceNote != null) {
@@ -1858,11 +1861,54 @@ public class NoteController extends BaseContorller {
 						noteVo.setFromUserSign(from.getPersonalizedSignature());
 						noteVo.setFromUserBirth(from.getBirthDay());
 						noteVo.setFromUserLevel(from.getLevel());
+						noteVo.setClassName("发现:养老院");
 					}
 				}
-				noteVo.setClassName("发现:养老院");
 				
-			} else {
+				
+			} else if(noteBo.getNoteType() == NoteBo.SHOW_FORWARD){
+				// TODO
+				ShowBo showBo = showService.findById(noteBo.getSourceid());
+				if(showBo!=null) {
+					noteVo.setForwardType(1);
+					if(showBo.getType() == ShowBo.NEED) {
+						noteVo.setSubject(showBo.getCompany()+"发布的找演出");
+					}else {
+						noteVo.setSubject(showBo.getCompany()+"发布的接演出");
+					}
+					
+					noteVo.setContent(showBo.getBrief());
+					noteVo.setPhotos(new LinkedList<>(showBo.getImages()));
+					noteVo.setVisitCount(noteBo.getVisitcount());
+//					noteVo.setLandmark(sourceNote.getArea()+":"+sourceNote.getAddress());
+//					addNoteAtUsers(noteBo, noteVo, userid);
+					// 获取创建者
+					UserBo from = userService.getUser(showBo.getCreateuid());
+
+					if (from != null) {
+						noteVo.setFromUserid(from.getId());
+						// 如果登陆者id不为空
+						if (!org.springframework.util.StringUtils.isEmpty(userid)) {
+							// 参数1:主体id; 参数2:朋友id 判断原贴作者是否为当前登录者好友
+							FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userid, from.getId());
+							if (friendsBo != null && !StringUtils.isEmpty(friendsBo.getBackname())) {
+								noteVo.setFromUserName(friendsBo.getBackname());
+							} else {
+								noteVo.setFromUserName(from.getUserName());
+							}
+						} else {
+							noteVo.setFromUserName(from.getUserName());
+						}
+						noteVo.setFromUserPic(from.getHeadPictureName());
+						noteVo.setFromUserSex(from.getSex());
+						noteVo.setFromUserSign(from.getPersonalizedSignature());
+						noteVo.setFromUserBirth(from.getBirthDay());
+						noteVo.setFromUserLevel(from.getLevel());
+						noteVo.setClassName("发现:演出");
+					}
+				}
+
+			}else {
 				NoteBo sourceNote = noteService.selectById(noteBo.getSourceid());
 				if (sourceNote != null) {
 					noteVo.setSubject(sourceNote.getSubject());

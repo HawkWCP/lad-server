@@ -13,8 +13,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -22,21 +22,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.lad.bo.CircleBo;
 import com.lad.bo.CircleTypeBo;
+import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
+import com.lad.bo.NoteBo;
 import com.lad.bo.ShowBo;
 import com.lad.bo.UserBo;
 import com.lad.service.ICircleService;
+import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
+import com.lad.service.INoteService;
 import com.lad.service.IShowService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
+import com.lad.util.MyException;
 import com.lad.vo.ShowVo;
 import com.lad.vo.UserBaseVo;
 
@@ -59,8 +65,8 @@ import net.sf.json.JSONObject;
 @RestController
 @RequestMapping("show")
 public class ShowController extends BaseContorller {
-
-
+	
+	private Logger logger = LogManager.getLogger(ShowController.class);
     @Autowired
     private IUserService userService;
 
@@ -76,7 +82,12 @@ public class ShowController extends BaseContorller {
     @Autowired
     private ICircleService circleService;
 
+    @Autowired
+    private IDynamicService dynamicService;
 
+    @Autowired
+    private INoteService noteService;
+    
     @ApiOperation("showVo对象说明")
     @PostMapping("/showVotest")
     @Deprecated
@@ -84,6 +95,113 @@ public class ShowController extends BaseContorller {
         return new ShowVo();
     }
 
+	@ApiOperation("转发招/接演到我的动态")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "showid", value = "被转发的招/接演id", required = true, dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "view", value = "转发说明信息", required = true, dataType = "string", paramType = "query"),
+			@ApiImplicitParam(name = "landmark", value = "转发时的地标", dataType = "string", paramType = "query") })
+	@PostMapping("/forward-dynamic")
+	public String forwardDynamic(String showid, String view, String landmark, HttpServletRequest request,
+			HttpServletResponse response) {
+		
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		logger.info("@PostMapping(\"/forward-dynamic\")=====showid:{},view:{},landmark:{},user:{}({})", showid, view, landmark,userBo.getUserName(),userBo.getId());
+
+		ShowBo showBo = showService.findById(showid);
+		if (null == showBo) {
+			return CommonUtil.toErrorResult(ERRORCODE.SHOW_IS_NULL.getIndex(), ERRORCODE.SHOW_IS_NULL.getReason());
+		}
+		DynamicBo dynamicBo = new DynamicBo();
+		dynamicBo.setTitle(showBo.getCompany());
+		dynamicBo.setView(view);
+		dynamicBo.setMsgid(showBo.getId());
+		dynamicBo.setCreateuid(userBo.getId());
+		dynamicBo.setOwner(showBo.getCreateuid());
+		dynamicBo.setLandmark(landmark);
+		dynamicBo.setType(Constant.SHOW_SHARE);
+		if(showBo.getImages()!=null&& showBo.getImages().size()>0) {
+			dynamicBo.setPicType("pic");
+			dynamicBo.setPhotos(showBo.getImages());
+		}
+		dynamicBo.setSourceName(showBo.getCompany());
+		dynamicBo.setSourceid(showBo.getId());
+
+		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
+		dynamicService.addDynamic(dynamicBo);
+		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("dynamicid", dynamicBo.getId());
+		return JSONObject.fromObject(map).toString();
+	}
+
+
+	@ApiOperation("转发到指定的圈子")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "circleid", value = "转发圈子id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "showid", value = "招/接演id", required = true, paramType = "query", dataType = "string")})
+	@RequestMapping(value = "/forward-circle", method = { RequestMethod.GET, RequestMethod.POST })
+	public String forwardCircle(String circleid, String showid, HttpServletRequest request,
+			HttpServletResponse response) {
+		return forwardCircle(circleid, showid, null, request, response);
+	}
+
+	/**
+	 * 作为一个可扩展的私有handler
+	 * @param circleid
+	 * @param homeId
+	 * @param landmark
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	private String forwardCircle(String circleid, String showid,String landmark, HttpServletRequest request,
+			HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		logger.info(
+				"@RequestMapping(value = \"/forward-dynamic\")=====user:{}({}),circleid:{},showid:{}",
+				userBo.getUserName(), userBo.getId(),circleid, showid);
+		ShowBo showBo = showService.findById(showid);
+		if (null == showBo) {
+			return CommonUtil.toErrorResult(ERRORCODE.SHOW_IS_NULL.getIndex(), ERRORCODE.SHOW_IS_NULL.getReason());
+		}
+		CircleBo circleBo = circleService.selectById(circleid);
+		if (circleBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_IS_NULL.getIndex(), ERRORCODE.CIRCLE_IS_NULL.getReason());
+		}
+		
+		NoteBo noteBo = new NoteBo();
+		noteBo.setSourceid(showid);
+		noteBo.setNoteType(NoteBo.SHOW_FORWARD);
+		noteBo.setForward(1);
+		noteBo.setCreateuid(userBo.getId());
+		noteBo.setCircleId(circleid);
+		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
+		if(landmark!=null) {
+			noteBo.setLandmark(landmark);
+		}
+//		String[] atUser = atUserids.split(",");
+//		noteBo.setAtUsers(new LinkedList<>(Arrays.asList(atUser)));
+		
+		NoteBo insert = noteService.insert(noteBo);
+		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
+		asyncController.updateCircieNoteUnReadNum(userBo.getId(), circleid, insert.getId());
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("noteId", insert.getId());
+		return JSONObject.fromObject(map).toString();	
+	}
+    
 
 
     @ApiOperation("发表招接演出信息")
@@ -540,7 +658,6 @@ public class ShowController extends BaseContorller {
         }
         //圈子是否发表过接演出信息
         List<ShowBo> showBos = showService.findByCircleid(circleid, 0, ShowBo.PROVIDE);
-        Logger logger = LoggerFactory.getLogger(ShowController.class);
         LinkedHashSet<String> showTypes = new LinkedHashSet<>();
         // 获取发布过的所有演出类型
         if (!CommonUtil.isEmpty(showBos) ){

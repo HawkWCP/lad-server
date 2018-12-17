@@ -25,7 +25,7 @@ public class DynamicBo extends BaseBo {
     private String title;
     //转发或分享时点评内容
     private String view;
-
+    //内容
     private String content;
     //图片
     private LinkedHashSet<String> photos = new LinkedHashSet<>();
@@ -59,6 +59,18 @@ public class DynamicBo extends BaseBo {
 	
 	//1健康，2 安防，3广播，4视频，5时政，6养老
 	private int inforType;
+	
+	
+	public static final int ALLOW_ALL =0;
+	public static final int ALLOW_FRIEND =1;
+	public static final int ALLOW_PART =2;
+	public static final int ALLOW_NONE =3;
+	// 0 所有人可访问,1 好友可访问,2 指定人可访问,3 所有人不可访问;
+	private int access_level=0;
+	
+	// 如果access_level = 1或2,设置一下集合
+	// 当等于1 时,access_allow_set = 好友集合
+	private LinkedHashSet<String> access_allow_set;
 	
 	// 视频,广播
 	private String inforClassName;

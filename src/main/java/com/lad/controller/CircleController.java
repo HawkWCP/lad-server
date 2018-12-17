@@ -1515,7 +1515,7 @@ public class CircleController extends BaseContorller {
 					continue;
 				}
 				if ("headPicture".equals(entry.getKey())) {
-					circleBo.setHeadPicture((String) entry.getValue());
+					circleBo.setHeadPicture(((String) entry.getValue()).replaceAll("http://oojih7o1f.bkt.clouddn.com/", Constant.QINIU_URL));
 					continue;
 				}
 				if ("createuid".equals(entry.getKey())) {

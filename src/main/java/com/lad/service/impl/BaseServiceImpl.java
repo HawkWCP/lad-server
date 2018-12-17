@@ -35,6 +35,5 @@ public class BaseServiceImpl implements IBaseService {
 		}else {
 			return t;
 		}
-
 	}
 }

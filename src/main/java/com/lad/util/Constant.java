@@ -515,4 +515,8 @@ public class Constant {
 	 * 养老院转发
 	 */
 	public static final int HOME_SHARE = 14;
+	/**
+	 * 养老院转发
+	 */
+	public static final int SHOW_SHARE = 15;
 }

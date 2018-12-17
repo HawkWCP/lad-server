@@ -13,6 +13,12 @@ import lombok.Setter;
 @Setter
 @Document(collection = "note")
 public class NoteBo extends BaseBo {
+	public static final int NOTE_FORWARD = 0;
+	public static final int INFOR_FORWARD = 1;
+	public static final int REST_FORWARD = 2;
+	public static final int SHOW_FORWARD = 3;
+	
+	
 	private String subject;
 	private String content;
 	private LinkedList<String> photos = new LinkedList<>();
@@ -54,7 +60,7 @@ public class NoteBo extends BaseBo {
 	//帖子中@的用户
 	private LinkedList<String> atUsers;
 
-	//0 表示帖子， 1表示资讯, 2.表示养老院
+	//0 表示帖子， 1表示资讯, 2.表示养老院, 3.表示招接演出
 	private int noteType;
 	//资讯类型
 	private int inforType;
