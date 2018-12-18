@@ -357,7 +357,8 @@ public class DynamicController extends BaseContorller {
 		}
 		
 		if(ishide) {
-			dynamicBo.setAccess_level(DynamicBo.ALLOW_NONE);
+			// TODO
+//			dynamicBo.setAccess_level(UserCenterConstants);
 		}
 		
 		dynamicService.addDynamic(dynamicBo);
@@ -457,14 +458,15 @@ public class DynamicController extends BaseContorller {
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, -1, 0);
 		int hideNum = 0;
 		for (DynamicBo dynamicBo : msgBos) {
-			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_NONE) {
-				hideNum++;
-			}
-			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_PART) {
-				if(!dynamicBo.getAccess_allow_set().contains(userBo.getId())) {
-					hideNum++;
-				}
-			}
+			// TODO
+//			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_NONE) {
+//				hideNum++;
+//			}
+//			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_PART) {
+//				if(!dynamicBo.getAccess_allow_set().contains(userBo.getId())) {
+//					hideNum++;
+//				}
+//			}
 		}
 		long notReadNum = dynamicService.findDynamicNotReadNum(userBo.getId());
 
@@ -533,14 +535,16 @@ public class DynamicController extends BaseContorller {
 
 		int hideNum = 0;
 		for (DynamicBo dynamicBo : msgBos) {
-			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_NONE) {
+			// TODO
+
+			/*if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_NONE) {
 				hideNum++;
 			}
 			if(dynamicBo.getAccess_level()==DynamicBo.ALLOW_PART) {
 				if(!dynamicBo.getAccess_allow_set().contains(userBo.getId())) {
 					hideNum++;
 				}
-			}
+			}*/
 		}
 		
 		Map<String, Object> map = new HashMap<>();
@@ -827,16 +831,16 @@ public class DynamicController extends BaseContorller {
 
 	private void bo2vo(List<DynamicBo> msgBos, List<DynamicVo> dynamicVos, UserBo userBo) {
 		for (DynamicBo msgBo : msgBos) {
-			if(msgBo.getAccess_level() == DynamicBo.ALLOW_NONE) {
+			// TODO
+/*			if(msgBo.getAccess_level() == DynamicBo.ALLOW_NONE) {
 				continue;
 			}
 			if(msgBo.getAccess_level() == DynamicBo.ALLOW_PART) {
-				// TODO
 				LinkedHashSet<String> access_allow_set = msgBo.getAccess_allow_set();
 				if(!access_allow_set.contains(userBo.getId())) {
 					continue;
 				}
-			}
+			}*/
 			DynamicVo dynamicVo = new DynamicVo();
 			BeanUtils.copyProperties(msgBo, dynamicVo);
 			// vo中msgid是东西信息id；

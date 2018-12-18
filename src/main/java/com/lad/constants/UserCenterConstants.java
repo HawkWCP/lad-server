@@ -69,4 +69,12 @@ public class UserCenterConstants {
     public static final int FORWARD_FROM_INFOR_VIDEO=44;
     public static final int FORWARD_FROM_INFOR_BROAD=45;
     public static final int FORWARD_FROM_INFOR_YANGLAO=46;
+
+    /**
+     * 单条个人动态访问权限
+     */
+    public static final int ACCESS_SECURITY_ALLOW_ALL =0;
+    public static final int ACCESS_SECURITY_ALLOW_FRIEND =1;
+    public static final int ACCESS_SECURITY_ALLOW_PART =2;
+    public static final int ACCESS_SECURITY_ALLOW_NONE =3;
 }
