@@ -88,7 +88,7 @@ import net.sf.json.JSONObject;
 @CrossOrigin
 public class InforController extends BaseContorller {
 
-	private static Logger logger = LogManager.getLogger(InforController.class);
+	private Logger logger = LogManager.getLogger(InforController.class);
 
 	@Autowired
 	private IUserService userService;

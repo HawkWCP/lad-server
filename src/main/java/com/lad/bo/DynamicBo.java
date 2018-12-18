@@ -39,13 +39,13 @@ public class DynamicBo extends BaseBo {
     private int thumpNum;
     //地理位置
     private String landmark;
-
+    //照片类型
     private String picType;
     //视频缩略图
     private String videoPic;
-
+    //视屏地址
     private String video;
-
+    //转发类型
     private int type;
 
     //原作者
@@ -54,7 +54,7 @@ public class DynamicBo extends BaseBo {
     private String sourceName;
     //来源
     private String sourceid;
-    
+
 	private LinkedHashSet<String> unReadFrend = new LinkedHashSet<>();
 	
 	//1健康，2 安防，3广播，4视频，5时政，6养老
