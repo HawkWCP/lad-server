@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -27,8 +28,10 @@ import org.springframework.data.geo.Point;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.fastjson.JSON;
 import com.lad.bo.ChatroomBo;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.FriendsBo;
@@ -89,7 +92,93 @@ public class FriendsController extends BaseContorller {
 //			@ApiImplicitParam(name = "groupName", value = "健康资讯分类", required = true, paramType = "query", dataType = "string"),
 //			@ApiImplicitParam(name = "inforTime", value = "资讯分分页时最后一条时间，若为空表示第一页开始", paramType = "query", required = true, dataType = "string"),
 //			@ApiImplicitParam(name = "limit", value = "资讯分页每页条数", required = true, paramType = "query", dataType = "int") })
+	@ApiOperation("获取好友之星列表")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name="city",value="查询所在城市",required = true,dataType = "string"),
+			@ApiImplicitParam(name="px",value = "横坐标{0~360}",required = true,dataType = "int"),
+			@ApiImplicitParam(name="py",value = "纵坐标{0~180}",required = true,dataType = "int"),
+			@ApiImplicitParam(name="page",value = "每页条数",required = true,dataType = "int"),
+			@ApiImplicitParam(name="limit",value = "每页条数",required = true,dataType = "int")})
+	@PostMapping("star-list")
+	public String getStart(@RequestParam(value="city",required=false)String city,double px, double py,int page,int limit,HttpServletRequest req,HttpServletResponse resp){
+		Map<String,Object> map = new HashMap<>();
+		try{
+			UserBo userBo = getUserLogin(req);
+			if (userBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+			}
+			List<FriendDisVo> voList = getNears(px, py,50000 ,userBo);
+			List<FriendDisVo> vos = voList.stream().filter(vo -> vo.isStar()).sorted((v1,v2)->{
+				if(v1.getSort()==v2.getSort()) {
+					return -v1.getStarTime().compareTo(v2.getStarTime());
+				}else {
+					return v1.getSort()-v2.getSort();
+				}
+			}).collect(Collectors.toList());
+
+			map.put("ret", 0);
+			map.put("result", vos);
+		}catch(Exception e){
+			logger.error("@PostMapping(\"star-list\")=====throw error:{}",e);
+			e.printStackTrace();
+		}
+		return JSON.toJSONString(map);
+	}
 	
+	// 排序或者新添加
+	@PostMapping("star-sort")
+	public String startReSort(
+			@RequestParam(value="phone",required=false) String phone,
+			@RequestParam(value="userName",required=false) String userName,
+			@RequestParam(value="uid",required=false) String uid,
+			@RequestParam(value="sort",required=false,defaultValue="0") int sort) {
+		
+		// 当sort==0是表示不排序
+		
+		Map<String,Object> map = new HashMap<>();
+		
+		try {
+			if(phone==null&&userName==null&&uid==null) {
+				throw new Exception("身份识别参数为空");
+			}
+			UserBo user = userService.findStar(phone,userName,uid);
+			if(user == null) {
+				throw new Exception("身份信错误");
+			}
+			user.setStar(true);
+			user.setStarTime(new Date());
+			
+			logger.info("================查询到用户:{}==================", user.getUserName());
+			List<UserBo> changedList = new ArrayList<>();
+
+			if(sort == 0) {
+				user.setSort(Integer.MAX_VALUE);
+			}else {
+				// 查询所有排序小于sort的明星用户
+				user.setSort(sort);
+				List<UserBo> list  = userService.findStarAboveSort(user);
+				logger.info("=================查询出所有sort大于当前用户的列表:{}=========================", JSON.toJSONString(list));
+				list.stream().forEach(u->{u.setSort(u.getSort()+1);changedList.add(u);});
+				
+			}
+			changedList.add(user);
+
+			logger.info("======================提交更新的用户列表:{}======================", JSON.toJSONString(changedList));
+			
+			userService.updateStars(changedList);
+			map.put("ret", 0);
+			map.put("result", user.isStar());
+			
+		}catch(Exception e) {
+			logger.error("@PostMapping(\"start-sort\")=====throw error:{}", e);
+			e.printStackTrace();
+			map.put("ret", -1);
+			map.put("message", e.getMessage());
+		}
+		return JSON.toJSONString(map);
+	}
+
 	@ApiOperation("申请添加好友")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "friendid", value = "需要添加的好友id", required = true, paramType = "query", dataType = "string")})
@@ -358,6 +447,9 @@ public class FriendsController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
 		}
 		FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), friendid);
+		if (friendsBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
+		}
 		LinkedList<String> usedBackName = friendsBo.getUsedBackName();
 		if (usedBackName == null) {
 			usedBackName = new LinkedList<String>();
@@ -366,9 +458,7 @@ public class FriendsController extends BaseContorller {
 			usedBackName.addFirst(friendsBo.getBackname());
 		}
 
-		if (friendsBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.FRIEND_NULL.getIndex(), ERRORCODE.FRIEND_NULL.getReason());
-		}
+
 		friendsService.updateBackname(userBo.getId(), friendsBo.getFriendid(), backname, usedBackName);
 
 		return JSONObject.fromObject(map).toString();
@@ -458,6 +548,7 @@ public class FriendsController extends BaseContorller {
 					chatroomBo = chatroomService.selectByUserIdAndFriendid(friendsBo.getFriendid(), userBo.getId());
 					if (chatroomBo == null) {
 						UserBo friend = userService.getUser(friendsBo.getFriendid());
+						vo.setStar(friend.isStar());
 						chatroomBo = savekUserAndFriendChatroom(userBo, friend, chatroomBo);
 						// 首次创建聊天室，需要输入名称
 						String res = IMUtil.subscribe(0, chatroomBo.getId(), userid, friend.getId());
@@ -796,6 +887,19 @@ public class FriendsController extends BaseContorller {
 				FriendsVo vo = new FriendsVo();
 				BeanUtils.copyProperties(friendsBo, vo);
 				String friendid = friendsBo.getFriendid();
+				UserBo friend = userService.getUser(friendid);
+				if(friend!=null) {
+					vo.setStar(friend.isStar());
+					if (StringUtils.isEmpty(friendsBo.getBackname())) {
+						vo.setBackname(friend.getUserName());
+						vo.setUsername(friend.getUserName());
+					}else {
+						vo.setBackname(friendsBo.getBackname());
+						vo.setUsername(friendsBo.getUsername());
+					}
+				}else {
+					continue;
+				}
 				List<TagBo> tagBos = tagService.getTagBoListByUseridAndFrinedid(userid, friendid);
 				List<String> tagList = new ArrayList<>();
 				for (TagBo tagBo : tagBos) {
@@ -803,18 +907,7 @@ public class FriendsController extends BaseContorller {
 				}
 				vo.setPicture(friendsBo.getFriendHeadPic());
 				vo.setTag(tagList);
-				if (StringUtils.isEmpty(friendsBo.getBackname())) {
-					UserBo friend = userService.getUser(friendid);
-					if(friend!=null) {
-						vo.setBackname(friend.getUserName());
-						vo.setUsername(friend.getUserName());
-					}else {
-						continue;
-					}
-				} else {
-					vo.setBackname(friendsBo.getBackname());
-					vo.setUsername(friendsBo.getUsername());
-				}
+
 				if (StringUtils.isEmpty(friendsBo.getChatroomid())) {
 					// 如果当初没有创建成功
 					ChatroomBo chatroomBo = chatroomService.selectByUserIdAndFriendid(userBo.getId(),
@@ -822,7 +915,6 @@ public class FriendsController extends BaseContorller {
 					if (chatroomBo == null) {
 						chatroomBo = chatroomService.selectByUserIdAndFriendid(friendsBo.getFriendid(), userBo.getId());
 						if (chatroomBo == null) {
-							UserBo friend = userService.getUser(friendsBo.getFriendid());
 							chatroomBo = savekUserAndFriendChatroom(userBo, friend, chatroomBo);
 							// 首次创建聊天室，需要输入名称
 							String res = IMUtil.subscribe(0, chatroomBo.getId(), userid, friend.getId());
@@ -856,10 +948,20 @@ public class FriendsController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		logger.info("@PostMapping(\"/near-friends\"),px:{},py:{}", px, py);
+
+		List<FriendDisVo> voList = getNears(px, py,10000 ,userBo);
+
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("friendVos", voList);
+		return JSONObject.fromObject(map).toString();
+	}
+
+	private List<FriendDisVo> getNears(double px, double py, double maxDistance,UserBo userBo) {
 		List<String> friendids = new LinkedList<>();
 		Map<String, Double> disMap = new HashMap<>();
 		Point point = new Point(px, py);
-		GeoResults<LocationBo> results = locationService.findUserNear(point, 10000);
+		GeoResults<LocationBo> results = locationService.findUserNear(point, maxDistance);
 		for (GeoResult<LocationBo> result : results) {
 			String userid = result.getContent().getUserid();
 			friendids.add(userid);
@@ -875,29 +977,33 @@ public class FriendsController extends BaseContorller {
 				String friendid = friendsBo.getFriendid();
 				vo.setPicture(friendsBo.getFriendHeadPic());
 				UserBo friend = userService.getUser(friendid);
-				if (StringUtils.isEmpty(friendsBo.getBackname())) {
-					vo.setBackname(friend.getUserName());
-					vo.setUsername(friend.getUserName());
-				}
+				if(friend!=null){
+					// 老友之星相关设置
+					vo.setStar(friend.isStar());
+					vo.setStarTime(friend.getStarTime());
+					vo.setSort(friend.getSort());
+					if (StringUtils.isEmpty(friendsBo.getBackname())) {
+						vo.setBackname(friend.getUserName());
+						vo.setUsername(friend.getUserName());
+					}
 
-				vo.setSex(friend.getSex() == null ? "男" : friend.getSex());
-				vo.setLevel(friend.getLevel());
-				if (StringUtils.isEmpty(friend.getBirthDay())) {
-					vo.setAge(0);
-				} else {
-					vo.setAge(CommonUtil.getAge(friend.getBirthDay()));
+					vo.setSex(friend.getSex() == null ? "男" : friend.getSex());
+					vo.setLevel(friend.getLevel());
+					if (StringUtils.isEmpty(friend.getBirthDay())) {
+						vo.setAge(0);
+					} else {
+						vo.setAge(CommonUtil.getAge(friend.getBirthDay()));
+					}
+				}else{
+					continue;
 				}
-
 				vo.setChannelId(friendsBo.getChatroomid());
 				double dis = Double.parseDouble(df.format(disMap.get(friendid)));
 				vo.setDistance(dis);
 				voList.add(vo);
 			}
 		}
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("friendVos", voList);
-		return JSONObject.fromObject(map).toString();
+		return voList;
 	}
 
 	@ApiOperation("关联父母或子女账号")

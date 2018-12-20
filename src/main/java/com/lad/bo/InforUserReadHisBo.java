@@ -5,6 +5,10 @@ import java.io.Serializable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述：分类用户最后阅读时间
  * Copyright: Copyright (c) 2017
@@ -12,6 +16,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/10/24
  */
 @Document(collection = "inforUserReadHis")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class InforUserReadHisBo implements Serializable {
 
     @Id
@@ -26,53 +34,4 @@ public class InforUserReadHisBo implements Serializable {
     private String lastDate;
 
     private String userid;
-
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public String getLastDate() {
-        return lastDate;
-    }
-
-    public void setLastDate(String lastDate) {
-        this.lastDate = lastDate;
-    }
-
-    public String getUserid() {
-        return userid;
-    }
-
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
 }

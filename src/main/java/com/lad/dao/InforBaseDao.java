@@ -29,6 +29,7 @@ import com.mongodb.WriteResult;
  * Version: 1.0
  * Time:2018/3/19
  */
+@SuppressWarnings("all")
 public class InforBaseDao<T extends Serializable> {
 
     @Autowired

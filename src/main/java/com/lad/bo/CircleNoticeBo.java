@@ -4,6 +4,10 @@ import java.util.LinkedHashSet;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述：圈子公告
  * Copyright: Copyright (c) 2018
@@ -11,6 +15,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2018/1/4
  */
 @Document(collection = "circleNotice")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
+
 public class CircleNoticeBo extends BaseBo {
 	//标题
     private String title;
@@ -30,77 +39,4 @@ public class CircleNoticeBo extends BaseBo {
     private LinkedHashSet<String> unReadUsers;
     //已阅读者
     private LinkedHashSet<String> readUsers = new LinkedHashSet<>();
-
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getCircleid() {
-        return circleid;
-    }
-
-    public void setCircleid(String circleid) {
-        this.circleid = circleid;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public LinkedHashSet<String> getUnReadUsers() {
-        return unReadUsers;
-    }
-
-    public void setUnReadUsers(LinkedHashSet<String> unReadUsers) {
-        this.unReadUsers = unReadUsers;
-    }
-
-    public LinkedHashSet<String> getReadUsers() {
-        return readUsers;
-    }
-
-    public void setReadUsers(LinkedHashSet<String> readUsers) {
-        this.readUsers = readUsers;
-    }
-
-    public LinkedHashSet<String> getImages() {
-        return images;
-    }
-
-    public void setImages(LinkedHashSet<String> images) {
-        this.images = images;
-    }
-
-    public int getNoticeType() {
-        return noticeType;
-    }
-
-    public void setNoticeType(int noticeType) {
-        this.noticeType = noticeType;
-    }
-
-    public String getChatroomid() {
-        return chatroomid;
-    }
-
-    public void setChatroomid(String chatroomid) {
-        this.chatroomid = chatroomid;
-    }
 }

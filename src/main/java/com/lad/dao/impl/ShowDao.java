@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import com.lad.bo.ShowBo;
+import com.lad.constants.DiscoveryConstants;
 import com.lad.dao.BaseDao;
 import com.lad.util.Constant;
 import com.mongodb.WriteResult;
@@ -204,7 +205,7 @@ public class ShowDao extends BaseDao<ShowBo> {
 	 */
 	public List<ShowBo> findCircleRecoms(LinkedHashSet<String> showTypes) {
 		Query query = new Query();
-		Criteria criteria = new Criteria("deleted").is(Constant.ACTIVITY).and("status").is(0).and("showType").in(showTypes).and("type").is(ShowBo.NEED);
+		Criteria criteria = new Criteria("deleted").is(Constant.ACTIVITY).and("status").is(0).and("showType").in(showTypes).and("type").is(DiscoveryConstants.NEED);
 		query.addCriteria(criteria);
 		query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "_id")));
 		return getMongoTemplate().find(query, ShowBo.class);
@@ -305,13 +306,13 @@ public class ShowDao extends BaseDao<ShowBo> {
 
 	public int findPublishZhaoNum(String id) {
 		return (int) getMongoTemplate().count(new Query(
-				Criteria.where("type").is(ShowBo.NEED).and("deleted").is(Constant.ACTIVITY).and("createuid").is(id)),
+				Criteria.where("type").is(DiscoveryConstants.NEED).and("deleted").is(Constant.ACTIVITY).and("createuid").is(id)),
 				ShowBo.class);
 	}
 
 	public int findPublishJieNum(String id) {
 		return (int) getMongoTemplate().count(new Query(
-				Criteria.where("type").is(ShowBo.PROVIDE).and("deleted").is(Constant.ACTIVITY).and("createuid").is(id)),
+				Criteria.where("type").is(DiscoveryConstants.PROVIDE).and("deleted").is(Constant.ACTIVITY).and("createuid").is(id)),
 				ShowBo.class);
 	}
 }

@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "chatroom")
+@SuppressWarnings("serial")
+
 public class ChatroomBo extends BaseBo {
 	//聊天室名
 	private String name;

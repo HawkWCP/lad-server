@@ -12,6 +12,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @Document(collection = "picture")
+@SuppressWarnings("serial")
 public class PictureBo extends BaseBo {
 	private String picName;
 	private String ablId;

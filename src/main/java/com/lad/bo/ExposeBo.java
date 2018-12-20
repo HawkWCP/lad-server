@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 功能描述：曝光台信息
@@ -15,6 +16,9 @@ import lombok.Setter;
 @Setter
 @Getter
 @Document(collection = "expose")
+
+@ToString
+@SuppressWarnings("serial")
 public class ExposeBo extends BaseBo {
 	//标题
     private String title;

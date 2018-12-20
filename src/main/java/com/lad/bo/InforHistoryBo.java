@@ -2,6 +2,10 @@ package com.lad.bo;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述：资讯热度历史记录
  * Copyright: Copyright (c) 2017
@@ -9,6 +13,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/10/5
  */
 @Document(collection = "inforHistory")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class InforHistoryBo extends BaseBo{
     //need index
     private String inforid;
@@ -22,52 +30,4 @@ public class InforHistoryBo extends BaseBo{
     private String module;
 
     private String className;
-
-    public String getInforid() {
-        return inforid;
-    }
-
-    public void setInforid(String inforid) {
-        this.inforid = inforid;
-    }
-
-    public long getDayNum() {
-        return dayNum;
-    }
-
-    public void setDayNum(long dayNum) {
-        this.dayNum = dayNum;
-    }
-
-    public String getReadDate() {
-        return readDate;
-    }
-
-    public void setReadDate(String readDate) {
-        this.readDate = readDate;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
 }

@@ -11,6 +11,7 @@ import lombok.Setter;
  * Version: 1.0
  * Time:2017/8/21
  */
+@SuppressWarnings("serial")
 @Getter
 @Setter
 @Document(collection = "circleType")

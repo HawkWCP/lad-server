@@ -32,6 +32,7 @@ public interface IOldFriendDao extends IBaseDao {
 
 	OldFriendRequireBo getRequireByCreateUid(String id);
 
+	@SuppressWarnings("rawtypes")
 	List<Map> getRecommend(OldFriendRequireBo require);
 
 	int findPublishNum(String uid);

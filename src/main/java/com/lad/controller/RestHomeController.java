@@ -35,6 +35,7 @@ import com.lad.bo.OptionBo;
 import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.lad.bo.UserBo;
+import com.lad.constants.UserCenterConstants;
 import com.lad.service.ICircleService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
@@ -109,17 +110,16 @@ public class RestHomeController extends BaseContorller {
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(home.getName());
 		dynamicBo.setView(view);
-		dynamicBo.setMsgid(homeId);
+		dynamicBo.setSourceId(homeId);
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setOwner(home.getCreateuid());
 		dynamicBo.setLandmark(landmark);
-		dynamicBo.setType(Constant.HOME_TYPE);
+		dynamicBo.setType(UserCenterConstants.FORWARD_FROM_DISCOVERY_RESTHOME);
 		if(home.getImages()!=null&& home.getImages().size()>0) {
-			dynamicBo.setPicType("pic");
+//			dynamicBo.setPicType("pic");
 			dynamicBo.setPhotos(home.getImages());
 		}
 		dynamicBo.setSourceName(home.getName());
-		dynamicBo.setSourceid(home.getId());
 
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));

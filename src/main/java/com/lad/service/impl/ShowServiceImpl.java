@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.lad.bo.ShowBo;
+import com.lad.constants.DiscoveryConstants;
 import com.lad.dao.impl.ShowDao;
 import com.lad.service.IShowService;
 import com.mongodb.WriteResult;
@@ -129,6 +130,6 @@ public class ShowServiceImpl implements IShowService {
 
 	@Override
 	public List<ShowBo> findByList(String[] matchField, String keyword, String userid, int type, int page, int limit) {
-		return showDao.findByList(matchField,keyword,null,ShowBo.NEED,page,limit);
+		return showDao.findByList(matchField,keyword,null,DiscoveryConstants.NEED,page,limit);
 	}
 }

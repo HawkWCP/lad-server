@@ -4,6 +4,10 @@ import java.util.LinkedHashSet;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述： 聚会管理
  * Copyright: Copyright (c) 2017
@@ -11,6 +15,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/8/27
  */
 @Document(collection = "partyManage")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class PartyManageBo extends BaseBo {
 
     private String partyid;
@@ -28,68 +36,4 @@ public class PartyManageBo extends BaseBo {
     private int keepNum;
     //举报数量
     private int reportNum;
-
-    public String getPartyid() {
-        return partyid;
-    }
-
-    public void setPartyid(String partyid) {
-        this.partyid = partyid;
-    }
-
-    public LinkedHashSet<String> getApplyUsers() {
-        return applyUsers;
-    }
-
-    public void setApplyUsers(LinkedHashSet<String> applyUsers) {
-        this.applyUsers = applyUsers;
-    }
-
-    public LinkedHashSet<String> getUsers() {
-        return users;
-    }
-
-    public void setUsers(LinkedHashSet<String> users) {
-        this.users = users;
-    }
-
-    public LinkedHashSet<String> getRefuseUsers() {
-        return refuseUsers;
-    }
-
-    public void setRefuseUsers(LinkedHashSet<String> refuseUsers) {
-        this.refuseUsers = refuseUsers;
-    }
-
-    public int getVisitNum() {
-        return visitNum;
-    }
-
-    public void setVisitNum(int visitNum) {
-        this.visitNum = visitNum;
-    }
-
-    public int getShareNum() {
-        return shareNum;
-    }
-
-    public void setShareNum(int shareNum) {
-        this.shareNum = shareNum;
-    }
-
-    public int getKeepNum() {
-        return keepNum;
-    }
-
-    public void setKeepNum(int keepNum) {
-        this.keepNum = keepNum;
-    }
-
-    public int getReportNum() {
-        return reportNum;
-    }
-
-    public void setReportNum(int reportNum) {
-        this.reportNum = reportNum;
-    }
 }

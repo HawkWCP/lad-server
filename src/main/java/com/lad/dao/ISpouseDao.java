@@ -7,7 +7,7 @@ import com.lad.bo.BaseBo;
 import com.lad.bo.SpouseBaseBo;
 import com.lad.bo.SpouseRequireBo;
 import com.mongodb.WriteResult;
-
+@SuppressWarnings("rawtypes")
 public interface ISpouseDao {
 	String insert(BaseBo baseBo);
 

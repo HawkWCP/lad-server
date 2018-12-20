@@ -14,19 +14,12 @@ import lombok.ToString;
  * Version: 1.0
  * Time:2018/4/24
  */
+@SuppressWarnings("serial")
 @Getter
 @Setter
 @ToString
 @Document(collection = "show")
 public class ShowBo extends BaseBo {
-    /**
-     * 招演出
-     */
-    public static final int NEED = 1;
-    /**
-     * 接演出
-     */
-    public static final int PROVIDE = 2;
     
     // 类型
     private int type;

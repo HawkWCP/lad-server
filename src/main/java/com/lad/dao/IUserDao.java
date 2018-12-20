@@ -191,4 +191,10 @@ public interface IUserDao extends IBaseDao {
 	List<UserBo> findAllUser();
 
 	boolean checkUidAlive(String uid);
+
+	UserBo findStar(String phone, String userName, String uid);
+
+	List<UserBo> findStarAboveSort(UserBo user);
+
+	void updateStars(List<UserBo> changedList);
 }

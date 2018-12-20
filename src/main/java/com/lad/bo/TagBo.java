@@ -4,7 +4,15 @@ import java.util.LinkedHashSet;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 @Document(collection = "tag")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class TagBo extends BaseBo {
 	
 	private String userid;
@@ -12,28 +20,4 @@ public class TagBo extends BaseBo {
 	private LinkedHashSet<String> friendsIds = new LinkedHashSet<String>();
 	//标签
 	private String name;
-
-	public String getUserid() {
-		return userid;
-	}
-
-	public void setUserid(String userid) {
-		this.userid = userid;
-	}
-
-	public LinkedHashSet<String> getFriendsIds() {
-		return friendsIds;
-	}
-
-	public void setFriendsIds(LinkedHashSet<String> friendsIds) {
-		this.friendsIds = friendsIds;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
 }

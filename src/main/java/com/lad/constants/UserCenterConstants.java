@@ -2,7 +2,8 @@ package com.lad.constants;
 
 /**
  * 对应app五大模块中的个人中心;
- * 子模块包括:
+ *模块编号-2 
+ *  子模块包括:
  *      1. 个人主页
  *      2. 个人动态
  *      3. 账号安全
@@ -10,23 +11,18 @@ package com.lad.constants;
  */
 public class UserCenterConstants {
     // 表示类型为个人主页
-    public static final int HOMEPAGE_TYPE=1;
+    public static final int HOMEPAGE_TYPE=21;
     // 表示类型为个人动态
-    public static final int DYNAMIC_TYPE=1;
+    public static final int DYNAMIC_TYPE=22;
     // 表示类型为账户安全
-    public static final int COUNTSECURITY_TYPE=1;
+    public static final int COUNTSECURITY_TYPE=23;
     // 表示类型为个人收藏
-    public static final int COLLECTION_TYPE=1;
+    public static final int COLLECTION_TYPE=24;
 
 
     /*=================个人动态====================*/
-
-    // 转发相关 0表示原创,1表示转发
-    public static final int FORWARD_TRUE = 0;
-    public static final int FORWARD_FALSE = 1;
-
     /**
-     * 转发来源:
+          * 转发来源:对应字段DynamicBo 中的 type
      *      11. 转发来源为他人动态;
      *
      *      21. 转发来源为圈子:圈子;

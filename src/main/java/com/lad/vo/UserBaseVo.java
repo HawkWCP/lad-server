@@ -16,6 +16,7 @@ import lombok.Setter;
 @Setter
 public class UserBaseVo implements Serializable {
 
+    private boolean star;
     private String id;
 
     private String userName;

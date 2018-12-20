@@ -5,6 +5,10 @@ import java.io.Serializable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述：
  * Copyright: Copyright (c) 2017
@@ -12,6 +16,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/12/10
  */
 @Document(collection = "inforTotalNumBo")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class InforTotalNumBo implements Serializable{
 
     @Id
@@ -24,44 +32,4 @@ public class InforTotalNumBo implements Serializable{
     private int type;
 
     private int visitTotal;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getModule() {
-        return module;
-    }
-
-    public void setModule(String module) {
-        this.module = module;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public void setClassName(String className) {
-        this.className = className;
-    }
-
-    public int getType() {
-        return type;
-    }
-
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public int getVisitTotal() {
-        return visitTotal;
-    }
-
-    public void setVisitTotal(int visitTotal) {
-        this.visitTotal = visitTotal;
-    }
 }

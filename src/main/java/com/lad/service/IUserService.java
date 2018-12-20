@@ -306,4 +306,10 @@ public interface IUserService {
 	public WriteResult deleteByVisitid(String visitid, String ownerid);
 
 	public boolean checkUidAlive(String id);
+
+	public UserBo findStar(String phone, String userName, String uid);
+
+	public List<UserBo> findStarAboveSort(UserBo user);
+
+	public void updateStars(List<UserBo> changedList);
 }

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.lad.bo.UserBo;
-import com.lad.service.IRegistService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
@@ -26,8 +25,8 @@ import net.sf.json.JSONObject;
 @RequestMapping("password")
 public class PasswordController extends BaseContorller {
 
-	@Autowired
-	private IRegistService registService;
+//	@Autowired
+//	private IRegistService registService;
 	@Autowired
 	private IUserService userService;
 

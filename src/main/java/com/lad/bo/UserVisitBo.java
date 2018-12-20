@@ -16,6 +16,7 @@ import lombok.ToString;
  * Version: 1.0
  * Time:2017/12/18
  */
+@SuppressWarnings("serial")
 @Setter
 @Getter
 @ToString

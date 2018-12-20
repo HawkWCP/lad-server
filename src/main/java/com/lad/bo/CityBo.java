@@ -5,53 +5,27 @@ import java.io.Serializable;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
- * 功能描述：城市实体类
- * Copyright: Copyright (c) 2017
- * Version: 1.0
- * Time:2017/9/5
+ * 功能描述：城市实体类 Copyright: Copyright (c) 2017 Version: 1.0 Time:2017/9/5
  */
 @Document(collection = "city")
+@SuppressWarnings("serial")
+@Getter
+@Setter
+@ToString
 public class CityBo implements Serializable {
-    
-    @Id
-    private String id;
 
-    private String province;
+	@Id
+	private String id;
 
-    private String city;
+	private String province;
 
-    private String distrit;
+	private String city;
 
-    public String getId() {
-        return id;
-    }
+	private String distrit;
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getProvince() {
-        return province;
-    }
-
-    public void setProvince(String province) {
-        this.province = province;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getDistrit() {
-        return distrit;
-    }
-
-    public void setDistrit(String distrit) {
-        this.distrit = distrit;
-    }
 }

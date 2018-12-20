@@ -18,6 +18,8 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "circleAdd")
+@SuppressWarnings("serial")
+
 public class CircleAddBo implements Serializable {
 
 	@Id

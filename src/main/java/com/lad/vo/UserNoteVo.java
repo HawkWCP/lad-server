@@ -7,6 +7,15 @@ package com.lad.vo;
  * Time:2018/1/24
  */
 public class UserNoteVo extends BaseVo {
+    private boolean star;
+
+    public boolean isStar() {
+        return star;
+    }
+
+    public void setStar(boolean star) {
+        this.star = star;
+    }
 
     private String backName;
 

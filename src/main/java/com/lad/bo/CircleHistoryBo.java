@@ -13,6 +13,8 @@ import lombok.ToString;
 @ToString
 @Setter
 @Getter
+@SuppressWarnings("serial")
+
 public class CircleHistoryBo extends BaseBo {
 	// 访问用户id
 	private String userid;

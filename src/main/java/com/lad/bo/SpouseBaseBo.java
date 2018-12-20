@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+@SuppressWarnings("serial")
 @Setter
 @Getter
 @ToString
@@ -21,9 +22,9 @@ public class SpouseBaseBo extends BaseBo {
 	private String sex;
 	private Object birthday;
 	private int age;
-	private int marriaged;	// 0,没有;1,爱过;-1,不限
-	private String salary;		// 收入
-	private String address;		// 居住地
+	private int marriaged; // 0,没有;1,爱过;-1,不限
+	private String salary; // 收入
+	private String address; // 居住地
 	private List<String> images = new ArrayList<>();// 照片地址,保存url的list;
-	private Map<String,Set<String>> hobbys = new HashMap<>();// 兴趣,list
+	private Map<String, Set<String>> hobbys = new HashMap<>();// 兴趣,list
 }

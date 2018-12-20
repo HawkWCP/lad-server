@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/11/30
  */
 @Document(collection = "circleDynamic")
+@SuppressWarnings("serial")
+
 public class CircleDynamicBo extends BaseBo {
 	//用户id
     private String userid;

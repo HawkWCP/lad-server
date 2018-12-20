@@ -18,11 +18,10 @@ import com.lad.bo.PushTokenBo;
 import com.lad.bo.UserBo;
 import com.lad.service.IUserService;
 import com.lad.util.VivoPushUtil;
-import com.mongodb.WriteResult;
 
-import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
 
 @RestController
 @RequestMapping("push")
@@ -74,7 +73,7 @@ public class PushController extends BaseContorller {
 			}
 			
 			// 将其他用户的token的状态设置为2
-			WriteResult result = tokenService.updateOtherStatus(token,userId,1);
+			tokenService.updateOtherStatus(token,userId,1);
 			map.put("ret", 0);
 			map.put("result", "token保存成功");
 
@@ -110,7 +109,7 @@ public class PushController extends BaseContorller {
 				return JSON.toJSONString(map);			
 			}
 			
-			WriteResult result = tokenService.closeTokenByUseridAndToken(userId,token,1);
+			tokenService.closeTokenByUseridAndToken(userId,token,1);
 			map.put("ret", 0);
 			map.put("result", "token关闭成功");
 		} catch (Exception e) {
@@ -183,7 +182,7 @@ public class PushController extends BaseContorller {
 			}
 			
 			// 将其他用户的token的状态设置为2
-			WriteResult result = tokenService.updateOtherStatus(regId,userId,2);
+			tokenService.updateOtherStatus(regId,userId,2);
 			map.put("ret", 0);
 			map.put("result", "regId保存成功");
 
@@ -218,7 +217,7 @@ public class PushController extends BaseContorller {
 				return JSON.toJSONString(map);			
 			}
 			
-			WriteResult result = tokenService.closeTokenByUseridAndToken(userId,regId,2);
+			tokenService.closeTokenByUseridAndToken(userId,regId,2);
 			map.put("ret", 0);
 			map.put("result", "regId关闭成功");
 		} catch (Exception e) {

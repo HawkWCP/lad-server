@@ -11,7 +11,8 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "msg_log")
-public class MsgLogBo {
+@SuppressWarnings("serial")
+public class MsgLogBo extends BaseBo {
 	@Id
 	private String id;
     private String channel;

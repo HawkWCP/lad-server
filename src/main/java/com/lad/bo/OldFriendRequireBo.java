@@ -15,6 +15,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection="oldFriendRequire")
+@SuppressWarnings("serial")
 public class OldFriendRequireBo extends BaseBo {
 	private String sex;
 	private String age;

@@ -120,4 +120,5 @@ public class NoteVo extends BaseVo {
 	
 	private Date topUpdateTime;
 	private Date essUpdateTime;
+	private int showType;
 }

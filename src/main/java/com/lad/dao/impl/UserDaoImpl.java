@@ -400,4 +400,39 @@ public class UserDaoImpl implements IUserDao {
 	public boolean checkUidAlive(String uid) {
 		return mongoTemplate.count(new Query(Criteria.where("_id").is(uid)), UserBo.class)>0;
 	}
+
+	@Override
+	public UserBo findStar(String phone, String userName, String uid) {
+		Criteria criteria = Criteria.where("deleted").is(0);
+		
+		if(phone!=null) {
+			criteria.and("phone").is(phone);
+		}
+		if(userName!=null) {
+			String regex = String.format(".*%s.*", userName);
+			criteria.and("userName").regex(regex);
+		}
+		if(uid!=null) {
+			criteria.and("_id").is(uid);
+		}
+		Query query = new Query(criteria);
+		return mongoTemplate.findOne(query, UserBo.class);
+	}
+
+	@Override
+	public List<UserBo> findStarAboveSort(UserBo user) {
+		return mongoTemplate.find(new Query(Criteria.where("deleted").is(0).and("star").is(true).and("_id").ne(user.getId()).and("sort").gte(user.getSort()).lt(Integer.MAX_VALUE)), UserBo.class);
+	}
+
+	@Override
+	public void updateStars(List<UserBo> changedList) {
+		changedList.stream().forEach(u->{
+			Query query = new Query(Criteria.where("_id").is(u.getId()).and("deleted").is(0));
+			Update update = new Update();
+			update.set("star", u.isStar());
+			update.set("starTime", u.getStarTime());
+			update.set("sort", u.getSort());
+			mongoTemplate.updateFirst(query, update, UserBo.class);
+		});
+	}
 }

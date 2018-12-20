@@ -8,6 +8,7 @@ import java.util.List;
 import com.lad.bo.FriendsBo;
 import com.mongodb.WriteResult;
 
+@SuppressWarnings("rawtypes")
 public interface IFriendsDao extends IBaseDao {
 	public FriendsBo insert(FriendsBo friendsBo);
 

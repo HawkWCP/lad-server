@@ -7,6 +7,7 @@ import com.lad.bo.BaseBo;
 import com.lad.bo.TravelersRequireBo;
 import com.mongodb.WriteResult;
 
+@SuppressWarnings("rawtypes")
 public interface ITravelersDao {
 
 	void test();

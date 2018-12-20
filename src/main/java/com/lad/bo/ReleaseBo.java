@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 /**
  * 功能描述：发布信息类实体
@@ -18,6 +19,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Document(collection = "release")
+@ToString
+@SuppressWarnings("serial")
 public class ReleaseBo extends BaseBo {
 
     /**

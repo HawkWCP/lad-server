@@ -94,6 +94,7 @@ public class MongoDBJDBC {
 			System.out.println(list);
 			//mongoTemplate.findAndRemove(query, Object.class);
 			//mongoClient.close();
+			mongoClient.close();
 		} catch (Exception e) {
 			System.err.println(e.getClass().getName() + ": " + e.getMessage());
 		}

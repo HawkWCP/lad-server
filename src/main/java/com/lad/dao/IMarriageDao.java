@@ -13,6 +13,7 @@ import com.lad.bo.WaiterBo;
 import com.lad.vo.OptionVo;
 import com.mongodb.WriteResult;
 
+@SuppressWarnings("rawtypes")
 public interface IMarriageDao {
 
 	List<WaiterBo> getPublishById(String userId);

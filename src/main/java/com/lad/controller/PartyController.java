@@ -45,6 +45,7 @@ import com.lad.bo.PartyNoticeBo;
 import com.lad.bo.PartyUserBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
+import com.lad.constants.GeneralContants;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
@@ -928,7 +929,7 @@ public class PartyController extends BaseContorller {
 		if (comment.isSync()) {
 			DynamicBo dynamicBo = new DynamicBo();
 			dynamicBo.setTitle(partyBo.getTitle());
-			dynamicBo.setMsgid(partyBo.getId());
+			dynamicBo.setSourceId(partyBo.getId());
 			dynamicBo.setCreateuid(userBo.getId());
 			dynamicBo.setOwner(partyBo.getCreateuid());
 			if (partyBo.getPhotos() != null) {
@@ -936,7 +937,8 @@ public class PartyController extends BaseContorller {
 			}
 			dynamicBo.setVideo(partyBo.getVideo());
 			dynamicBo.setVideoPic(partyBo.getVideoPic());
-			dynamicBo.setType(Constant.NOTE_TYPE);
+			dynamicBo.setForward(GeneralContants.YES);
+			dynamicBo.setType(Constant.PARTY_TYPE);
 			CircleBo circleBo = circleService.selectById(partyBo.getCircleid());
 			if (circleBo != null) {
 				dynamicBo.setSourceName(circleBo.getName());
@@ -1415,7 +1417,7 @@ public class PartyController extends BaseContorller {
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(partyBo.getTitle());
 		dynamicBo.setView(view);
-		dynamicBo.setMsgid(partyid);
+		dynamicBo.setSourceId(partyid);
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setOwner(partyBo.getCreateuid());
 		if (partyBo.getPhotos() != null) {
@@ -1423,6 +1425,7 @@ public class PartyController extends BaseContorller {
 		}
 		dynamicBo.setVideo(partyBo.getVideo());
 		dynamicBo.setVideoPic(partyBo.getVideoPic());
+		dynamicBo.setForward(GeneralContants.YES);
 		dynamicBo.setType(Constant.PARTY_TYPE);
 		dynamicBo.setLandmark(landmark);
 		CircleBo circleBo = circleService.selectById(partyBo.getCircleid());

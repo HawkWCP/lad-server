@@ -18,6 +18,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @Document(collection = "reason")
+@SuppressWarnings("serial")
 public class ReasonBo extends BaseBo {
     //申请加入的圈子
     private String circleid;

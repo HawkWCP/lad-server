@@ -13,9 +13,9 @@ import lombok.ToString;
 @Getter
 @ToString
 @Document(collection = "homepage")
+@SuppressWarnings("serial")
 public class HomepageBo extends BaseBo {
 
-	private static final long serialVersionUID = 1L;
 	private String owner_id;
 	private int new_visitors_count;
 	private int total_visitors_count;

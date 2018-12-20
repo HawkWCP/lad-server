@@ -21,6 +21,7 @@ public class FriendsVo extends BaseVo {
 	private String username;
 	private String picture;
 	private String sex;
+	private boolean star;
 
 	private String channelId;
 

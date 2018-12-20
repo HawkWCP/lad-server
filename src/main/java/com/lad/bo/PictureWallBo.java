@@ -12,6 +12,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "pictureWall")
+@SuppressWarnings("serial")
 public class PictureWallBo extends BaseBo {
 	private LinkedList<String> pictures = new LinkedList<>();
 }

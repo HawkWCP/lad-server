@@ -5,6 +5,7 @@ import java.util.Date;
 
 import org.springframework.data.annotation.Id;
 
+@SuppressWarnings("serial")
 public class BaseBo implements Serializable {
 
 	@Id

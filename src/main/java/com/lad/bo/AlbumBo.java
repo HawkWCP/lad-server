@@ -12,6 +12,8 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
+@SuppressWarnings("serial")
+
 public class AlbumBo extends BaseBo {
 	private String name;
 	private String albDesc;

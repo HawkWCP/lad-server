@@ -15,6 +15,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @Document(collection = "careAndPass")
+@SuppressWarnings("serial")
 public class CareAndPassBo extends BaseBo {
 	// 责任主体id
 	private String mainId;

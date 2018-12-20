@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+@SuppressWarnings("serial")
 @Setter
 @Getter
 @ToString
@@ -22,6 +23,7 @@ public class TravelersBaseBo extends BaseBo {
 	private String address;		// 居住地
 	private List<String> images;// 照片地址,保存url的list;
 	private List<String> hobbys;// 兴趣,list
+	@SuppressWarnings("rawtypes")
 	private Map<String,List> care; // 感兴趣的人,保存id的list;
 	private List<String> pass;	// 不感兴趣的人,保存id的list;
 }

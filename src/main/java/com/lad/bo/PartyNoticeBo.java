@@ -4,6 +4,10 @@ import java.util.LinkedList;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述：聚会通知实体
  * Copyright: Copyright (c) 2017
@@ -11,6 +15,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/11/24
  */
 @Document(collection = "partyNotice")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class PartyNoticeBo extends BaseBo {
 
     private String title;
@@ -21,35 +29,5 @@ public class PartyNoticeBo extends BaseBo {
     //用户
     private LinkedList<String> users = new LinkedList<>();
 
-    public String getTitle() {
-        return title;
-    }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getPartyid() {
-        return partyid;
-    }
-
-    public void setPartyid(String partyid) {
-        this.partyid = partyid;
-    }
-
-    public LinkedList<String> getUsers() {
-        return users;
-    }
-
-    public void setUsers(LinkedList<String> users) {
-        this.users = users;
-    }
 }

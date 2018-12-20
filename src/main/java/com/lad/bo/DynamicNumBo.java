@@ -13,6 +13,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "dynamicNum")
+@SuppressWarnings("serial")
 public class DynamicNumBo extends BaseBo {
 
 	private String userid;

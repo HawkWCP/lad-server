@@ -14,6 +14,7 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
+@SuppressWarnings("serial")
 public class ReadHistoryBo extends BaseBo{
 	private String readerId;
 	private String beReaderId;

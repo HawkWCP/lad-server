@@ -48,7 +48,6 @@ import com.lad.service.IHomepageService;
 import com.lad.service.IPictureService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
-import com.lad.service.impl.FriendsServiceImpl;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;

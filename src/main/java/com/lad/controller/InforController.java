@@ -42,6 +42,7 @@ import com.lad.bo.SearchBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserReadHisBo;
+import com.lad.constants.GeneralContants;
 import com.lad.redis.RedisServer;
 import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
@@ -127,23 +128,198 @@ public class InforController extends BaseContorller {
 	
 	@Autowired
 	private IFriendsService friendsService;
+	/*=====================================================获取详情start=================================================================*/
+	@ApiOperation("健康资讯信息详情")
+	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/news-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String infor(String inforid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("{@RequestMapping(value = /news-infor}=====inforid:{}",inforid);
+		InforBo inforBo = inforService.findById(inforid);
+		if (inforBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
+		}
 
-	@ApiOperation("刷新资讯分类缓存信息")
-	@GetMapping("/init-cache")
-	public String initCache(HttpServletRequest request, HttpServletResponse response) {
-		Map<String, Object> map = new LinkedHashMap<>();
-
-		RMapCache<String, Object> cache = redisServer.getCacheMap(Constant.TEST_CACHE);
-		initCache(cache);
-		map.put(Constant.HEALTH_NAME, cache.get(Constant.HEALTH_NAME));
-		map.put(Constant.SECRITY_NAME, cache.get(Constant.SECRITY_NAME));
-		map.put(Constant.RADIO_NAME, cache.get(Constant.RADIO_NAME));
-		map.put(Constant.VIDEO_NAME, cache.get(Constant.VIDEO_NAME));
-		map.put(Constant.DAILY_NAME, cache.get(Constant.DAILY_NAME));
-		map.put(Constant.YANGLAO_NAME, cache.get(Constant.YANGLAO_NAME));
+		InforVo inforVo = new InforVo();
+		UserBo userBo = getUserLogin(request);
+		if (userBo != null) {
+			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
+			inforVo.setSelfSub(thumbsupBo != null);
+			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_HEALTH);
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_HEALTH, inforBo.getModule(),inforBo.getClassName());
+		}
+		updateInforNum(inforid, Constant.INFOR_HEALTH, 1, Constant.VISIT_NUM);
+		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_HEALTH);
+		inforVo.setInforid(inforBo.getId());
+		BeanUtils.copyProperties(inforBo, inforVo);
+		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
+		inforVo.setCommentNum(inforBo.getCommnetNum());
+		inforVo.setReadNum(inforBo.getVisitNum());
+		inforVo.setImageUrls(inforBo.getImageUrls());
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("inforVo", inforVo);
 		return JSONObject.fromObject(map).toString();
 	}
 
+	@ApiOperation("安防资讯信息详情")
+	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/security-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String securitys(String inforid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/security-infor\")=====inforid:{}",inforid);
+		SecurityBo securityBo = inforService.findSecurityById(inforid);
+		if (securityBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
+		}
+		updateInforNum(inforid, Constant.INFOR_SECRITY, 1, Constant.VISIT_NUM);
+		SecurityVo securityVo = new SecurityVo();
+		UserBo userBo = getUserLogin(request);
+		if (userBo != null) {
+			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforid, userBo.getId());
+			securityVo.setSelfSub(thumbsupBo != null);
+			asyncController.updateUserReadHis(userBo.getId(), securityBo.getNewsType(), "", Constant.INFOR_SECRITY);
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_SECRITY, securityBo.getNewsType(),
+					"");
+		}
+		asyncController.updateInforHistroy(inforid, securityBo.getNewsType(), Constant.INFOR_SECRITY);
+		securityVo.setInforid(securityBo.getId());
+		BeanUtils.copyProperties(securityBo, securityVo);
+		securityVo.setThumpsubNum(securityBo.getThumpsubNum());
+		securityVo.setCommentNum(securityBo.getCommnetNum());
+		securityVo.setReadNum(securityBo.getVisitNum());
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("securityVo", securityVo);
+		return JSONObject.fromObject(map).toString();
+	}
+	@ApiOperation("获取指定广播资讯信息")
+	@ApiImplicitParam(name = "radioid", value = "广播资讯id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/radio-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String radioInfors(String radioid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/radio-infor\")=====radioid:{}",radioid);
+		BroadcastBo broadcastBo = inforService.findBroadById(radioid);
+		BroadcastVo broadcastVo = null;
+		if (broadcastBo != null) {
+			updateInforNum(radioid, Constant.INFOR_RADIO, 1, Constant.VISIT_NUM);
+			broadcastVo = new BroadcastVo();
+			BeanUtils.copyProperties(broadcastBo, broadcastVo);
+			broadcastVo.setInforid(broadcastBo.getId());
+			broadcastVo.setReadNum(broadcastBo.getVisitNum());
+			broadcastVo.setCommentNum(broadcastBo.getCommnetNum());
+			broadcastVo.setThumpsubNum(broadcastBo.getThumpsubNum());
+			asyncController.updateGrouprHistroy(radioid, broadcastBo.getModule(), broadcastBo.getClassName(),
+					Constant.INFOR_RADIO);
+			UserBo userBo = getUserLogin(request);
+			String userid = userBo == null ? "" : userBo.getId();
+			asyncController.addUserReadhis(userid, radioid, Constant.INFOR_RADIO, broadcastBo.getModule(),
+					broadcastBo.getClassName());
+			updateRadioHis(radioid, broadcastBo, userid);
+		}
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("radio", broadcastVo);
+		return JSONObject.fromObject(map).toString();
+	}
+	
+	@ApiOperation("获取视频详细信息")
+	@ApiImplicitParam(name = "videoid", value = "视频id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/video-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String videoInfors(@RequestParam String videoid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/video-infor\")=====videoid:{}",videoid);
+		VideoBo videoBo = inforService.findVideoById(videoid);
+		if (videoBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
+		}
+		updateInforNum(videoid, Constant.INFOR_VIDEO, 1, Constant.VISIT_NUM);
+		VideoVo videoVo = new VideoVo();
+		UserBo userBo = getUserLogin(request);
+		if (userBo != null) {
+			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(videoid, userBo.getId());
+			videoVo.setSelfSub(thumbsupBo != null);
+			asyncController.updateUserReadHis(userBo.getId(), videoBo.getModule(), videoBo.getClassName(),
+					Constant.INFOR_VIDEO);
+			asyncController.addUserReadhis(userBo.getId(), videoid, Constant.INFOR_VIDEO, videoBo.getModule(),
+					videoBo.getClassName());
+		}
+		asyncController.updateGrouprHistroy(videoid, videoBo.getModule(), videoBo.getClassName(), Constant.INFOR_VIDEO);
+		videoVo.setInforid(videoid);
+		BeanUtils.copyProperties(videoBo, videoVo);
+		videoVo.setThumpsubNum(videoBo.getThumpsubNum());
+		videoVo.setCommentNum(videoBo.getCommnetNum());
+		videoVo.setReadNum(videoBo.getVisitNum());
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("video", videoVo);
+		return JSONObject.fromObject(map).toString();
+	}
+	
+	@ApiOperation("时政资讯信息详情")
+	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/daily-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String dailyNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/daily-infor\")=====inforid:{}",inforid);
+		DailynewsBo inforBo = inforService.findByDailynewsId(inforid);
+		if (inforBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
+		}
+		InforVo inforVo = new InforVo();
+		UserBo userBo = getUserLogin(request);
+		if (userBo != null) {
+			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
+			inforVo.setSelfSub(thumbsupBo != null);
+			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_DAILY);
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_DAILY, inforBo.getModule(),
+					inforBo.getClassName());
+		}
+		updateInforNum(inforid, Constant.INFOR_DAILY, 1, Constant.VISIT_NUM);
+		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_DAILY);
+		BeanUtils.copyProperties(inforBo, inforVo);
+		inforVo.setInforid(inforBo.getId());
+		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
+		inforVo.setCommentNum(inforBo.getCommnetNum());
+		inforVo.setReadNum(inforBo.getVisitNum());
+		inforVo.setImageUrls(inforBo.getImageUrls());
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("inforVo", inforVo);
+		return JSONObject.fromObject(map).toString();
+	}
+
+	@ApiOperation("养老资讯信息详情")
+	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
+	@RequestMapping(value = "/yanglao-infor", method = { RequestMethod.GET, RequestMethod.POST })
+	public String dayanglaoNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/yanglao-infor\")=====inforid:{}",inforid);
+		YanglaoBo inforBo = inforService.findByYanglaoId(inforid);
+		if (inforBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
+		}
+
+		InforVo inforVo = new InforVo();
+		UserBo userBo = getUserLogin(request);
+		if (userBo != null) {
+			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
+			inforVo.setSelfSub(thumbsupBo != null);
+			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_DAILY);
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_DAILY, inforBo.getModule(),
+					inforBo.getClassName());
+		}
+		updateInforNum(inforid, Constant.INFOR_DAILY, 1, Constant.VISIT_NUM);
+		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_DAILY);
+		BeanUtils.copyProperties(inforBo, inforVo);
+		inforVo.setInforid(inforBo.getId());
+		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
+		inforVo.setCommentNum(inforBo.getCommnetNum());
+		inforVo.setReadNum(inforBo.getVisitNum());
+		inforVo.setImageUrls(inforBo.getImageUrls());
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("ret", 0);
+		map.put("inforVo", inforVo);
+		return JSONObject.fromObject(map).toString();
+	}
+
+	/*=====================================================获取详情end=================================================================*/
+
+	
 	@ApiOperation("获取资讯分类信息，用户若登录则返回已收藏的分类信息")
 	@GetMapping("/group-types")
 	public String inforGroups(HttpServletRequest request, HttpServletResponse response) {
@@ -375,33 +551,7 @@ public class InforController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	@ApiOperation("获取指定广播资讯信息")
-	@ApiImplicitParam(name = "radioid", value = "广播资讯id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/radio-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String radioInfors(String radioid, HttpServletRequest request, HttpServletResponse response) {
-		BroadcastBo broadcastBo = inforService.findBroadById(radioid);
-		BroadcastVo broadcastVo = null;
-		if (broadcastBo != null) {
-			updateInforNum(radioid, Constant.INFOR_RADIO, 1, Constant.VISIT_NUM);
-			broadcastVo = new BroadcastVo();
-			BeanUtils.copyProperties(broadcastBo, broadcastVo);
-			broadcastVo.setInforid(broadcastBo.getId());
-			broadcastVo.setReadNum(broadcastBo.getVisitNum());
-			broadcastVo.setCommentNum(broadcastBo.getCommnetNum());
-			broadcastVo.setThumpsubNum(broadcastBo.getThumpsubNum());
-			asyncController.updateGrouprHistroy(radioid, broadcastBo.getModule(), broadcastBo.getClassName(),
-					Constant.INFOR_RADIO);
-			UserBo userBo = getUserLogin(request);
-			String userid = userBo == null ? "" : userBo.getId();
-			asyncController.addUserReadhis(userid, radioid, Constant.INFOR_RADIO, broadcastBo.getModule(),
-					broadcastBo.getClassName());
-			updateRadioHis(radioid, broadcastBo, userid);
-		}
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("radio", broadcastVo);
-		return JSONObject.fromObject(map).toString();
-	}
+
 
 	@ApiOperation("列表播放广播接口")
 	@ApiImplicitParam(name = "inforid", value = "广播资讯id", required = true, paramType = "query", dataType = "string")
@@ -507,37 +657,9 @@ public class InforController extends BaseContorller {
 		return jsonObject.toString();
 	}
 
-	@ApiOperation("获取视频详细信息")
-	@ApiImplicitParam(name = "videoid", value = "视频id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/video-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String videoInfors(@RequestParam String videoid, HttpServletRequest request, HttpServletResponse response) {
-		VideoBo videoBo = inforService.findVideoById(videoid);
-		if (videoBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
-		}
-		updateInforNum(videoid, Constant.INFOR_VIDEO, 1, Constant.VISIT_NUM);
-		VideoVo videoVo = new VideoVo();
-		UserBo userBo = getUserLogin(request);
-		if (userBo != null) {
-			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(videoid, userBo.getId());
-			videoVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), videoBo.getModule(), videoBo.getClassName(),
-					Constant.INFOR_VIDEO);
-			asyncController.addUserReadhis(userBo.getId(), videoid, Constant.INFOR_VIDEO, videoBo.getModule(),
-					videoBo.getClassName());
-		}
-		asyncController.updateGrouprHistroy(videoid, videoBo.getModule(), videoBo.getClassName(), Constant.INFOR_VIDEO);
-		videoVo.setInforid(videoid);
-		BeanUtils.copyProperties(videoBo, videoVo);
-		videoVo.setThumpsubNum(videoBo.getThumpsubNum());
-		videoVo.setCommentNum(videoBo.getCommnetNum());
-		videoVo.setReadNum(videoBo.getVisitNum());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("video", videoVo);
-		return JSONObject.fromObject(map).toString();
-	}
 
+
+	@SuppressWarnings("unchecked")
 	@ApiOperation("获取资讯订阅和未订阅分类信息，需要登录")
 	@ApiImplicitParam(name = "type", value = "资讯分类，1健康，2 安防，3广播，4视频，5时政，6养老", required = true, paramType = "query", dataType = "int")
 	@RequestMapping(value = "/recommend-groups", method = { RequestMethod.GET, RequestMethod.POST })
@@ -561,7 +683,6 @@ public class InforController extends BaseContorller {
 		HashSet<String> mySubs = null;
 		String keys = "";
 
-		System.out.println("type" + type);
 
 		switch (type) {
 		case Constant.INFOR_HEALTH:
@@ -593,12 +714,8 @@ public class InforController extends BaseContorller {
 			break;
 		}
 
-		System.out.println(cache);
 
 		HashSet<String> groupTypes = (HashSet<String>) cache.get(keys);
-
-		System.out.println("groupTypes" + groupTypes);
-		System.out.println("mySubs" + mySubs);
 
 		groupTypes.removeAll(mySubs);
 		map.put("recoTypes", groupTypes);
@@ -606,6 +723,7 @@ public class InforController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
+	@SuppressWarnings("unchecked")
 	@ApiOperation("更新订阅的资讯分类信息")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "groupNames", value = "资讯分类，多个以逗号隔开", required = true, paramType = "query", dataType = "string"),
@@ -681,68 +799,7 @@ public class InforController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-	@ApiOperation("健康资讯信息详情")
-	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/news-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String infor(String inforid, HttpServletRequest request, HttpServletResponse response) {
-		InforBo inforBo = inforService.findById(inforid);
-		logger.info(logger.getName() + ".infor====={@RequestMapping(value = /news-infor} was requested");
-		if (inforBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
-		}
 
-		InforVo inforVo = new InforVo();
-		UserBo userBo = getUserLogin(request);
-		// TODO
-		if (userBo != null) {
-			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
-			inforVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_HEALTH);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_HEALTH, inforBo.getModule(),inforBo.getClassName());
-		}
-		updateInforNum(inforid, Constant.INFOR_HEALTH, 1, Constant.VISIT_NUM);
-		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_HEALTH);
-		inforVo.setInforid(inforBo.getId());
-		BeanUtils.copyProperties(inforBo, inforVo);
-		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
-		inforVo.setCommentNum(inforBo.getCommnetNum());
-		inforVo.setReadNum(inforBo.getVisitNum());
-		inforVo.setImageUrls(inforBo.getImageUrls());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("inforVo", inforVo);
-		return JSONObject.fromObject(map).toString();
-	}
-
-	@ApiOperation("安防资讯信息详情")
-	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/security-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String securitys(String inforid, HttpServletRequest request, HttpServletResponse response) {
-		SecurityBo securityBo = inforService.findSecurityById(inforid);
-		if (securityBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
-		}
-		updateInforNum(inforid, Constant.INFOR_SECRITY, 1, Constant.VISIT_NUM);
-		SecurityVo securityVo = new SecurityVo();
-		UserBo userBo = getUserLogin(request);
-		if (userBo != null) {
-			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforid, userBo.getId());
-			securityVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), securityBo.getNewsType(), "", Constant.INFOR_SECRITY);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_SECRITY, securityBo.getNewsType(),
-					"");
-		}
-		asyncController.updateInforHistroy(inforid, securityBo.getNewsType(), Constant.INFOR_SECRITY);
-		securityVo.setInforid(securityBo.getId());
-		BeanUtils.copyProperties(securityBo, securityVo);
-		securityVo.setThumpsubNum(securityBo.getThumpsubNum());
-		securityVo.setCommentNum(securityBo.getCommnetNum());
-		securityVo.setReadNum(securityBo.getVisitNum());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("securityVo", securityVo);
-		return JSONObject.fromObject(map).toString();
-	}
 
 	@ApiOperation("获取安全防范指定分类下资讯信息列表")
 	@ApiImplicitParams({
@@ -785,6 +842,7 @@ public class InforController extends BaseContorller {
 	@RequestMapping(value = "/add-comment", method = { RequestMethod.GET, RequestMethod.POST })
 	public String addComment(@RequestParam String inforid, @RequestParam String countent, String parentid,
 			int inforType, HttpServletRequest request, HttpServletResponse response) {
+		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1098,6 +1156,7 @@ public class InforController extends BaseContorller {
 	 * @param response
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	@ApiOperation("资讯主页推荐top4,带图片")
 	@GetMapping("/home-top4")
 	public String homeHealthTop(HttpServletRequest request, HttpServletResponse response) {
@@ -1496,6 +1555,7 @@ public class InforController extends BaseContorller {
 	 * @param subBo
 	 * @param cache
 	 */
+	@SuppressWarnings("unchecked")
 	private void addCacheToSub(InforSubscriptionBo subBo, RMapCache<String, Object> cache) {
 		subBo.setSubscriptions((LinkedHashSet<String>) cache.get(Constant.HEALTH_NAME));
 		subBo.setSecuritys((LinkedHashSet<String>) cache.get(Constant.SECRITY_NAME));
@@ -1687,6 +1747,8 @@ public class InforController extends BaseContorller {
 				userBo.getUserName(), userBo.getId(), inforid, inforType, view, landmark);
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setLandmark(landmark);
+		dynamicBo.setForward(GeneralContants.YES);
+		dynamicBo.setType(Constant.INFOR_TYPE);
 		switch (inforType) {
 		case Constant.INFOR_HEALTH:
 			InforBo inforBo = inforService.findById(inforid);
@@ -1721,7 +1783,7 @@ public class InforController extends BaseContorller {
 			if (videoBo.getPoster() != null) {
 				dynamicBo.setVideoPic(videoBo.getPoster());
 			}
-			dynamicBo.setPicType("video");
+			// dynamicBo.setPicType("video");
 			dynamicBo.setVideo(videoBo.getUrl());
 			break;
 		case Constant.INFOR_DAILY:
@@ -1750,8 +1812,7 @@ public class InforController extends BaseContorller {
 
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setView(view);
-		dynamicBo.setMsgid(inforid);
-		dynamicBo.setType(Constant.INFOR_TYPE);
+		dynamicBo.setSourceId(inforid);
 
 		List<String> friends = CommonUtil.deleteBack(dynamicService,friendsService,userBo);	
 		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
@@ -1803,7 +1864,6 @@ public class InforController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-	// TODO
 	@ApiOperation("根据类型获取最后5条历史阅读信息")
 	@ApiImplicitParam(name = "inforType", value = "1健康，2 安防，3广播，4视频, 5时政，6养老, 0查询所有数据", required = true, paramType = "query", dataType = "int")
 	@RequestMapping(value = "/last-read", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2155,36 +2215,7 @@ public class InforController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	@ApiOperation("时政资讯信息详情")
-	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/daily-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String dailyNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
-		DailynewsBo inforBo = inforService.findByDailynewsId(inforid);
-		if (inforBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
-		}
-		InforVo inforVo = new InforVo();
-		UserBo userBo = getUserLogin(request);
-		if (userBo != null) {
-			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
-			inforVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_DAILY);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_DAILY, inforBo.getModule(),
-					inforBo.getClassName());
-		}
-		updateInforNum(inforid, Constant.INFOR_DAILY, 1, Constant.VISIT_NUM);
-		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_DAILY);
-		BeanUtils.copyProperties(inforBo, inforVo);
-		inforVo.setInforid(inforBo.getId());
-		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
-		inforVo.setCommentNum(inforBo.getCommnetNum());
-		inforVo.setReadNum(inforBo.getVisitNum());
-		inforVo.setImageUrls(inforBo.getImageUrls());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("inforVo", inforVo);
-		return JSONObject.fromObject(map).toString();
-	}
+
 
 	@ApiOperation("获取时政指定分类下列表信息")
 	@ApiImplicitParams({
@@ -2216,38 +2247,6 @@ public class InforController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	@ApiOperation("养老资讯信息详情")
-	@ApiImplicitParam(name = "inforid", value = "资讯id", required = true, paramType = "query", dataType = "string")
-	@RequestMapping(value = "/yanglao-infor", method = { RequestMethod.GET, RequestMethod.POST })
-	public String dayanglaoNews(String inforid, HttpServletRequest request, HttpServletResponse response) {
-		// TODO
-		YanglaoBo inforBo = inforService.findByYanglaoId(inforid);
-		if (inforBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.INFOR_IS_NULL.getIndex(), ERRORCODE.INFOR_IS_NULL.getReason());
-		}
-
-		InforVo inforVo = new InforVo();
-		UserBo userBo = getUserLogin(request);
-		if (userBo != null) {
-			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
-			inforVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_DAILY);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_DAILY, inforBo.getModule(),
-					inforBo.getClassName());
-		}
-		updateInforNum(inforid, Constant.INFOR_DAILY, 1, Constant.VISIT_NUM);
-		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_DAILY);
-		BeanUtils.copyProperties(inforBo, inforVo);
-		inforVo.setInforid(inforBo.getId());
-		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
-		inforVo.setCommentNum(inforBo.getCommnetNum());
-		inforVo.setReadNum(inforBo.getVisitNum());
-		inforVo.setImageUrls(inforBo.getImageUrls());
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.put("ret", 0);
-		map.put("inforVo", inforVo);
-		return JSONObject.fromObject(map).toString();
-	}
 
 	@ApiOperation("获取养老指定分类下列表信息")
 	@ApiImplicitParams({
@@ -2276,6 +2275,21 @@ public class InforController extends BaseContorller {
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("inforVoList", vos);
+		return JSONObject.fromObject(map).toString();
+	}
+	@ApiOperation("刷新资讯分类缓存信息")
+	@GetMapping("/init-cache")
+	public String initCache(HttpServletRequest request, HttpServletResponse response) {
+		Map<String, Object> map = new LinkedHashMap<>();
+
+		RMapCache<String, Object> cache = redisServer.getCacheMap(Constant.TEST_CACHE);
+		initCache(cache);
+		map.put(Constant.HEALTH_NAME, cache.get(Constant.HEALTH_NAME));
+		map.put(Constant.SECRITY_NAME, cache.get(Constant.SECRITY_NAME));
+		map.put(Constant.RADIO_NAME, cache.get(Constant.RADIO_NAME));
+		map.put(Constant.VIDEO_NAME, cache.get(Constant.VIDEO_NAME));
+		map.put(Constant.DAILY_NAME, cache.get(Constant.DAILY_NAME));
+		map.put(Constant.YANGLAO_NAME, cache.get(Constant.YANGLAO_NAME));
 		return JSONObject.fromObject(map).toString();
 	}
 }

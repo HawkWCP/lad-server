@@ -34,6 +34,7 @@ import com.lad.bo.SearchBo;
 import com.lad.bo.ShowBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserReadHisBo;
+import com.lad.constants.DiscoveryConstants;
 import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
@@ -1036,7 +1037,7 @@ public class AsyncController extends BaseContorller {
     public void pushShowToCompany(IShowService service, String showType,String showid, String username, String
             userid){
         //查找商家发布的招演信息
-        List<ShowBo> showBos = service.findByShowType(showType, ShowBo.NEED);
+        List<ShowBo> showBos = service.findByShowType(showType, DiscoveryConstants.NEED);
         if (CommonUtil.isEmpty(showBos)) {
             return;
         }
@@ -1091,7 +1092,7 @@ public class AsyncController extends BaseContorller {
     @Async
     public void pushShowToCreate(IShowService service, ShowBo show){
         String showType = show.getShowType();
-        List<ShowBo> showBos = service.findByShowType(showType, ShowBo.PROVIDE);
+        List<ShowBo> showBos = service.findByShowType(showType, DiscoveryConstants.PROVIDE);
         String path = String.format("/show/show-info?showid=%s",show.getId());
         String content = String.format("{“%s”}正在找{“%s”}演出，赶紧去看看吧！",show.getCompany(), showType);
         HashSet<String> userids = new LinkedHashSet<>();

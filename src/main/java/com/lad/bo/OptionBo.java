@@ -10,6 +10,7 @@ import lombok.ToString;
 @Getter
 @ToString
 @Document(collection = "options")
+@SuppressWarnings("serial")
 public class OptionBo extends BaseBo{
 	private String value;	
 	private String field;	// 属于哪一个字段

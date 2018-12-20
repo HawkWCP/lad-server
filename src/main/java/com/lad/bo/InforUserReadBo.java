@@ -6,6 +6,10 @@ import java.util.LinkedHashSet;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
 /**
  * 功能描述： 用于阅读分类信息
  * Copyright: Copyright (c) 2017
@@ -13,6 +17,10 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/10/12
  */
 @Document(collection = "inforUserRead")
+@Setter
+@Getter
+@ToString
+@SuppressWarnings("serial")
 public class InforUserReadBo implements Serializable {
     @Id
     private String id;
@@ -30,78 +38,5 @@ public class InforUserReadBo implements Serializable {
     private LinkedHashSet<String> yanglao = new LinkedHashSet<>();
     
     private LinkedHashSet<String> daily = new LinkedHashSet<>();
-
-    public LinkedHashSet<String> getDaily() {
-		return daily;
-	}
-
-	public void setDaily(LinkedHashSet<String> daily) {
-		this.daily = daily;
-	}
-
-	public LinkedHashSet<String> getYanglao() {
-		return yanglao;
-	}
-
-	public void setYanglao(LinkedHashSet<String> yanglao) {
-		this.yanglao = yanglao;
-	}
-
 	private Integer deleted = 0;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getUserid() {
-        return userid;
-    }
-
-    public void setUserid(String userid) {
-        this.userid = userid;
-    }
-
-    public LinkedHashSet<String> getHealths() {
-        return healths;
-    }
-
-    public void setHealths(LinkedHashSet<String> healths) {
-        this.healths = healths;
-    }
-
-    public LinkedHashSet<String> getSecuritys() {
-        return securitys;
-    }
-
-    public void setSecuritys(LinkedHashSet<String> securitys) {
-        this.securitys = securitys;
-    }
-
-    public LinkedHashSet<String> getRadios() {
-        return radios;
-    }
-
-    public void setRadios(LinkedHashSet<String> radios) {
-        this.radios = radios;
-    }
-
-    public LinkedHashSet<String> getVideos() {
-        return videos;
-    }
-
-    public void setVideos(LinkedHashSet<String> videos) {
-        this.videos = videos;
-    }
-
-    public Integer getDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(Integer deleted) {
-        this.deleted = deleted;
-    }
 }

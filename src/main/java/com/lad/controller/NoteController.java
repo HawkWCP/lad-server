@@ -45,6 +45,8 @@ import com.lad.bo.RestHomeBo;
 import com.lad.bo.ShowBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
+import com.lad.constants.DiscoveryConstants;
+import com.lad.constants.GeneralContants;
 import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
 import com.lad.service.ICommentService;
@@ -295,16 +297,16 @@ public class NoteController extends BaseContorller {
 			dynamicBo.setTitle(noteBo.getSubject());
 			dynamicBo.setView("");
 			dynamicBo.setCreateuid(userId);
-			dynamicBo.setMsgid(noteBo.getId());
 			dynamicBo.setOwner(noteBo.getCreateuid());
 			dynamicBo.setLandmark(noteBo.getLandmark());
+			dynamicBo.setForward(GeneralContants.YES);
 			dynamicBo.setType(Constant.NOTE_TYPE);
 			CircleBo circleBo = circleService.selectById(circleid);
 			if (circleBo != null) {
 				dynamicBo.setSourceName(circleBo.getName());
-				dynamicBo.setSourceid(circleBo.getId());
+				dynamicBo.setSourceId(circleBo.getId());
 			}
-			dynamicBo.setPicType(noteBo.getType());
+//			dynamicBo.setPicType(noteBo.getType());
 			if (noteBo.getType().equals("video")) {
 				dynamicBo.setVideoPic(noteBo.getVideoPic());
 				dynamicBo.setVideo(noteBo.getPhotos().getFirst());
@@ -1190,6 +1192,7 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/forward-dynamic")
 	public String forwardDynamic(String noteid, String view, String landmark, HttpServletRequest request,
 			HttpServletResponse response) {
+		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1203,12 +1206,13 @@ public class NoteController extends BaseContorller {
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(noteBo.getSubject());
 		dynamicBo.setView(view);
-		dynamicBo.setMsgid(noteid);
+		dynamicBo.setSourceId(noteid);
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setOwner(noteBo.getCreateuid());
 		dynamicBo.setLandmark(landmark);
+		dynamicBo.setForward(GeneralContants.YES);
 		dynamicBo.setType(Constant.NOTE_TYPE);
-		dynamicBo.setPicType(noteBo.getType());
+//		dynamicBo.setPicType(noteBo.getType());
 		if (noteBo.getType().equals("video")) {
 			dynamicBo.setVideoPic(noteBo.getVideoPic());
 			dynamicBo.setVideo(noteBo.getPhotos().getFirst());
@@ -1218,7 +1222,7 @@ public class NoteController extends BaseContorller {
 		CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
 		if (circleBo != null) {
 			dynamicBo.setSourceName(circleBo.getName());
-			dynamicBo.setSourceid(circleBo.getId());
+			dynamicBo.setSourceId(circleBo.getId());
 		}
 		dynamicBo.setCreateuid(userBo.getId());
 
@@ -1538,6 +1542,7 @@ public class NoteController extends BaseContorller {
 		return CommonUtil.toErrorResult(ERRORCODE.FORMAT_ERROR.getIndex(), ERRORCODE.FORMAT_ERROR.getReason());
 	}
 
+	@SuppressWarnings("unchecked")
 	@ApiOperation("附近的帖子列表,默认5千米范围")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "px", value = "当前人位置经度", required = true, paramType = "query", dataType = "double"),
@@ -1864,14 +1869,11 @@ public class NoteController extends BaseContorller {
 						noteVo.setClassName("发现:养老院");
 					}
 				}
-				
-				
-			} else if(noteBo.getNoteType() == NoteBo.SHOW_FORWARD){
-				// TODO
+			} else if (noteBo.getNoteType() == NoteBo.SHOW_FORWARD){
 				ShowBo showBo = showService.findById(noteBo.getSourceid());
 				if(showBo!=null) {
 					noteVo.setForwardType(1);
-					if(showBo.getType() == ShowBo.NEED) {
+					if(showBo.getType() == DiscoveryConstants.NEED) {
 						noteVo.setSubject(showBo.getCompany()+"发布的找演出");
 					}else {
 						noteVo.setSubject(showBo.getCompany()+"发布的接演出");

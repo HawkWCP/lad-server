@@ -70,7 +70,7 @@ public class RedisServer {
      * @param key
      * @return
      */
-    public RMapCache getCacheMap(String key){
+    public RMapCache<String, Object> getCacheMap(String key){
         return client.getMapCache(key);
     }
 

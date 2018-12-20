@@ -5,7 +5,17 @@ package com.lad.vo;
  * Copyright: Copyright (c) 2017
  */
 public class UserCircleVo extends UserBaseVo {
+    @Override
+    public boolean isStar() {
+        return star;
+    }
 
+    @Override
+    public void setStar(boolean star) {
+        this.star = star;
+    }
+
+    private boolean star;
     private int hasCircleNum;
 
     private int maxCircleNum;

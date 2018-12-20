@@ -22,6 +22,7 @@ import com.mongodb.WriteResult;
  * Version: 1.0
  * Time:2018/4/22
  */
+@SuppressWarnings("all")
 public class BaseDao<T extends Serializable> {
 
     @Autowired
@@ -41,7 +42,7 @@ public class BaseDao<T extends Serializable> {
      * 获取当前对象的类型
      * @return 类型
      */
-    public Class<T> getClz() {
+	public Class<T> getClz() {
         if(clz==null) {
             //获取泛型的Class对象
             clz = ((Class<T>)

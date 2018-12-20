@@ -52,7 +52,12 @@ import com.lad.util.MyException;
 import com.lad.util.VivoPushUtil;
 
 public abstract class BaseContorller {
-
+	
+	@Autowired
+	protected RedisServer redisServer;
+	
+	@Autowired
+	protected ITokenService tokenService;
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
 
@@ -412,12 +417,7 @@ public abstract class BaseContorller {
 		service.insert(messageBo);
 	}
 	
-	
-	@Autowired
-	protected RedisServer redisServer;
-	
-	@Autowired
-	protected ITokenService tokenService;
+
 	
 
 	

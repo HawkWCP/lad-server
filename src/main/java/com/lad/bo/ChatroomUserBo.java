@@ -12,6 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * Time:2017/10/11
  */
 @Document(collection = "chatroomUser")
+@SuppressWarnings("serial")
+
 public class ChatroomUserBo implements Serializable {
 
     @Id

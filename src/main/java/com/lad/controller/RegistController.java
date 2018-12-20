@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.lad.bo.HomepageBo;
 import com.lad.bo.UserBo;
 import com.lad.service.IHomepageService;
-import com.lad.service.IIMTermService;
 import com.lad.service.IRegistService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -36,8 +35,8 @@ public class RegistController extends BaseContorller {
 	private IUserService userService;
 	@Autowired
 	private IHomepageService homepageService;
-	@Autowired
-	private IIMTermService iMTermService;
+//	@Autowired
+//	private IIMTermService iMTermService;
 
 
 	@RequestMapping("/verification-send")

@@ -17,6 +17,8 @@ import lombok.ToString;
 @Setter
 @ToString
 @Document(collection = "circle")
+@SuppressWarnings("serial")
+
 public class CircleBo extends BaseBo {
 	/* ========================基础资料========================= */
 	private double[] position;

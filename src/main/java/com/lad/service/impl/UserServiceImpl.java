@@ -423,4 +423,19 @@ public class UserServiceImpl extends BaseServiceImpl implements IUserService {
 	public boolean checkUidAlive(String uid) {
 		return userDao.checkUidAlive(uid);
 	}
+
+	@Override
+	public UserBo findStar(String phone, String userName, String uid) {
+		return userDao.findStar( phone,  userName,  uid);
+	}
+
+	@Override
+	public List<UserBo> findStarAboveSort(UserBo user) {
+		return userDao.findStarAboveSort(user);
+	}
+
+	@Override
+	public void updateStars(List<UserBo> changedList) {
+		userDao.updateStars(changedList);
+	}
 }

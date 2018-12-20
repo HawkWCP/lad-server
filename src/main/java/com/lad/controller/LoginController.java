@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.lad.bo.HomepageBo;
 import com.lad.bo.UserBo;
-import com.lad.redis.RedisServer;
 import com.lad.service.IHomepageService;
-import com.lad.service.IIMTermService;
 import com.lad.service.ILoginService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -49,10 +47,10 @@ public class LoginController extends BaseContorller {
 
 	@Autowired
 	private ILoginService loginService;
-	@Autowired
-	private IIMTermService iMTermService;
-	@Autowired
-	private RedisServer redisServer;
+//	@Autowired
+//	private IIMTermService iMTermService;
+//	@Autowired
+//	private RedisServer redisServer;
 	@Autowired
 	private IHomepageService homepageService;
 
@@ -64,9 +62,9 @@ public class LoginController extends BaseContorller {
 	private String weixin_user = "https://api.weixin.qq.com/sns/userinfo?";
 
 
-	private String qq_ip = "https://graph.z.qq.com/moc2/authorize?";
-
-	private String qq_user = "https://graph.qq.com/user/get_user_info?";
+//	private String qq_ip = "https://graph.z.qq.com/moc2/authorize?";
+//
+//	private String qq_user = "https://graph.qq.com/user/get_user_info?";
 
 	@ApiOperation("验证码发送")
 	@PostMapping("/verification-send")
