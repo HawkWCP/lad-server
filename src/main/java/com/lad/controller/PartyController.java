@@ -185,7 +185,6 @@ public class PartyController extends BaseContorller {
 			}
 			
 			if (partyBo.isOpen()) {
-				System.out.println("===================创建聚会时给好友发送push=====================");
 //				asyncController.pushFriends(userId, content, path, circleUsers);
 				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
 				List<String> friendsList = new ArrayList<>();
@@ -1016,7 +1015,6 @@ public class PartyController extends BaseContorller {
 			HttpServletResponse response) {
 		// TODO
 		List<PartyBo> partyBos = partyService.findByCircleid(circleid, page, limit);
-		System.out.println(JSON.toJSONString(partyBos));
 		List<PartyListVo> partyListVos = new ArrayList<>();
 		bo2listVo(partyBos, partyListVos, getUserLogin(request), circleid);
 		Map<String, Object> map = new HashMap<>();
@@ -1672,28 +1670,20 @@ public class PartyController extends BaseContorller {
 		}
 		HashSet<String> temp = new HashSet<>();
 		for (PartyBo partyBo : partyBos) {
-			logger.info("判断party:{}=====是转发聚会",partyBo.getId());
-			System.out.println();
 			PartyListVo listVo = new PartyListVo();
 			if (partyBo.getForward() == 1) {
 				if(partyBo.getSourcePartyid()!=null && partyIds.contains(partyBo.getSourcePartyid())) {
 					continue;
 				}
-				logger.info("判断party:{}=====不是圈子原声聚会:通过", partyBo.getId());
 				PartyBo forward = partyService.findById(partyBo.getSourcePartyid());
 				if (forward == null) {
 					continue;
 				}
-				logger.info("判断party:{}=====判断源聚会存在:通过", partyBo.getId());
-				System.out.println("判断party"+partyBo.getTitle()+"=====判断源聚会存在:通过");
 
 				if (temp.contains(forward.getId())) {
 					continue;
 				}
-				logger.info("判断party:{}======判断本圈子的同源转发聚会只有一个:通过", partyBo.getId());
-
 				temp.add(forward.getSourcePartyid());
-
 				BeanUtils.copyProperties(forward, listVo);
 				addValues(listVo, forward);
 				listVo.setPartyid(forward.getId());

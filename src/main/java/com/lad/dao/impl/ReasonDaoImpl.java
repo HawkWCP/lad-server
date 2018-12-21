@@ -271,6 +271,6 @@ public class ReasonDaoImpl implements IReasonDao {
 	public List<ReasonBo> findByUserAddChatroom(String userid) {
 		Query query = new Query(Criteria.where("createuid").is(userid).and("reasonType").is(1).and("status").is(1));
 		query.with(new Sort(new Sort.Order(Direction.DESC, "_id")));
-		return mongoTemplate.find(new Query(Criteria.where("createuid").is(userid).and("reasonType").is(1).and("status").is(1)), ReasonBo.class);
+		return mongoTemplate.find(query, ReasonBo.class);
 	}
 }

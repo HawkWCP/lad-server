@@ -103,8 +103,13 @@ public class NoteVo extends BaseVo {
     //原信息id
     private String sourceid;
 
+    // 判断帖子是否为转发帖
     private boolean isForward = false;
-    //转发的来源类型，0 表示帖子，1 表示来源是资讯
+    // 判断帖子转发来源:
+	// 从其他帖子转发的帖子:0
+	// 从资讯转发的帖子:1
+	// 从养老院转发的帖子:2
+	// 从演出转发的帖子:3
     private int forwardType;
 
     private int inforType;

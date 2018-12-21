@@ -3016,6 +3016,7 @@ public class CircleController extends BaseContorller {
 			noteBos = noteService.getNotesBySkipAndLimit(circleid, skip, limit);
 		}
 
+		// TODO
 		// 判断是否登录
 		UserBo loginUser = getUserLogin(request);
 		String loginUserid = loginUser == null ? "" : loginUser.getId();
@@ -3261,7 +3262,7 @@ public class CircleController extends BaseContorller {
 				// 转发的资讯
 				int inforType = noteBo.getInforType();
 				noteVo.setInforType(inforType);
-				noteVo.setForwardType(1);
+				noteVo.setForwardType(NoteBo.INFOR_FORWARD);
 				switch (inforType) {
 				case Constant.INFOR_HEALTH:
 					InforBo inforBo = inforService.findById(noteBo.getSourceid());
@@ -3332,7 +3333,7 @@ public class CircleController extends BaseContorller {
 				// 转发自养老院
 				RestHomeBo sourceNote = restHomeService.findHomeById(noteBo.getSourceid());
 				if (sourceNote != null) {
-					noteVo.setForwardType(1);
+					noteVo.setForwardType(NoteBo.REST_FORWARD);
 					noteVo.setSubject(sourceNote.getName());
 					noteVo.setContent(sourceNote.getIntroduction());
 					noteVo.setPhotos(new LinkedList<>(sourceNote.getImages()));
@@ -3368,7 +3369,7 @@ public class CircleController extends BaseContorller {
 			} else if (noteBo.getNoteType() == NoteBo.SHOW_FORWARD) {
 				ShowBo showBo = showService.findById(noteBo.getSourceid());
 				if (showBo != null) {
-					noteVo.setForwardType(1);
+					noteVo.setForwardType(NoteBo.SHOW_FORWARD);
 					if (showBo.getType() == DiscoveryConstants.NEED) {
 						noteVo.setSubject(showBo.getCompany() + "发布的找演出");
 					} else {
@@ -3411,6 +3412,7 @@ public class CircleController extends BaseContorller {
 				NoteBo sourceNote = noteService.selectById(noteBo.getSourceid());
 
 				if (sourceNote != null) {
+					noteVo.setForwardType(NoteBo.NOTE_FORWARD);
 					noteVo.setSubject(sourceNote.getSubject());
 					noteVo.setContent(sourceNote.getContent());
 					noteVo.setPhotos(sourceNote.getPhotos());

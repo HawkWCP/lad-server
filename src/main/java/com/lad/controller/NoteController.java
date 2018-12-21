@@ -108,7 +108,6 @@ public class NoteController extends BaseContorller {
 	@Autowired
 	private IThumbsupService thumbsupService;
 
-
 	@Autowired
 	private ILocationService locationService;
 
@@ -135,7 +134,6 @@ public class NoteController extends BaseContorller {
 
 	@Autowired
 	private IReasonService reasonService;
-	
 
 	private String pushTitle = "互动通知";
 
@@ -267,14 +265,14 @@ public class NoteController extends BaseContorller {
 		if (useridArr != null) {
 			String path = String.format("/note/note-info.do?noteid=%s&type=%s", noteBo.getId(), noteBo.getType());
 			String content = "有人刚刚在帖子提到了您，快去看看吧!";
-			
+
 //			JPushUtil.push(pushTitle, content, path, useridArr);
 //			List<String> aliasList = Arrays.asList(useridArr);
 //			Map<String,String> msgMap = new HashMap<>();
 //			msgMap.put("path", path);
 //			String message = JSON.toJSONString(msgMap);
 //			push(redisServer, pushTitle, message, content, path, aliasList, useridArr);
-			usePush(useridArr, pushTitle,content, path);
+			usePush(useridArr, pushTitle, content, path);
 
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
@@ -418,8 +416,8 @@ public class NoteController extends BaseContorller {
 //		msgMap.put("path", path);
 //		String message = JSON.toJSONString(msgMap);
 //		push(redisServer, pushTitle, message, content, path, aliasList, alias);
-		usePush(noteBo.getCreateuid(), pushTitle,content, path);
-		
+		usePush(noteBo.getCreateuid(), pushTitle, content, path);
+
 		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(), uid,
 				noteBo.getCreateuid());
 		return Constant.COM_RESP;
@@ -498,7 +496,8 @@ public class NoteController extends BaseContorller {
 			String userid = "";
 			if (userBo != null) {
 				userid = userBo.getId();
-				logger.info("com.lad.controller.NoteController.noteInfo=====[user:{},userid:{}]", userBo.getUserName(),userid);
+				logger.info("com.lad.controller.NoteController.noteInfo=====[user:{},userid:{}]", userBo.getUserName(),
+						userid);
 				// 添加访问历史
 				updateHistory(userBo.getId(), noteBo.getCircleId(), locationService, circleService);
 				// 处理是否已读
@@ -673,8 +672,8 @@ public class NoteController extends BaseContorller {
 //		msgMap.put("path", path);
 //		String message = JSON.toJSONString(msgMap);
 //		push(redisServer, pushTitle, message, content, path, aliasList, alias);
-		usePush(noteBo.getCreateuid(), pushTitle,content, path);
-		
+		usePush(noteBo.getCreateuid(), pushTitle, content, path);
+
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
 				userBo.getId(), noteBo.getCreateuid());
 		if (!StringUtils.isEmpty(parentid)) {
@@ -687,7 +686,7 @@ public class NoteController extends BaseContorller {
 //				aliasList = new ArrayList<>();
 //				aliasList.add(alias);
 //				push(redisServer, pushTitle, message, content, path, aliasList, alias);
-				usePush(noteBo.getCreateuid(), pushTitle,content, path);
+				usePush(noteBo.getCreateuid(), pushTitle, content, path);
 
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
@@ -1340,6 +1339,7 @@ public class NoteController extends BaseContorller {
 		noteBo.setSubject(old.getSubject());
 		noteBo.setPhotos(old.getPhotos());
 		noteBo.setType(old.getType());
+		noteBo.setNoteType(NoteBo.NOTE_FORWARD);
 		noteBo.setContent(old.getContent());
 		noteBo.setCreateuid(userBo.getId());
 		noteBo.setLandmark(landmark);
@@ -1349,7 +1349,7 @@ public class NoteController extends BaseContorller {
 		NoteBo insert = noteService.insert(noteBo);
 		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
 		asyncController.updateCircieNoteUnReadNum(userid, circleid, insert.getId());
-		
+
 		addCircleShow(noteBo);
 		updateCount(noteid, Constant.SHARE_NUM, 1);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
@@ -1397,6 +1397,7 @@ public class NoteController extends BaseContorller {
 		noteBo.setVideoPic(old.getVideoPic());
 		noteBo.setPhotos(old.getPhotos());
 		noteBo.setType(old.getType());
+		noteBo.setNoteType(NoteBo.NOTE_FORWARD);
 		noteBo.setContent(old.getContent());
 		noteBo.setCreateuid(userBo.getId());
 		noteBo.setLandmark(landmark);
@@ -1747,11 +1748,11 @@ public class NoteController extends BaseContorller {
 		}
 	}
 
-	
 	@Autowired
 	private IRestHomeService restHomeService;
 	@Autowired
 	private IShowService showService;
+
 	/**
 	 * 
 	 * @param noteBo
@@ -1769,7 +1770,7 @@ public class NoteController extends BaseContorller {
 			if (noteBo.getNoteType() == NoteBo.INFOR_FORWARD) {
 				int inforType = noteBo.getInforType();
 				noteVo.setInforType(inforType);
-				noteVo.setForwardType(1);
+				noteVo.setForwardType(NoteBo.INFOR_FORWARD);
 				switch (inforType) {
 				case Constant.INFOR_HEALTH:
 					InforBo inforBo = inforService.findById(noteBo.getSourceid());
@@ -1833,11 +1834,11 @@ public class NoteController extends BaseContorller {
 				default:
 					break;
 				}
-			}else if(noteBo.getNoteType() == NoteBo.REST_FORWARD){
+			} else if (noteBo.getNoteType() == NoteBo.REST_FORWARD) {
 				// 转发自养老院
 				RestHomeBo sourceNote = restHomeService.findHomeById(noteBo.getSourceid());
 				if (sourceNote != null) {
-					noteVo.setForwardType(1);
+					noteVo.setForwardType(NoteBo.REST_FORWARD);
 					noteVo.setSubject(sourceNote.getName());
 					noteVo.setContent(sourceNote.getIntroduction());
 					noteVo.setPhotos(new LinkedList<>(sourceNote.getImages()));
@@ -1869,16 +1870,16 @@ public class NoteController extends BaseContorller {
 						noteVo.setClassName("发现:养老院");
 					}
 				}
-			} else if (noteBo.getNoteType() == NoteBo.SHOW_FORWARD){
+			} else if (noteBo.getNoteType() == NoteBo.SHOW_FORWARD) {
 				ShowBo showBo = showService.findById(noteBo.getSourceid());
-				if(showBo!=null) {
-					noteVo.setForwardType(1);
-					if(showBo.getType() == DiscoveryConstants.NEED) {
-						noteVo.setSubject(showBo.getCompany()+"发布的找演出");
-					}else {
-						noteVo.setSubject(showBo.getCompany()+"发布的接演出");
+				if (showBo != null) {
+					noteVo.setForwardType(NoteBo.SHOW_FORWARD);
+					if (showBo.getType() == DiscoveryConstants.NEED) {
+						noteVo.setSubject(showBo.getCompany() + "发布的找演出");
+					} else {
+						noteVo.setSubject(showBo.getCompany() + "发布的接演出");
 					}
-					
+
 					noteVo.setContent(showBo.getBrief());
 					noteVo.setPhotos(new LinkedList<>(showBo.getImages()));
 					noteVo.setVisitCount(noteBo.getVisitcount());
@@ -1910,9 +1911,10 @@ public class NoteController extends BaseContorller {
 					}
 				}
 
-			}else {
+			} else {
 				NoteBo sourceNote = noteService.selectById(noteBo.getSourceid());
 				if (sourceNote != null) {
+					noteVo.setForwardType(NoteBo.NOTE_FORWARD);
 					noteVo.setSubject(sourceNote.getSubject());
 					noteVo.setContent(sourceNote.getContent());
 					noteVo.setPhotos(sourceNote.getPhotos());
@@ -2065,7 +2067,8 @@ public class NoteController extends BaseContorller {
 		// 处理是否已读
 		ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, circleId, 1);
 		if (reasonBo != null) {
-			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>(): reasonBo.getUnReadSet();
+			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>()
+					: reasonBo.getUnReadSet();
 			unReadSet.remove(noteId);
 			reasonService.updateUnReadSet(userid, circleId, unReadSet);
 		}

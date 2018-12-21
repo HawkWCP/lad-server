@@ -832,8 +832,7 @@ public class CommonUtil {
 	public static List<String> deleteBack(IDynamicService dynamicService, IFriendsService friendsService,UserBo userBo) {
 		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
 		List<String> friends = new LinkedList<>();
-		friendsBos.forEach(bo->friends.add(bo.getId()));
-		
+		friendsBos.forEach(bo->friends.add(bo.getFriendid()));
 		// 去除我拉黑的对象
 		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
 		if (null != backBo) {
@@ -842,7 +841,6 @@ public class CommonUtil {
 		}
 		// 去除拉黑我的对象
 		List<DynamicBackBo> backBos = dynamicService.findWhoBackMe(userBo.getId());
-		
 		if (backBos != null && !backBos.isEmpty()) {
 			backBos.stream().filter(bo->friends.contains(bo.getId())).forEach(bo->friends.remove(bo.getId()));
 /*			for (DynamicBackBo bo : backBos) {

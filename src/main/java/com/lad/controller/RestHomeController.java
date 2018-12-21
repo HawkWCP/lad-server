@@ -176,7 +176,7 @@ public class RestHomeController extends BaseContorller {
 		
 		NoteBo noteBo = new NoteBo();
 		noteBo.setSourceid(homeId);
-		noteBo.setNoteType(2);
+		noteBo.setNoteType(NoteBo.REST_FORWARD);
 		noteBo.setForward(1);
 		noteBo.setCreateuid(userBo.getId());
 		noteBo.setCircleId(circleid);

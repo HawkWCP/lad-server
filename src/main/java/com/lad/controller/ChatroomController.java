@@ -189,10 +189,6 @@ public class ChatroomController extends BaseContorller {
 			ChatroomBo chatroomBo = chatroomService.get(channel);
 			Date start = new Date();
 
-//			boolean userInChannel = msgLogService.checkUserInChannel(userBo.getId(), channel);
-
-//			logger.info("@PostMapping(value = \"msg-record\")=====chatroomBo != null:{},userInChannel:{}", chatroomBo != null, userInChannel);
-
 			if (chatroomBo != null) {
 				MsgLogVo logVo = new MsgLogVo();
 
@@ -321,6 +317,9 @@ public class ChatroomController extends BaseContorller {
 		typeList.add(3);
 		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid, page, limit, typeList);
 		List<ReasonBo> resonList = reasonService.findByUserAddChatroom(userid);
+
+		System.out.println(resonList);
+
 //		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid);
 
 		List<ChatroomVo> chatroomVos = new ArrayList<>();
@@ -352,7 +351,6 @@ public class ChatroomController extends BaseContorller {
 			}
 		}
 
-		// TODO
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
 		map.put("result", chatroomVos);
@@ -368,6 +366,7 @@ public class ChatroomController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
+		logger.info("@PostMapping(\"/create\")=====name:{}",name);
 		ChatroomBo chatroomBo = new ChatroomBo();
 		chatroomBo.setName(userBo.getUserName());
 		chatroomBo.setType(Constant.ROOM_MULIT);
@@ -395,8 +394,8 @@ public class ChatroomController extends BaseContorller {
 			reasonBo.setChatroomid(chatroomBo.getId());
 			reasonBo.setOperUserid(userBo.getId());
 			reasonBo.setReason(userBo.getUserName().concat("创建群聊"));
-			reasonService.insert(reasonBo);
 		}
+		reasonService.insert(reasonBo);
 
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.put("ret", 0);
@@ -1020,6 +1019,7 @@ public class ChatroomController extends BaseContorller {
 	@PostMapping("/facetoface-create")
 	public String faceToFaceCreate(@RequestParam int seq, @RequestParam double px, @RequestParam double py,
 			HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@PostMapping(\"/facetoface-create\")=====seq:{},px:{},py:{}",seq,px,py);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);

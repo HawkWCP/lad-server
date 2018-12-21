@@ -17,6 +17,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.lad.bo.*;
+import com.lad.service.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,18 +34,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
-import com.lad.bo.ChatroomBo;
-import com.lad.bo.ChatroomUserBo;
-import com.lad.bo.FriendsBo;
-import com.lad.bo.LocationBo;
-import com.lad.bo.TagBo;
-import com.lad.bo.UserBo;
-import com.lad.service.IChatroomService;
-import com.lad.service.IFriendsService;
-import com.lad.service.ILocationService;
-import com.lad.service.IMessageService;
-import com.lad.service.ITagService;
-import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -68,6 +58,9 @@ import net.sf.json.JSONObject;
 public class FriendsController extends BaseContorller {
 
 	private static Logger logger = LogManager.getLogger(FriendsController.class);
+
+	@Autowired
+	private IReasonService reasonService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -709,6 +702,19 @@ public class FriendsController extends BaseContorller {
 			}
 
 			chatroomService.insert(chatroomBo);
+
+			ReasonBo reasonBo = reasonService.findByUserAndChatroom(userBo.getId(), chatroomBo.getId());
+			if (reasonBo == null) {
+				reasonBo = new ReasonBo();
+				reasonBo.setStatus(1);
+				reasonBo.setCreateuid(userBo.getId());
+				reasonBo.setReasonType(1);
+				reasonBo.setChatroomid(chatroomBo.getId());
+				reasonBo.setOperUserid(userBo.getId());
+				reasonBo.setReason(userBo.getUserName().concat("创建群聊"));
+			}
+			reasonService.insert(reasonBo);
+
 			for (String id : userSet) {
 				UserBo user = userService.getUser(id);
 				HashSet<String> chatroomsSet = user.getChatrooms();

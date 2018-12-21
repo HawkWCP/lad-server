@@ -409,7 +409,6 @@ public class DynamicController extends BaseContorller {
 	 * 
 	 * @param px
 	 * @param py
-	 * @param title
 	 * @param content
 	 * @param landmark
 	 * @param pictures
@@ -445,12 +444,9 @@ public class DynamicController extends BaseContorller {
 		logger.info("@RequestMapping(value = \"/all-dynamics\")=====user:{}({}),page:{},limit:{}", userBo.getUserName(),
 				userBo.getId(), page, limit);
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
-
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, page, limit);
-
 		List<DynamicVo> dynamicVos = new ArrayList<>();
 		bo2vo(msgBos, dynamicVos, userBo);
-
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicVos", dynamicVos);
@@ -480,7 +476,6 @@ public class DynamicController extends BaseContorller {
 				userBo.getId());
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, -1, 0);
-
 		long notReadNum = dynamicService.findDynamicNotReadNum(userBo.getId());
 		int hideNum = 0;
 		for (DynamicBo dynamicBo : msgBos) {

@@ -341,28 +341,13 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit) {
-//		Criteria single = new Criteria("userid").is(userid);
-//		Criteria single2 = new Criteria("friendid").is(userid);
-//		Criteria mulit = new Criteria("users").in(userid);
-//		query.addCriteria(single.orOperator(single2,mulit));
-		Criteria orOptions = new Criteria();
-		orOptions.orOperator(Criteria.where(userid).is(userid), Criteria.where(userid).is("friendid"),
-				Criteria.where("users").in(userid));
-		Query query = new Query(Criteria.where("deleted").is(0).andOperator(orOptions));
-		Logger logger = LogManager.getLogger();
-		logger.error(query);
-		if (page != 0 && limit != 0) {
-			int skip = page - 1 < 0 ? 0 : (page - 1) * limit;
-			query.skip(skip);
-			query.limit(limit);
-		}
 		return findMyChatrooms(userid, page, limit, null);
 	}
 
 	@Override
 	public List<ChatroomBo> findMyChatrooms(String userid, int page, int limit, List<Integer> typeList) {
 		Criteria orOptions = new Criteria();
-		orOptions.orOperator(Criteria.where(userid).is(userid), Criteria.where(userid).is("friendid"),
+		orOptions.orOperator(Criteria.where("userid").is(userid), Criteria.where("userid").is("friendid"),
 				Criteria.where("users").in(userid));
 		Criteria criteria = Criteria.where("deleted").is(0).andOperator(orOptions);
 		if (typeList != null) {
@@ -377,6 +362,7 @@ public class ChatroomDaoImpl implements IChatroomDao {
 			query.skip(skip);
 			query.limit(limit);
 		}
+		System.out.println(query);
 		return mongoTemplate.find(query, ChatroomBo.class);
 	}
 
