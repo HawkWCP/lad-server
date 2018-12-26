@@ -2,8 +2,8 @@ package com.lad.controller;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,14 +42,10 @@ import com.lad.bo.MsgLogBo;
 import com.lad.bo.PartyBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.UserBo;
-import com.lad.bo.UserTasteBo;
 import com.lad.service.IChatroomService;
-import com.lad.service.ICircleService;
 import com.lad.service.IFriendsService;
-import com.lad.service.IMessageService;
 import com.lad.service.IMsgLogService;
 import com.lad.service.IPartyService;
-import com.lad.service.IReasonService;
 import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
@@ -64,7 +60,6 @@ import com.lad.vo.MsgBaseVo;
 import com.lad.vo.MsgLogVo;
 import com.lad.vo.ReasonVo;
 import com.lad.vo.UserBaseVo;
-import com.lad.vo.UserInfoVo;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -86,20 +81,12 @@ public class ChatroomController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 
-	@Autowired
-	private IReasonService reasonService;
 
 	@Autowired
 	private IFriendsService friendsService;
 
 	@Autowired
 	private IPartyService partyService;
-
-	@Autowired
-	private ICircleService circleService;
-
-	@Autowired
-	private IMessageService messageService;
 
 	@Autowired
 	private AsyncController asyncController;
@@ -318,10 +305,6 @@ public class ChatroomController extends BaseContorller {
 		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid, page, limit, typeList);
 		List<ReasonBo> resonList = reasonService.findByUserAddChatroom(userid);
 
-		System.out.println(resonList);
-
-//		List<ChatroomBo> myChatrooms = chatroomService.findMyChatrooms(userid);
-
 		List<ChatroomVo> chatroomVos = new ArrayList<>();
 		Set<String> temp = new HashSet<>();
 
@@ -450,11 +433,12 @@ public class ChatroomController extends BaseContorller {
 					reasonService.insert(reasonBo);
 				}
 			}
+			HashSet<String> hashSet = new HashSet<>(Arrays.asList(useridArr));
+			hashSet.remove(userBo.getId());
 			if (chatroomBo.isVerify() && !chatroomBo.getMaster().equals(userBo.getId())) {
 				String path = "";
 				String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
-				usePush(useridArr, titlePush, content, path);
-//				JPushUtil.push(titlePush, content, path, useridArr);
+				usePush(hashSet, titlePush, content, path);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), useridArr);
 				return Constant.COM_RESP;
 			}
@@ -479,7 +463,7 @@ public class ChatroomController extends BaseContorller {
 			ArrayList<String> imNames = new ArrayList<>();
 			ArrayList<String> imIds = new ArrayList<>();
 
-			for (String userid : useridArr) {
+			for (String userid : hashSet) {
 				if (set.contains(userid)) {
 					continue;
 				}

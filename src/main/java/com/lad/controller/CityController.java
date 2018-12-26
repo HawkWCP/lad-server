@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.alibaba.fastjson.JSON;
 import com.lad.bo.CityBo;
-import com.lad.redis.RedisServer;
 import com.lad.service.ICityService;
 import com.lad.util.Constant;
 import com.lad.util.PinyinComparator;
@@ -43,8 +42,6 @@ public class CityController extends BaseContorller {
 	@Autowired
 	private ICityService cityService;
 
-	@Autowired
-	private RedisServer redisServer;
 
 	/**
 	 * 获取省市

@@ -23,7 +23,6 @@ import com.lad.bo.CircleBo;
 import com.lad.bo.LocationBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
-import com.lad.service.ICircleService;
 import com.lad.service.IFriendsService;
 import com.lad.service.ILocationService;
 import com.lad.service.IPictureService;
@@ -55,8 +54,6 @@ public class PersonSet extends BaseContorller {
 	@Autowired
 	private IFriendsService friendsService;
 
-	@Autowired
-	private ICircleService circleService;
 	
 	@Autowired
 	private IPictureService pictureService;

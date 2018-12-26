@@ -131,4 +131,9 @@ public class DynamicServiceImpl implements IDynamicService {
 	public WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend) {
 		return dynamicDao.updateUnReadSet(id, unReadFrend);
 	}
+
+	@Override
+	public void updateThumpsubNum(String dynamicId, int num) {
+		dynamicDao.updateThumpsubNum(dynamicId,num);
+	}
 }

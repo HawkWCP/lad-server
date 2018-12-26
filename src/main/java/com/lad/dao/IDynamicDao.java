@@ -73,4 +73,6 @@ public interface IDynamicDao {
 
 	WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend);
 
+	void updateThumpsubNum(String dynamicId, int num);
+
 }

@@ -1,8 +1,5 @@
 package lad.scrapybo;
 
-import java.io.Serializable;
-
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Getter;
@@ -17,12 +14,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Document(collection = "security")
-public class SecurityBo implements Serializable {
-
-    @Id
-    private String id;
-
-    private String title;
+public class SecurityBo extends BaseInforBo{
 
     private String newsType;
 
@@ -32,16 +24,5 @@ public class SecurityBo implements Serializable {
 
     private String city;
 
-    private String sourceUrl;
-
-    private int visitNum;
-
-    private int shareNum;
-
-    private int commnetNum;
-
-    private int thumpsubNum;
-
-    private int collectNum;
 
 }

@@ -36,10 +36,8 @@ import com.lad.bo.UserBo;
 import com.lad.constants.DiscoveryConstants;
 import com.lad.constants.GeneralContants;
 import com.lad.constants.UserCenterConstants;
-import com.lad.service.ICircleService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
-import com.lad.service.INoteService;
 import com.lad.service.IShowService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -76,17 +74,11 @@ public class ShowController extends BaseContorller {
 	@Autowired
 	private IShowService showService;
 
-	@Autowired
-	private AsyncController asyncController;
-
-	@Autowired
-	private ICircleService circleService;
 
 	@Autowired
 	private IDynamicService dynamicService;
-
 	@Autowired
-	private INoteService noteService;
+	private AsyncController asyncController;
 
 	@ApiOperation("showVo对象说明")
 	@PostMapping("/showVotest")
@@ -173,7 +165,7 @@ public class ShowController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("@RequestMapping(value = \"/forward-dynamic\")=====user:{}({}),circleid:{},showid:{}",
+		logger.info("@RequestMapping(value = \"/forward-circle\")=====user:{}({}),circleid:{},showid:{}",
 				userBo.getUserName(), userBo.getId(), circleid, showid);
 		ShowBo showBo = showService.findById(showid);
 		if (null == showBo) {

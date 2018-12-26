@@ -77,9 +77,8 @@ public class ExposeController extends BaseContorller {
 
     @Autowired
     private IExposeService exposeService;
-
-    @Autowired
-    private AsyncController asyncController;
+	@Autowired
+	private AsyncController asyncController;
 
     @ApiOperation("发表曝光信息")
     @ApiImplicitParams({
@@ -290,26 +289,7 @@ public class ExposeController extends BaseContorller {
             return CommonUtil.toErrorResult(ERRORCODE.EXPOSE_MSG_NULL.getIndex(),
                     ERRORCODE.EXPOSE_MSG_NULL.getReason());
         }
-        ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(exposeid, userBo.getId());
-        boolean isThumsup = false;
-        if (null == thumbsupBo) {
-            thumbsupBo = new ThumbsupBo();
-            thumbsupBo.setType(Constant.EXPOSE_TYPE);
-            thumbsupBo.setOwner_id(exposeid);
-            thumbsupBo.setImage(userBo.getHeadPictureName());
-            thumbsupBo.setVisitor_id(userBo.getId());
-            thumbsupBo.setCreateuid(userBo.getId());
-            thumbsupService.insert(thumbsupBo);
-            isThumsup = true;
-        } else {
-            if (thumbsupBo.getDeleted() == Constant.DELETED) {
-                thumbsupService.udateDeleteById(thumbsupBo.getId());
-                isThumsup = true;
-            }
-        }
-        if (isThumsup) {
-            asyncController.updateExposeCounts(exposeService, exposeid, Constant.THUMPSUB_NUM, 1);
-        }
+        thumbsup(userBo, expose,true);
         return Constant.COM_RESP;
     }
 
@@ -327,11 +307,12 @@ public class ExposeController extends BaseContorller {
             return CommonUtil.toErrorResult(ERRORCODE.EXPOSE_MSG_NULL.getIndex(),
                     ERRORCODE.EXPOSE_MSG_NULL.getReason());
         }
-        ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(exposeid, userBo.getId());
+       /* ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(exposeid, userBo.getId());
         if (thumbsupBo != null) {
             thumbsupService.deleteById(thumbsupBo.getId());
             asyncController.updateExposeCounts(exposeService, exposeid, Constant.THUMPSUB_NUM, -1);
-        }
+        }*/
+        thumbsup(userBo, expose,false);
         return Constant.COM_RESP;
     }
 

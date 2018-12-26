@@ -128,4 +128,13 @@ public class DynamicDaoImpl implements IDynamicDao {
 		update.set("unReadFrend", unReadFrend);
 		return mongoTemplate.updateFirst(query, update, DynamicBo.class);
 	}
+
+	@Override
+	public void updateThumpsubNum(String dynamicId, int num) {
+        Query query = new Query();
+        query.addCriteria(new Criteria("_id").is(dynamicId));
+        Update update = new Update();
+        update.inc("thumpsubNum", num);
+        mongoTemplate.updateFirst(query, update, DynamicBo.class);		
+	}
 }

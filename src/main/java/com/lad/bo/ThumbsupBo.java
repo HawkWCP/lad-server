@@ -19,7 +19,6 @@ public class ThumbsupBo extends BaseBo {
 
 	// 点赞人的头像图片
 	private String image;
-
-	// 0 帖子点赞； 1 资讯点赞, 5 帖子评论点赞， 6 资讯评论点赞
+	// 1 帖子,2 资讯 3.评论 4. 动态 5. 聚会 6. 曝光台 7. 个人主页
 	private int type;
 }

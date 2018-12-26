@@ -47,14 +47,11 @@ import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.constants.GeneralContants;
 import com.lad.service.IChatroomService;
-import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
 import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
-import com.lad.service.IMessageService;
 import com.lad.service.IPartyService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -95,13 +92,9 @@ public class PartyController extends BaseContorller {
 	private IUserService userService;
 
 	@Autowired
-	private ICircleService circleService;
-
-	@Autowired
 	private ICommentService commentService;
-
 	@Autowired
-	private IThumbsupService thumbsupService;
+	private AsyncController asyncController;
 
 	@Autowired
 	private IDynamicService dynamicService;
@@ -115,11 +108,6 @@ public class PartyController extends BaseContorller {
 	@Autowired
 	private IFriendsService friendsService;
 
-	@Autowired
-	private IMessageService messageService;
-
-	@Autowired
-	private AsyncController asyncController;
 
 	private String titlePush = "聚会通知";
 
@@ -176,6 +164,7 @@ public class PartyController extends BaseContorller {
 			// addCircleShow(partyBo);
 			String path = "/party/party-info.do?partyid=" + partyBo.getId();
 			String content = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(), partyBo.getTitle());
+			circleUsers.remove(userBo.getId());
 			if (circleUsers.size() > 0) {
 				String[] userids = new String[circleUsers.size()];
 
@@ -185,21 +174,9 @@ public class PartyController extends BaseContorller {
 			}
 			
 			if (partyBo.isOpen()) {
-//				asyncController.pushFriends(userId, content, path, circleUsers);
 				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
 				List<String> friendsList = new ArrayList<>();
-				for (FriendsBo friendsBo : friendByUserid) {
-					String friendid = friendsBo.getFriendid();
-					if(friendid.equals(userBo.getId())) {
-						continue;
-					}
-					if(circleUsers.contains(friendid)) {
-						continue;
-					}
-					if(userService.checkUidAlive(friendid)) {
-						friendsList.add(friendsBo.getFriendid());
-					}
-				}
+				friendByUserid.parallelStream().filter(f->!f.getFriendid().equals(userBo.getId())||!circleUsers.contains(f.getFriendid())).forEach(f->friendsList.add(f.getFriendid()));
 				// “发起人昵称”发起了聚会【聚会名称】，快去看看吧！
 				String pushContent = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(),partyBo.getTitle());
 				usePush(friendsList,titlePush, pushContent, path);
@@ -902,24 +879,16 @@ public class PartyController extends BaseContorller {
 
 		String path = "/party/party-info.do?partyid=" + comment.getPartyid();
 		String content = "有人刚刚评论了你的聚会，快去看看吧!";
-//		JPushUtil.pushMessage(titlePush, content, path, partyBo.getCreateuid());
 		String userids = partyBo.getCreateuid();
-//		List<String> aliasList = new ArrayList<>();
-//		aliasList.add(partyBo.getCreateuid());
-//
-//		Map<String, String> msgMap = new HashMap<>();
-//		msgMap.put("path", path);
-//		String message = JSON.toJSONString(msgMap);
-//		push(redisServer, titlePush, message, content, path, aliasList, userids);
+
 		usePush(userids, titlePush, content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		if (!StringUtils.isEmpty(comment.getParentid())) {
 			CommentBo commentBo1 = commentService.findById(comment.getParentid());
 			if (commentBo1 != null) {
 				content = "有人刚刚回复了你的评论，快去看看吧!";
-//				JPushUtil.pushMessage(titlePush, content, path, commentBo1.getCreateuid());
-//				push(redisServer, titlePush, message, content, path, aliasList, userids);
-				usePush(userids, titlePush, content, path);
+
+				usePush(commentBo1.getCreateuid(), titlePush, content, path);
 				addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 			}
 		}
@@ -1140,56 +1109,22 @@ public class PartyController extends BaseContorller {
 	@PostMapping("/comment-thumbsup")
 	public String commentThumbsup(String commentId, int type, HttpServletRequest request,
 			HttpServletResponse response) {
+		logger.info("@PostMapping(\"/comment-thumbsup\")=====commentId:{},type:{}", commentId, type);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(commentId, userBo.getId());
-		int num = 0;
-		if (type == 0) {
-			if (null == thumbsupBo) {
-				thumbsupBo = new ThumbsupBo();
-				thumbsupBo.setType(Constant.PARTY_COM_TYPE);
-				thumbsupBo.setOwner_id(commentId);
-				thumbsupBo.setImage(userBo.getHeadPictureName());
-				thumbsupBo.setVisitor_id(userBo.getId());
-				thumbsupBo.setCreateuid(userBo.getId());
-				thumbsupService.insert(thumbsupBo);
-			} else {
-				if (thumbsupBo.getDeleted() == Constant.DELETED) {
-					thumbsupService.udateDeleteById(thumbsupBo.getId());
+		CommentBo commentBo = commentService.findById(commentId);
+		if(commentBo!=null) {
+			thumbsup(userBo, commentBo,type==0);
+			if (type == 0) {
+				if (commentBo != null) {
+					String path = "/party/party-info.do?partyid=" + commentBo.getTargetid();
+					usePush(commentBo.getCreateuid(), titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path);
+					addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 				}
-			}
-			num = 1;
-		} else if (type == 1) {
-			if (null != thumbsupBo && thumbsupBo.getDeleted() == Constant.ACTIVITY) {
-				thumbsupService.deleteById(thumbsupBo.getId());
-				num = -1;
-			}
-		} else {
-			return CommonUtil.toErrorResult(ERRORCODE.TYPE_ERROR.getIndex(), ERRORCODE.TYPE_ERROR.getReason());
-		}
-		RLock lock = redisServer.getRLock(commentId);
-		try {
-			lock.lock(1, TimeUnit.SECONDS);
-			commentService.updateThumpsubNum(commentId, num);
-		} finally {
-			lock.unlock();
-		}
-		if (type == 1) {
-			CommentBo commentBo = commentService.findById(commentId);
-			if (commentBo != null) {
-				String path = "/party/party-info.do?partyid=" + commentBo.getTargetid();
-//				JPushUtil.pushMessage(titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path, commentBo.getCreateuid());
-//				String userids = commentBo.getCreateuid();
-//				List<String> aliasList = new ArrayList<>();
-//				aliasList.add(userids);
-//				String message = "";
-//				push(redisServer, titlePush, message, "有人刚刚赞了你的聚会，快去看看吧!", path, aliasList, userids);
-				usePush(commentBo.getCreateuid(), titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path);
-				addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 			}
 		}
 		return Constant.COM_RESP;

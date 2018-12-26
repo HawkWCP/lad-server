@@ -843,11 +843,6 @@ public class CommonUtil {
 		List<DynamicBackBo> backBos = dynamicService.findWhoBackMe(userBo.getId());
 		if (backBos != null && !backBos.isEmpty()) {
 			backBos.stream().filter(bo->friends.contains(bo.getId())).forEach(bo->friends.remove(bo.getId()));
-/*			for (DynamicBackBo bo : backBos) {
-				if (friends.contains(bo.getUserid())) {
-					friends.remove(bo.getUserid());
-				}
-			}*/
 		}
 		if (friends.contains(userBo.getId())) {
 			friends.remove(userBo.getId());

@@ -25,9 +25,7 @@ import com.lad.bo.CollectBo;
 import com.lad.bo.PartyBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTagBo;
-import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
-import com.lad.service.IInforService;
 import com.lad.service.IPartyService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -53,14 +51,10 @@ public class CollectController extends BaseContorller {
 	@Autowired
 	private IUserService userService;
 
-	@Autowired
-	private ICircleService circleService;
 
 	@Autowired
 	private IPartyService partyService;
 
-	@Autowired
-	private IInforService inforService;
 
 	@RequestMapping("/chat")
 	@ResponseBody

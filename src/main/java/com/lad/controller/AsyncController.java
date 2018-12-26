@@ -35,18 +35,12 @@ import com.lad.bo.ShowBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserReadHisBo;
 import com.lad.constants.DiscoveryConstants;
-import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
-import com.lad.service.ICircleService;
 import com.lad.service.ICommentService;
 import com.lad.service.IExposeService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IInforRecomService;
-import com.lad.service.IInforService;
-import com.lad.service.IMessageService;
-import com.lad.service.INoteService;
 import com.lad.service.IPartyService;
-import com.lad.service.IReasonService;
 import com.lad.service.ISearchService;
 import com.lad.service.IShowService;
 import com.lad.service.IUserService;
@@ -68,26 +62,18 @@ public class AsyncController extends BaseContorller {
 
     private static Logger logger = LogManager.getLogger(ChatroomController.class);
 
-    @Autowired
-    private ICircleService circleService;
 
     @Autowired
     private IUserService userService;
 
-    @Autowired
-    private INoteService noteService;
 
     @Autowired
     private ISearchService searchService;
 
-    @Autowired
-    private RedisServer redisServer;
 
     @Autowired
     private IFriendsService friendsService;
 
-    @Autowired
-    private IReasonService reasonService;
 
     @Autowired
     private IPartyService partyService;
@@ -98,11 +84,6 @@ public class AsyncController extends BaseContorller {
     @Autowired
     private IChatroomService chatroomService;
 
-    @Autowired
-    private IInforService inforService;
-
-    @Autowired
-    private IMessageService messageService;
 
     @Autowired
     private IInforRecomService inforRecomService;

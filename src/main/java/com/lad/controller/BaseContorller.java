@@ -27,19 +27,33 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.ui.ModelMap;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleHistoryBo;
 import com.lad.bo.DynamicNumBo;
+import com.lad.bo.InforHistoryBo;
+import com.lad.bo.InforRecomBo;
 import com.lad.bo.LocationBo;
 import com.lad.bo.MessageBo;
 import com.lad.bo.PushTokenBo;
+import com.lad.bo.ReadHistoryBo;
+import com.lad.bo.ReasonBo;
+import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
+import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
+import com.lad.service.IExposeService;
+import com.lad.service.IInforRecomService;
+import com.lad.service.IInforService;
 import com.lad.service.ILocationService;
 import com.lad.service.IMessageService;
+import com.lad.service.INoteService;
+import com.lad.service.IReadHistoryService;
+import com.lad.service.IReasonService;
+import com.lad.service.IThumbsupService;
 import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -51,17 +65,500 @@ import com.lad.util.MiPushUtil;
 import com.lad.util.MyException;
 import com.lad.util.VivoPushUtil;
 
+import lad.scrapybo.BroadcastBo;
+import lad.scrapybo.DailynewsBo;
+import lad.scrapybo.InforBo;
+import lad.scrapybo.SecurityBo;
+import lad.scrapybo.VideoBo;
+import lad.scrapybo.YanglaoBo;
+
 public abstract class BaseContorller {
-	
+
 	@Autowired
 	protected RedisServer redisServer;
-	
+
 	@Autowired
 	protected ITokenService tokenService;
+	@Autowired
+	protected IThumbsupService thumbsupService;
+	@Autowired
+	protected IReasonService reasonService;
+	@Autowired
+	protected ICircleService circleService;
+	@Autowired
+	protected INoteService noteService;
+	@Autowired
+	protected IReadHistoryService readHistoryService;
+
+	@Autowired
+	protected IMessageService messageService;
+	@Autowired
+	protected IInforService inforService;
+	
+	@Autowired
+	protected IInforRecomService inforRecomService;
+	@Autowired
+	protected ICommentService commentService;
+	@Autowired 
+	protected IDynamicService dynamicService;
+
+	@Autowired
+	protected IExposeService exposeService;
+	
+	
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
 
 	private static final ExecutorService THREADPOOL = Executors.newFixedThreadPool(5);
+
+	
+	/**
+	 * 点赞或取消点赞
+	 * @param userBo		行为的发起者
+	 * @param obj			被点赞或取消点赞的实体
+	 * @param isThumbsup	点赞/取消点赞
+	 * @return
+	 */
+	protected int thumbsup(UserBo userBo, Object obj,boolean isThumbsup) {
+		if(isThumbsup) {
+			return thumbsup(userBo, obj);
+		}else {
+			return deletedThumbsup(userBo, obj);
+		}
+		
+	}
+	
+	private int deletedThumbsup(UserBo userBo, Object obj) {
+		if (obj == null) {
+			return -1;
+		}
+		JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(obj));
+		String owner_id = jsonObject.getString("id");
+		String visitor_id = userBo.getId();
+		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(visitor_id, owner_id);
+		if(thumbsupBo!=null&&thumbsupBo.getDeleted()==Constant.ACTIVITY) {
+			thumbsupService.deleteById(thumbsupBo.getId());
+		}
+		// 还需要根据每个实体的类型减少实体中的点赞数
+//		updateInforNum(targetid, inforType, -1, Constant.THUMPSUB_NUM);
+		return 0;
+		
+	}
+	
+	/**
+	 * 
+	 * 统一点赞接口
+	 * 
+	 * @param uid 点赞人
+	 * @param obj 点赞对象
+	 * @return
+	 */
+	private int thumbsup(UserBo userBo, Object obj) {
+		if (obj == null) {
+			return -1;
+		}
+		Integer type = null;
+		JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(obj));
+		if (obj instanceof com.lad.bo.NoteBo) {
+			type = 1;
+			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
+			if (thumbsupBo != null) {
+				String noteid = jsonObject.getString("id");
+				String circleId = jsonObject.getString("circleId");
+				// 标记为已读
+				userReasonHander(userBo.getId(), circleId, noteid);
+				// 圈子热度更新
+				updateCircleHot(circleService, redisServer, circleId, 1, Constant.CIRCLE_NOTE_THUMP);
+				updateNoteCount(noteid, Constant.THUMPSUB_NUM, 1);
+				// 发送push
+				String content = "有人刚刚赞了你的帖子，快去看看吧!";
+				updateCircieUnReadNum(jsonObject.getString("createuid"), circleId);
+				String path = "/note/note-info.do?noteid=" + noteid;
+
+				usePush(jsonObject.getString("createuid"), "互动通知", content, path);
+
+				addMessage(messageService, path, content, "互动通知", noteid, 2, thumbsupBo.getId(), circleId,
+						userBo.getId(), jsonObject.getString("createuid"));
+			}
+		}
+		if (obj instanceof lad.scrapybo.BaseInforBo) {
+			type = 2;
+			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
+			if(thumbsupBo!=null) {
+				String inforid = jsonObject.getString("id");
+				String clazz = obj.getClass().getName();
+				Integer inforType = null;
+				if("lad.scrapybo.InforBo".equals(clazz)) {
+					inforType = 1;
+				}
+				if("lad.scrapybo.SecurityBo".equals(clazz)) {
+					inforType = 2;
+				}
+				if("lad.scrapybo.BroadcastBo".equals(clazz)) {
+					inforType = 3;
+				}
+				if("lad.scrapybo.VideoBo".equals(clazz)) {
+					inforType = 4;
+				}
+				if("lad.scrapybo.DailynewsBo".equals(clazz)) {
+					inforType = 5;
+				}
+				if("lad.scrapybo.YanglaoBo".equals(clazz)) {
+					inforType = 6;
+				}
+				updateInforNum(inforid, inforType, 1, Constant.THUMPSUB_NUM);
+				infotHostAsync(inforid, inforType);
+			}
+		}
+		if (obj instanceof com.lad.bo.CommentBo) {
+			type = 3;
+			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
+			if(thumbsupBo !=null) {
+				String commentid = jsonObject.getString("id");
+				updateCommentThumbsup(commentid, 1);
+			}
+		}
+		if (obj instanceof com.lad.bo.DynamicBo) {
+			type = 4;
+			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
+			if(thumbsupBo!=null) {
+				
+			}
+		}
+		if(obj instanceof com.lad.bo.ExposeBo) {
+			type = 6;
+			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
+			if(thumbsupBo!=null) {
+				String exposeid = jsonObject.getString("id");
+				updateExposeCounts(exposeService, exposeid, Constant.THUMPSUB_NUM, 1);
+			}
+		}
+		
+		if (type == null) {
+			return -1;
+		}
+
+		return 0;
+	}
+	
+    /**
+     * 异步更新阅读点赞等数据
+     * @param id
+     * @param numType
+     * @param num
+     * @return
+     */
+    @Async
+    private void updateExposeCounts(IExposeService service, String id, int numType, int num){
+        RLock lock = redisServer.getRLock(id.concat(String.valueOf(numType)));
+        try {
+            lock.lock(2, TimeUnit.SECONDS);
+            service.updateCounts(id, numType, num);
+        } finally {
+            lock.unlock();
+        }
+    }
+	
+    /**
+     * 帖子点赞
+     * @param commentid
+     * @param num
+     */
+    @Async
+    private void updateDynamicThumbsup(String dynamicId, int num){
+        if (num != 0){
+            RLock lock = redisServer.getRLock(dynamicId);
+            try {
+                lock.lock(1, TimeUnit.SECONDS);
+                dynamicService.updateThumpsubNum(dynamicId, num);
+            } finally {
+                lock.unlock();
+            }
+        }
+        // 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
+        /*if (num > 0) {
+            CommentBo commentBo = commentService.findById(commentid);
+            if (commentBo != null &&  commentBo.getType() == Constant.NOTE_TYPE) {
+                NoteBo noteBo = noteService.selectById(commentBo.getNoteid());
+                if (noteBo != null) {
+                    updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId());
+                }
+            }
+        }*/
+    }
+	
+	
+    /**
+     * 帖子点赞
+     * @param commentid
+     * @param num
+     */
+    @Async
+    private void updateCommentThumbsup(String commentid, int num){
+        if (num != 0){
+            RLock lock = redisServer.getRLock(commentid);
+            try {
+                lock.lock(1, TimeUnit.SECONDS);
+                commentService.updateThumpsubNum(commentid, num);
+            } finally {
+                lock.unlock();
+            }
+        }
+        // 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
+        /*if (num > 0) {
+            CommentBo commentBo = commentService.findById(commentid);
+            if (commentBo != null &&  commentBo.getType() == Constant.NOTE_TYPE) {
+                NoteBo noteBo = noteService.selectById(commentBo.getNoteid());
+                if (noteBo != null) {
+                    updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId());
+                }
+            }
+        }*/
+    }
+    /**
+     * 帖子 未读信息
+     * @param userid
+     * @param cirlceid
+     */
+    @Async
+    private void updateCircieUnReadNum(String userid, String cirlceid){
+        RLock lock = redisServer.getRLock(userid + "UnReadNumLock");
+        try{
+            lock.lock(2, TimeUnit.SECONDS);
+            ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, cirlceid, Constant.ADD_AGREE);
+            if (reasonBo == null) {
+                reasonBo = new ReasonBo();
+                reasonBo.setCircleid(cirlceid);
+                reasonBo.setCreateuid(userid);
+                reasonBo.setStatus(Constant.ADD_AGREE);
+                reasonBo.setUnReadNum(1);
+                reasonService.insert(reasonBo);
+            } else {
+                reasonService.updateUnReadNum(userid, cirlceid, 1);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+	
+    /**
+     * 资讯
+     * 更新单条咨询访问信息记录
+     * @param inforid
+     * @param module
+     * @param type
+     */
+    @Async
+    private void updateInforHistroy(String inforid, String module, int type){
+        Date currenDate = CommonUtil.getZeroDate(new Date());
+        String dateStr = CommonUtil.getCurrentDate(new Date());
+
+        Date halfTime = CommonUtil.getHalfYearTime(currenDate);
+        String halgStr = CommonUtil.getCurrentDate(halfTime);
+
+        RLock lock = redisServer.getRLock(inforid);
+        List<InforHistoryBo> historyBos = null;
+        List<String> ids = new ArrayList<>();
+        try {
+            lock.lock(5, TimeUnit.SECONDS);
+            InforHistoryBo historyBo = inforRecomService.findTodayHis(inforid, dateStr);
+            if (historyBo == null) {
+                historyBo = new InforHistoryBo();
+                historyBo.setDayNum(1);
+                historyBo.setInforid(inforid);
+                historyBo.setModule(module);
+                historyBo.setType(type);
+                historyBo.setReadDate(dateStr);
+                inforRecomService.addInfoHis(historyBo);
+            } else {
+                inforRecomService.updateHisDayNum(historyBo.getId(),1);
+            }
+            InforRecomBo recomBo = inforRecomService.findRecomByInforid(inforid);
+            if (recomBo == null) {
+                recomBo = new InforRecomBo();
+                recomBo.setInforid(inforid);
+                recomBo.setModule(module);
+                recomBo.setType(type);
+                recomBo.setHalfyearNum(1);
+                recomBo.setTotalNum(1);
+                inforRecomService.addInforRecom(recomBo);
+            } else {
+                inforRecomService.updateRecomByInforid(recomBo.getId(), 1, 1);
+                historyBos = inforRecomService.findHalfYearHis(inforid, halgStr);
+                if (historyBos == null || historyBos.isEmpty()){
+                    return;
+                } else {
+                    int disNum = 0;
+                    for (InforHistoryBo history : historyBos) {
+                        disNum += history.getDayNum();
+                        ids.add(history.getId());
+                    }
+                    inforRecomService.updateRecomByInforid(recomBo.getId(), -disNum, 1);
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+        if (!ids.isEmpty()){
+            inforRecomService.updateZeroHis(ids);
+        }
+    }
+    
+	/**
+	 * 阅读点赞评论等数据更新
+	 * 
+	 * @param inforid
+	 * @param inforType 资讯类型
+	 * @param num
+	 * @param numType   更新数据类型， 阅读、点赞等
+	 */
+	protected void updateInforNum(String inforid, int inforType, int num, int numType) {
+		RLock lock = redisServer.getRLock(inforid.concat(String.valueOf(numType)));
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			switch (inforType) {
+			case Constant.INFOR_HEALTH:
+				inforService.updateInforNum(inforid, numType, num);
+				break;
+			case Constant.INFOR_SECRITY:
+				inforService.updateSecurityNum(inforid, numType, num);
+				break;
+			case Constant.INFOR_RADIO:
+				inforService.updateRadioNum(inforid, numType, num);
+				break;
+			case Constant.INFOR_VIDEO:
+				inforService.updateVideoNum(inforid, numType, num);
+				break;
+			case Constant.INFOR_DAILY:
+				inforService.updateDailynewsByType(inforid, numType, num);
+				break;
+			case Constant.INFOR_YANGLAO:
+				inforService.updateYanglaoByType(inforid, numType, num);
+				break;
+			default:
+				break;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+	/**
+	 * 热度信息更新
+	 * 
+	 * @param inforid
+	 * @param inforType
+	 */
+	protected void infotHostAsync(String inforid, int inforType) {
+		// 根据每条资讯id加锁
+		String module = "";
+		switch (inforType) {
+		case Constant.INFOR_HEALTH:
+			InforBo inforBo = inforService.findById(inforid);
+			module = inforBo != null ? inforBo.getClassName() : "";
+			break;
+		case Constant.INFOR_SECRITY:
+			SecurityBo securityBo = inforService.findSecurityById(inforid);
+			module = securityBo != null ? securityBo.getNewsType() : "";
+			break;
+		case Constant.INFOR_RADIO:
+			BroadcastBo broadcastBo = inforService.findBroadById(inforid);
+			module = broadcastBo != null ? broadcastBo.getModule() : "";
+			break;
+		case Constant.INFOR_VIDEO:
+			VideoBo videoBo = inforService.findVideoById(inforid);
+			module = videoBo != null ? videoBo.getModule() : "";
+			break;
+		case Constant.INFOR_DAILY:
+			DailynewsBo dailynewsBo = inforService.findByDailynewsId(inforid);
+			module = dailynewsBo != null ? dailynewsBo.getClassName() : "";
+			break;
+		case Constant.INFOR_YANGLAO:
+			YanglaoBo yanglaoBo = inforService.findByYanglaoId(inforid);
+			module = yanglaoBo != null ? yanglaoBo.getClassName() : "";
+			break;
+		default:
+			break;
+		}
+		if (!"".equals(module)) {
+			updateInforHistroy(inforid, module, inforType);
+		}
+	}
+	
+	protected void updateNoteCount(String noteid, int type, int num) {
+		RLock lock = redisServer.getRLock(noteid.concat(String.valueOf(type)));
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			switch (type) {
+
+			case Constant.VISIT_NUM:// 访问
+				noteService.updateVisitCount(noteid);
+				break;
+			case Constant.COMMENT_NUM:// 评论
+				noteService.updateCommentCount(noteid, num);
+				break;
+			case Constant.THUMPSUB_NUM:// 点赞
+				noteService.updateThumpsubCount(noteid, num);
+				break;
+			case Constant.SHARE_NUM:// 分享
+				noteService.updateTransCount(noteid, num);
+				break;
+			case Constant.COLLECT_NUM:// 收藏
+				noteService.updateCollectCount(noteid, num);
+				break;
+			default:
+				break;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	protected void userReasonHander(String userid, String circleId, String noteId) {
+		// 处理是否已读
+		ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, circleId, 1);
+		if (reasonBo != null) {
+			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>()
+					: reasonBo.getUnReadSet();
+			unReadSet.remove(noteId);
+			reasonService.updateUnReadSet(userid, circleId, unReadSet);
+		}
+		updateNoteReadHistory(userid, noteId);
+	}
+
+	protected void updateNoteReadHistory(String userid, String noteid) {
+		ReadHistoryBo historyByUseridAndNoteId = readHistoryService.getHistoryByUseridAndNoteId(noteid, noteid);
+		if (historyByUseridAndNoteId == null) {
+			ReadHistoryBo historyBo = new ReadHistoryBo();
+			historyBo.setReaderId(userid);
+			historyBo.setBeReaderId(noteid);
+			historyBo.setType(0);
+			historyBo.setReadNum(1);
+			readHistoryService.addReadHistory(historyBo);
+		} else {
+			int readNum = historyByUseridAndNoteId.getReadNum() + 1;
+			readHistoryService.updateReadNum(historyByUseridAndNoteId.getId(), readNum);
+		}
+	}
+
+	private ThumbsupBo saveThumbsup(UserBo userBo, JSONObject jsonObject, Integer type) {
+		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(userBo.getId(), jsonObject.getString("id"));
+		if (thumbsupBo == null) {
+			thumbsupBo = new ThumbsupBo();
+			thumbsupBo.setVisitor_id(userBo.getId());
+			thumbsupBo.setOwner_id(jsonObject.getString("id"));
+			thumbsupBo.setType(type);
+			thumbsupBo.setImage(userBo.getHeadPictureName());
+			thumbsupBo.setCreateuid(userBo.getId());
+			thumbsupService.insert(thumbsupBo);
+		} else {
+			if (thumbsupBo.getDeleted() == Constant.DELETED) {
+				thumbsupService.udateDeleteById(thumbsupBo.getId());
+			}
+		}
+
+		return thumbsupBo;
+	}
+
 	/**
 	 * push
 	 * 
@@ -75,16 +572,15 @@ public abstract class BaseContorller {
 	 */
 	@Async
 	private void push(RedisServer redisServer, String title, String message, String description, String path,
-			Set<String> userTokens, Set<String> userRegIds,List<String> aliasList, String... alias) {
+			Set<String> userTokens, Set<String> userRegIds, List<String> aliasList, String... alias) {
 
 		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
-		
+
 		try {
 			// 3s自动解锁
 			lock.lock(3, TimeUnit.SECONDS);
-			
-			if(userTokens.size()>0) {
-				System.out.println("==============华为token长度大于一,触发了push=================");
+
+			if (userTokens.size() > 0) {
 				THREADPOOL.execute(new Runnable() {
 					@Override
 					public void run() {
@@ -97,8 +593,7 @@ public abstract class BaseContorller {
 				});
 			}
 
-			if(userRegIds.size()>0) {
-				System.out.println("==============小米regId长度大于一,触发了push=================");
+			if (userRegIds.size() > 0) {
 				THREADPOOL.execute(new Runnable() {
 
 					@Override
@@ -416,11 +911,7 @@ public abstract class BaseContorller {
 		messageBo.setCreateuid(createuid);
 		service.insert(messageBo);
 	}
-	
 
-	
-
-	
 	/**
 	 * 收信方为单个id
 	 * 
@@ -428,31 +919,28 @@ public abstract class BaseContorller {
 	 * @param content
 	 * @param path
 	 */
-	protected void usePush(String alias, String title,String content, String path) {
+	protected void usePush(String alias, String title, String content, String path) {
 		List<String> aliasList = new ArrayList<>();
 		aliasList.add(alias);
 		Map<String, String> msgMap = new HashMap<>();
 		msgMap.put("path", path);
 		String message = JSON.toJSONString(msgMap);
-		
+
 		// 获取华为token
-		PushTokenBo tokenBo = tokenService.findTokenEnableByUserId(alias,1);
+		PushTokenBo tokenBo = tokenService.findTokenEnableByUserId(alias, 1);
 		Set<String> tokenSet = new HashSet<>();
-		if(tokenBo!=null) {
+		if (tokenBo != null) {
 			tokenSet.add(tokenBo.getToken());
 		}
 
-		System.out.println(String.format("==================userid(%s)获取到了华为token:%s========================", alias,tokenSet.toString()));
-		
 		// 获取小米regId
-		PushTokenBo regIdBo = tokenService.findTokenEnableByUserId(alias,2);
+		PushTokenBo regIdBo = tokenService.findTokenEnableByUserId(alias, 2);
 		Set<String> regIdSet = new HashSet<>();
-		if(regIdBo!=null) {
+		if (regIdBo != null) {
 			regIdSet.add(regIdBo.getToken());
 		}
-		System.out.println(String.format("==================userid(%s)获取到了小米regId:%s========================", alias,regIdSet.toString()));
 
-		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, alias);
+		push(redisServer, title, message, content, path, tokenSet, regIdSet, aliasList, alias);
 	}
 
 	/**
@@ -462,7 +950,7 @@ public abstract class BaseContorller {
 	 * @param content
 	 * @param path
 	 */
-	protected void usePush(Collection<String> useridSet, String title,String content, String path) {
+	protected void usePush(Collection<String> useridSet, String title, String content, String path) {
 		List<String> aliasList = new ArrayList<>(useridSet);
 
 		Map<String, String> msgMap = new HashMap<>();
@@ -472,27 +960,24 @@ public abstract class BaseContorller {
 		String[] pushUser = new String[useridSet.size()];
 		useridSet.toArray(pushUser);
 		// 获取华为token
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet,1);
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(useridSet, 1);
 		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
+		if (tokens != null) {
 			for (PushTokenBo pushTokenBo : tokens) {
 				tokenSet.add(pushTokenBo.getToken());
 			}
 		}
 
-		System.out.println(String.format("==================userids(%s)获取到了华为token:%s========================", useridSet.toString(),tokenSet.toString()));
-		
 		// 获取小米regId
-		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(useridSet,2);
+		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(useridSet, 2);
 		Set<String> regIdSet = new HashSet<>();
-		if(regIds!=null) {
+		if (regIds != null) {
 			for (PushTokenBo pushTokenBo : regIds) {
 				regIdSet.add(pushTokenBo.getToken());
 			}
 		}
-		System.out.println(String.format("==================userids(%s)获取到了小米regId:%s========================", useridSet.toString(),regIdSet.toString()));
 
-		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, pushUser);
+		push(redisServer, title, message, content, path, tokenSet, regIdSet, aliasList, pushUser);
 	}
 
 	/**
@@ -509,25 +994,23 @@ public abstract class BaseContorller {
 		String message = JSON.toJSONString(msgMap);
 
 		// 获取华为token
-		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList,1);
+		List<PushTokenBo> tokens = tokenService.findTokenByUserIds(aliasList, 1);
 		Set<String> tokenSet = new HashSet<>();
-		if(tokens!=null) {
+		if (tokens != null) {
 			for (PushTokenBo pushTokenBo : tokens) {
 				tokenSet.add(pushTokenBo.getToken());
 			}
 		}
-		System.out.println(String.format("==================userids(%s)获取到了华为token:%s========================", aliasList.toString(),tokenSet.toString()));
 
 		// 获取小米regId
-		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(aliasList,2);
+		List<PushTokenBo> regIds = tokenService.findTokenByUserIds(aliasList, 2);
 		Set<String> regIdSet = new HashSet<>();
-		if(regIds!=null) {
+		if (regIds != null) {
 			for (PushTokenBo pushTokenBo : regIds) {
 				regIdSet.add(pushTokenBo.getToken());
 			}
 		}
-		
-		System.out.println(String.format("==================userids(%s)获取到了小米regId:%s========================", aliasList.toString(),regIdSet.toString()));
-		push(redisServer, title, message, content, path, tokenSet,regIdSet, aliasList, useridArr);
+
+		push(redisServer, title, message, content, path, tokenSet, regIdSet, aliasList, useridArr);
 	}
 }

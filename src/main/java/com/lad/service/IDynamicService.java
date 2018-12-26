@@ -136,6 +136,13 @@ public interface IDynamicService {
 	WriteResult updateReadToTure(String ownerid, Set<String> visitids);
 	long findDynamicNotReadNum(String id);
 	WriteResult updateUnReadSet(String id, LinkedHashSet<String> unReadFrend);
-
+	
+	/**
+	 * 更新点赞数
+	 * @param dynamicId
+	 * @param num
+	 */
+	void updateThumpsubNum(String dynamicId, int num);
+	
 
 }

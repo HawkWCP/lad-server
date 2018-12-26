@@ -16,7 +16,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,17 +42,12 @@ import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserReadHisBo;
 import com.lad.constants.GeneralContants;
-import com.lad.redis.RedisServer;
-import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
 import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IInforRecomService;
-import com.lad.service.IInforService;
-import com.lad.service.INoteService;
 import com.lad.service.ISearchService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -72,6 +66,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import lad.scrapybo.BaseInforBo;
 import lad.scrapybo.BroadcastBo;
 import lad.scrapybo.DailynewsBo;
 import lad.scrapybo.InforBo;
@@ -96,15 +91,6 @@ public class InforController extends BaseContorller {
 
 	@Autowired
 	private ICommentService commentService;
-
-	@Autowired
-	private IThumbsupService thumbsupService;
-	@Autowired
-	private RedisServer redisServer;
-
-	@Autowired
-	private IInforService inforService;
-
 	@Autowired
 	private IInforRecomService inforRecomService;
 
@@ -113,18 +99,12 @@ public class InforController extends BaseContorller {
 
 	@Autowired
 	private IDynamicService dynamicService;
-
 	@Autowired
-	private INoteService noteService;
-
-	@Autowired
-	private ICircleService circleService;
+	private AsyncController asyncController;
 
 	@Autowired
 	private ISearchService searchService;
 
-	@Autowired
-	private AsyncController asyncController;
 	
 	@Autowired
 	private IFriendsService friendsService;
@@ -842,7 +822,6 @@ public class InforController extends BaseContorller {
 	@RequestMapping(value = "/add-comment", method = { RequestMethod.GET, RequestMethod.POST })
 	public String addComment(@RequestParam String inforid, @RequestParam String countent, String parentid,
 			int inforType, HttpServletRequest request, HttpServletResponse response) {
-		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -871,44 +850,7 @@ public class InforController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 阅读点赞评论等数据更新
-	 * 
-	 * @param inforid
-	 * @param inforType 资讯类型
-	 * @param num
-	 * @param numType   更新数据类型， 阅读、点赞等
-	 */
-	private void updateInforNum(String inforid, int inforType, int num, int numType) {
-		RLock lock = redisServer.getRLock(inforid.concat(String.valueOf(numType)));
-		try {
-			lock.lock(2, TimeUnit.SECONDS);
-			switch (inforType) {
-			case Constant.INFOR_HEALTH:
-				inforService.updateInforNum(inforid, numType, num);
-				break;
-			case Constant.INFOR_SECRITY:
-				inforService.updateSecurityNum(inforid, numType, num);
-				break;
-			case Constant.INFOR_RADIO:
-				inforService.updateRadioNum(inforid, numType, num);
-				break;
-			case Constant.INFOR_VIDEO:
-				inforService.updateVideoNum(inforid, numType, num);
-				break;
-			case Constant.INFOR_DAILY:
-				inforService.updateDailynewsByType(inforid, numType, num);
-				break;
-			case Constant.INFOR_YANGLAO:
-				inforService.updateYanglaoByType(inforid, numType, num);
-				break;
-			default:
-				break;
-			}
-		} finally {
-			lock.unlock();
-		}
-	}
+
 
 	@ApiOperation("获取评论")
 	@ApiImplicitParams({
@@ -966,6 +908,7 @@ public class InforController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
+		// TODO
 		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(targetid, userBo.getId());
 		String inforid = targetid;
 		if (null == thumbsupBo) {
@@ -1004,47 +947,7 @@ public class InforController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-	/**
-	 * 热度信息更新
-	 * 
-	 * @param inforid
-	 * @param inforType
-	 */
-	private void infotHostAsync(String inforid, int inforType) {
-		// 根据每条资讯id加锁
-		String module = "";
-		switch (inforType) {
-		case Constant.INFOR_HEALTH:
-			InforBo inforBo = inforService.findById(inforid);
-			module = inforBo != null ? inforBo.getClassName() : "";
-			break;
-		case Constant.INFOR_SECRITY:
-			SecurityBo securityBo = inforService.findSecurityById(inforid);
-			module = securityBo != null ? securityBo.getNewsType() : "";
-			break;
-		case Constant.INFOR_RADIO:
-			BroadcastBo broadcastBo = inforService.findBroadById(inforid);
-			module = broadcastBo != null ? broadcastBo.getModule() : "";
-			break;
-		case Constant.INFOR_VIDEO:
-			VideoBo videoBo = inforService.findVideoById(inforid);
-			module = videoBo != null ? videoBo.getModule() : "";
-			break;
-		case Constant.INFOR_DAILY:
-			DailynewsBo dailynewsBo = inforService.findByDailynewsId(inforid);
-			module = dailynewsBo != null ? dailynewsBo.getClassName() : "";
-			break;
-		case Constant.INFOR_YANGLAO:
-			YanglaoBo yanglaoBo = inforService.findByYanglaoId(inforid);
-			module = yanglaoBo != null ? yanglaoBo.getClassName() : "";
-			break;
-		default:
-			break;
-		}
-		if (!"".equals(module)) {
-			asyncController.updateInforHistroy(inforid, module, inforType);
-		}
-	}
+
 
 	@ApiOperation("资讯或评论取消点赞，需要登录")
 	@ApiImplicitParams({
@@ -1060,21 +963,34 @@ public class InforController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(targetid, userBo.getId());
-		if (thumbsupBo != null) {
-			thumbsupService.deleteById(thumbsupBo.getId());
-			if (type == 0) {
-				updateInforNum(targetid, inforType, -1, Constant.THUMPSUB_NUM);
-			} else if (type == 1) {
-				CommentBo commentBo = commentService.findById(targetid);
-				if (commentBo != null) {
-					inforService.updateThumpsub(commentBo.getTargetid(), -1);
-				}
+		if (type == 0) {
+			if(inforType == 1) {
+				InforBo inforBo = inforService.findById(targetid);
+				thumbsup(userBo, inforBo, false);
+			}else if(inforType == 2) {
+				SecurityBo securityBo = inforService.findSecurityById(targetid);
+				thumbsup(userBo, securityBo, false);
+			}else if(inforType == 3) {
+				BroadcastBo securityBo = inforService.findBroadById(targetid);
+				thumbsup(userBo, securityBo, false);
+			}else if(inforType == 4) {
+				VideoBo securityBo = inforService.findVideoById(targetid);
+				thumbsup(userBo, securityBo, false);
+			}else if(inforType == 5) {
+				DailynewsBo securityBo = inforService.findByDailynewsId(targetid);
+				thumbsup(userBo, securityBo, false);
+			}else if(inforType == 6) {
+				YanglaoBo securityBo = inforService.findByYanglaoId(targetid);
+				thumbsup(userBo, securityBo, false);
 			}
+		} else if (type == 1) {
+			CommentBo commentBo = commentService.findById(targetid);
+			thumbsup(userBo, commentBo, false);
 		}
+
 		return Constant.COM_RESP;
 	}
-
+	
 	private CommentVo comentBo2Vo(CommentBo commentBo) {
 		CommentVo commentVo = new CommentVo();
 		BeanUtils.copyProperties(commentBo, commentVo);

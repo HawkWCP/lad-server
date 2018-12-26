@@ -10,14 +10,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lad.bo.MessageBo;
 import com.lad.bo.UserBo;
-import com.lad.service.IMessageService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
@@ -33,8 +31,6 @@ import net.sf.json.JSONObject;
 @RequestMapping("message")
 public class MessageController extends BaseContorller {
 
-	@Autowired
-	private IMessageService messageService;
 
 	@ApiOperation("未读消息查询")
 	@PostMapping("/unread-message")

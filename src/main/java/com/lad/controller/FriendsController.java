@@ -17,8 +17,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.lad.bo.*;
-import com.lad.service.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +32,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
+import com.lad.bo.ChatroomBo;
+import com.lad.bo.ChatroomUserBo;
+import com.lad.bo.FriendsBo;
+import com.lad.bo.LocationBo;
+import com.lad.bo.ReasonBo;
+import com.lad.bo.TagBo;
+import com.lad.bo.UserBo;
+import com.lad.service.IChatroomService;
+import com.lad.service.IFriendsService;
+import com.lad.service.ILocationService;
+import com.lad.service.ITagService;
+import com.lad.service.IUserService;
 import com.lad.util.ChatRoomUtil;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -59,8 +69,6 @@ public class FriendsController extends BaseContorller {
 
 	private static Logger logger = LogManager.getLogger(FriendsController.class);
 
-	@Autowired
-	private IReasonService reasonService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -74,8 +82,6 @@ public class FriendsController extends BaseContorller {
 	@Autowired
 	private ITagService tagService;
 
-	@Autowired
-	private IMessageService messageService;
 	
 	private String pushTitle = "好友通知";
 
@@ -101,12 +107,69 @@ public class FriendsController extends BaseContorller {
 				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 			}
-			List<FriendDisVo> voList = getNears(px, py,50000 ,userBo);
-			List<FriendDisVo> vos = voList.stream().filter(vo -> vo.isStar()).sorted((v1,v2)->{
-				if(v1.getSort()==v2.getSort()) {
-					return -v1.getStarTime().compareTo(v2.getStarTime());
+			Map<String, Double> nearids = nearids(px, py, 50000);
+			List<UserBo> users = userService.findUserByIds(new ArrayList<>(nearids.keySet()));
+			List<com.alibaba.fastjson.JSONObject> voList = new ArrayList<>();
+			
+			for (UserBo user : users) {
+				if(user.isStar()) {
+					com.alibaba.fastjson.JSONObject jsonObject = new com.alibaba.fastjson.JSONObject();
+					jsonObject.put("star", true);
+					jsonObject.put("id", user.getId());
+					jsonObject.put("userName", user.getUserName());
+					jsonObject.put("picture", user.getHeadPictureName());
+					jsonObject.put("distance", nearids.get(user.getId()));
+					jsonObject.put("sex", user.getSex());
+					jsonObject.put("starTime", user.getStarTime());
+					jsonObject.put("sort", user.getSort());
+					jsonObject.put("level", user.getLevel());
+					jsonObject.put("age", CommonUtil.getAge(user.getBirthDay()));
+					jsonObject.put("personalizedSignature", user.getPersonalizedSignature());
+					
+					FriendsBo friend = friendsService.getFriendByIdAndVisitorId(userBo.getId(),user.getId());
+					if(friend!=null) {
+						jsonObject.put("relateStatus",friend.getApply());
+						jsonObject.put("parent",friend.isParent());
+					}else {
+						jsonObject.put("relateStatus",2);
+					}
+					voList.add(jsonObject);
+					/*FriendDisVo fvo = new FriendDisVo();
+					fvo.setId(user.getId());
+					fvo.setUsername(user.getUserName());
+					fvo.setSex(user.getSex());
+					fvo.setPicture(user.getHeadPictureName());
+					fvo.setDistance(nearids.get(user.getId()));
+					fvo.setStar(true);
+					fvo.setStarTime(user.getStarTime());
+					fvo.setSort(user.getSort());
+					fvo.setLevel(user.getLevel());
+					fvo.setAge(CommonUtil.getAge(user.getBirthDay()));
+					fvo.setDescription(description);
+					
+					FriendsBo friend = friendsService.getFriendByIdAndVisitorId(userBo.getId(),user.getId());
+					if(friend!=null) {
+						fvo.setRelateStatus(friend.getApply());
+						fvo.setParent(friend.isParent());
+					}else {
+						fvo.setRelateStatus(2);
+					}
+					voList.add(fvo);*/
+				}
+
+			}
+			
+			List<com.alibaba.fastjson.JSONObject> vos = voList.stream().sorted((v1,v2)->{
+				Date d1 = (Date) v1.get("starTime");
+				Date d2 = (Date) v2.get("starTime");
+				
+				int s1 = (int) v1.get("sort");
+				int s2 = (int) v2.get("sort");
+				
+				if(s1==s2) {
+					return -d1.compareTo(d2);
 				}else {
-					return v1.getSort()-v2.getSort();
+					return s1-s2;
 				}
 			}).collect(Collectors.toList());
 
@@ -521,7 +584,6 @@ public class FriendsController extends BaseContorller {
 			@ApiImplicitParam(name = "limit", value = "显示条数", paramType = "query", dataType = "int") })*/
 	@RequestMapping(value = "/get-friends", method = { RequestMethod.GET, RequestMethod.POST })
 	public String getFriends(HttpServletRequest request, HttpServletResponse response) {
-		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -963,16 +1025,36 @@ public class FriendsController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	private List<FriendDisVo> getNears(double px, double py, double maxDistance,UserBo userBo) {
-		List<String> friendids = new LinkedList<>();
+	/**
+	 * 获取附近的人列表
+	 * @param px
+	 * @param py
+	 * @param maxDistance
+	 * @return
+	 */
+	private Map<String, Double> nearids(double px, double py, double maxDistance){
 		Map<String, Double> disMap = new HashMap<>();
 		Point point = new Point(px, py);
 		GeoResults<LocationBo> results = locationService.findUserNear(point, maxDistance);
 		for (GeoResult<LocationBo> result : results) {
 			String userid = result.getContent().getUserid();
-			friendids.add(userid);
 			disMap.put(userid, result.getDistance().getValue());
 		}
+		return disMap;
+	}
+	
+	/**
+	 * 获取附近的好友列表
+	 * @param px
+	 * @param py
+	 * @param maxDistance
+	 * @param userBo
+	 * @return
+	 */
+	private List<FriendDisVo> getNears(double px, double py, double maxDistance,UserBo userBo) {
+		Map<String, Double> nearids = nearids(px, py, maxDistance);
+		List<String> friendids = new LinkedList<>(nearids.keySet());
+		
 		List<FriendDisVo> voList = new LinkedList<>();
 		if (!friendids.isEmpty()) {
 			DecimalFormat df = new DecimalFormat("###.00");
@@ -984,10 +1066,7 @@ public class FriendsController extends BaseContorller {
 				vo.setPicture(friendsBo.getFriendHeadPic());
 				UserBo friend = userService.getUser(friendid);
 				if(friend!=null){
-					// 老友之星相关设置
-					vo.setStar(friend.isStar());
-					vo.setStarTime(friend.getStarTime());
-					vo.setSort(friend.getSort());
+					// TODO
 					if (StringUtils.isEmpty(friendsBo.getBackname())) {
 						vo.setBackname(friend.getUserName());
 						vo.setUsername(friend.getUserName());
@@ -1004,8 +1083,9 @@ public class FriendsController extends BaseContorller {
 					continue;
 				}
 				vo.setChannelId(friendsBo.getChatroomid());
-				double dis = Double.parseDouble(df.format(disMap.get(friendid)));
+				double dis = Double.parseDouble(df.format(nearids.get(friendid)));
 				vo.setDistance(dis);
+				vo.setApply(friendsBo.getApply());
 				voList.add(vo);
 			}
 		}

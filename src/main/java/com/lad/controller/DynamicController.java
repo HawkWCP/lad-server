@@ -34,11 +34,8 @@ import com.lad.bo.HomepageBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserVisitBo;
 import com.lad.constants.UserCenterConstants;
-import com.lad.redis.RedisServer;
-import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IHomepageService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -64,16 +61,7 @@ public class DynamicController extends BaseContorller {
 	private static final Logger logger = LogManager.getLogger(DynamicController.class);
 
 	@Autowired
-	private RedisServer redisServer;
-
-	@Autowired
 	private IUserService userService;
-
-	@Autowired
-	private IDynamicService dynamicService;
-
-	@Autowired
-	private IThumbsupService thumbsupService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -82,6 +70,33 @@ public class DynamicController extends BaseContorller {
 	private IHomepageService homepageService;
 
 	private String pushTitle = "动态通知";
+
+	@PostMapping("/thuumbsup")
+	public String thumbsup(String dynamicId, boolean isThumbsup, HttpServletRequest request,
+			HttpServletResponse response) {
+		String result = null;
+		try {
+			UserBo userBo = getUserLogin(request);
+			if (userBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+						ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+			}
+			int thumbsup = -1;
+			DynamicBo dynamicBo = dynamicService.findDynamicById(dynamicId);
+			if (dynamicBo != null) {
+				thumbsup = thumbsup(userBo, dynamicBo, isThumbsup);
+			}
+			if (thumbsup == 0) {
+				result = Constant.COM_RESP;
+			} else {
+				result = Constant.COM_FAIL_RESP;
+			}
+		} catch (Exception e) {
+			result = Constant.COM_FAIL_RESP;
+			logger.error("@PostMapping(\"/thuumbsup\")====={}", e);
+		}
+		return result;
+	}
 
 	@ApiOperation("动态详情")
 	@ApiImplicitParams({
@@ -419,8 +434,16 @@ public class DynamicController extends BaseContorller {
 	 */
 	@ApiOperation("添加动态信息")
 	@PostMapping(value = "/insert")
-	public String insert(double px, double py, String content, String landmark, MultipartFile[] pictures, String type,
-			LinkedHashSet<String> atIds, boolean ishide, HttpServletRequest request, HttpServletResponse response) {
+	public String insert(String paramString, MultipartFile[] pictures, LinkedHashSet<String> atIds,
+			HttpServletRequest request, HttpServletResponse response) {
+		// {"px":114.15455,"py":30.6575,"content":"内容","landmark":"地标","type":"picture类型","ishide":false}
+		com.alibaba.fastjson.JSONObject jsonObject = JSON.parseObject(paramString);
+		double px = jsonObject.getDouble("px");
+		double py = jsonObject.getDouble("py");
+		String landmark = jsonObject.getString("landmark");
+		String content = jsonObject.getString("content");
+		String type = jsonObject.getString("type");
+		Boolean ishide = jsonObject.getBoolean("ishide");
 		return insert(px, py, null, content, landmark, pictures, type, atIds, ishide, request, response);
 	}
 

@@ -15,15 +15,6 @@ import lombok.ToString;
 @ToString
 @SuppressWarnings("serial")
 public class FriendsBo extends BaseBo {
-
-	public LinkedList<String> getUsedBackName() {
-		return usedBackName;
-	}
-
-	public void setUsedBackName(LinkedList<String> usedBackName) {
-		this.usedBackName = usedBackName;
-	}
-
 	//主用户
 	private String userid;
 	//好友用户

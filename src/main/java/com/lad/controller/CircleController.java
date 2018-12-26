@@ -57,23 +57,16 @@ import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.constants.DiscoveryConstants;
 import com.lad.constants.GeneralContants;
-import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
 import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFeedbackService;
 import com.lad.service.IFriendsService;
-import com.lad.service.IInforService;
 import com.lad.service.ILocationService;
-import com.lad.service.IMessageService;
-import com.lad.service.INoteService;
 import com.lad.service.IPartyService;
-import com.lad.service.IReadHistoryService;
-import com.lad.service.IReasonService;
 import com.lad.service.IRestHomeService;
 import com.lad.service.ISearchService;
 import com.lad.service.IShowService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -114,9 +107,8 @@ public class CircleController extends BaseContorller {
 	private static final String CircleQualiName = "com.lad.controller.CircleController";
 
 	private static Logger logger = LogManager.getLogger(ChatroomController.class);
-
 	@Autowired
-	private ICircleService circleService;
+	private AsyncController asyncController;
 
 	@Autowired
 	private IUserService userService;
@@ -124,8 +116,6 @@ public class CircleController extends BaseContorller {
 	@Autowired
 	private ILocationService locationService;
 
-	@Autowired
-	private INoteService noteService;
 
 	@Autowired
 	private IFeedbackService feedbackService;
@@ -136,8 +126,6 @@ public class CircleController extends BaseContorller {
 	@Autowired
 	private IFriendsService friendsService;
 
-	@Autowired
-	private IReasonService reasonService;
 
 	@Autowired
 	private IPartyService partyService;
@@ -148,28 +136,14 @@ public class CircleController extends BaseContorller {
 	@Autowired
 	private ICollectService collectService;
 
-	@Autowired
-	private IThumbsupService thumbsupService;
 
 	@Autowired
 	private ICommentService commentService;
 
-	// @Autowired
-	// private IChatroomService chatroomService;
-	@Autowired
-	private IInforService inforService;
-
-	@Autowired
-	private IMessageService messageService;
-
-	@Autowired
-	private AsyncController asyncController;
 
 	@Autowired
 	private IShowService showService;
 
-	@Autowired
-	private IReadHistoryService readHistoryService;
 
 	private String titlePush = "圈子通知";
 
@@ -634,6 +608,7 @@ public class CircleController extends BaseContorller {
 						String pushContent = String.format("“%s”已加入圈子【%s】,你也快去看看吧！", user.getUserName(),
 								circleBo.getName());
 						String pushPath = "/circle/circle-info.do?circleid=" + circleid;
+						friendsList.remove(userBo.getId());
 						usePush(friendsList, titlePush, pushContent, pushPath);
 					}
 					// 是否通过聚会页面加入圈子

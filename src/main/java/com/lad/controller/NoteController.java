@@ -14,14 +14,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
@@ -40,27 +38,19 @@ import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.NoteBo;
 import com.lad.bo.ReadHistoryBo;
-import com.lad.bo.ReasonBo;
 import com.lad.bo.RestHomeBo;
 import com.lad.bo.ShowBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.constants.DiscoveryConstants;
 import com.lad.constants.GeneralContants;
-import com.lad.service.ICircleService;
 import com.lad.service.ICollectService;
 import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
-import com.lad.service.IInforService;
 import com.lad.service.ILocationService;
-import com.lad.service.IMessageService;
-import com.lad.service.INoteService;
-import com.lad.service.IReadHistoryService;
-import com.lad.service.IReasonService;
 import com.lad.service.IRestHomeService;
 import com.lad.service.IShowService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -96,17 +86,10 @@ public class NoteController extends BaseContorller {
 	private final Logger logger = LogManager.getLogger(NoteController.class);
 
 	@Autowired
-	private INoteService noteService;
-	@Autowired
-	private ICircleService circleService;
-	@Autowired
 	private IUserService userService;
 
 	@Autowired
 	private ICommentService commentService;
-
-	@Autowired
-	private IThumbsupService thumbsupService;
 
 	@Autowired
 	private ILocationService locationService;
@@ -121,20 +104,7 @@ public class NoteController extends BaseContorller {
 	private ICollectService collectService;
 
 	@Autowired
-	private IInforService inforService;
-
-	@Autowired
-	private IMessageService messageService;
-
-	@Autowired
 	private AsyncController asyncController;
-
-	@Autowired
-	private IReadHistoryService readHistoryService;
-
-	@Autowired
-	private IReasonService reasonService;
-
 	private String pushTitle = "互动通知";
 
 	/**
@@ -266,12 +236,6 @@ public class NoteController extends BaseContorller {
 			String path = String.format("/note/note-info.do?noteid=%s&type=%s", noteBo.getId(), noteBo.getType());
 			String content = "有人刚刚在帖子提到了您，快去看看吧!";
 
-//			JPushUtil.push(pushTitle, content, path, useridArr);
-//			List<String> aliasList = Arrays.asList(useridArr);
-//			Map<String,String> msgMap = new HashMap<>();
-//			msgMap.put("path", path);
-//			String message = JSON.toJSONString(msgMap);
-//			push(redisServer, pushTitle, message, content, path, aliasList, useridArr);
 			usePush(useridArr, pushTitle, content, path);
 
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
@@ -378,48 +342,12 @@ public class NoteController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		String uid = userBo.getId();
 		NoteBo noteBo = noteService.selectById(noteid);
 		if (noteBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.NOTE_IS_NULL.getIndex(), ERRORCODE.NOTE_IS_NULL.getReason());
 		}
-		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(noteid, uid);
-		boolean isThumsup = false;
-		if (null == thumbsupBo) {
-			thumbsupBo = new ThumbsupBo();
-			thumbsupBo.setType(Constant.NOTE_TYPE);
-			thumbsupBo.setOwner_id(noteid);
-			thumbsupBo.setImage(userBo.getHeadPictureName());
-			thumbsupBo.setVisitor_id(uid);
-			thumbsupBo.setCreateuid(uid);
-			thumbsupService.insert(thumbsupBo);
-			isThumsup = true;
-		} else {
-			if (thumbsupBo.getDeleted() == Constant.DELETED) {
-				thumbsupService.udateDeleteById(thumbsupBo.getId());
-				isThumsup = true;
-			}
-		}
-		userReasonHander(uid, noteBo.getCircleId(), noteid);
-		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_THUMP);
-		if (isThumsup) {
-			updateCount(noteid, Constant.THUMPSUB_NUM, 1);
-		}
-		String content = "有人刚刚赞了你的帖子，快去看看吧!";
-		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
-		String path = "/note/note-info.do?noteid=" + noteid;
-//		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
-//		String alias = noteBo.getCreateuid();
-//		List<String> aliasList = new ArrayList<>();
-//		aliasList.add(alias);
-//		Map<String,String> msgMap = new HashMap<>();
-//		msgMap.put("path", path);
-//		String message = JSON.toJSONString(msgMap);
-//		push(redisServer, pushTitle, message, content, path, aliasList, alias);
-		usePush(noteBo.getCreateuid(), pushTitle, content, path);
-
-		addMessage(messageService, path, content, pushTitle, noteid, 2, thumbsupBo.getId(), noteBo.getCircleId(), uid,
-				noteBo.getCreateuid());
+		// 点赞push一条龙服务
+		thumbsup(userBo, noteBo,true);
 		return Constant.COM_RESP;
 	}
 
@@ -474,7 +402,7 @@ public class NoteController extends BaseContorller {
 			thumbsupService.deleteById(thumbsupBo.getId());
 			NoteBo noteBo = noteService.selectById(noteid);
 			updateCircleHot(circleService, redisServer, noteBo.getCircleId(), -1, Constant.CIRCLE_NOTE_THUMP);
-			updateCount(noteid, Constant.THUMPSUB_NUM, -1);
+			updateNoteCount(noteid, Constant.THUMPSUB_NUM, -1);
 			messageService.deleteMessageBySource(thumbsupBo.getId(), 2);
 		}
 		return Constant.COM_RESP;
@@ -513,7 +441,7 @@ public class NoteController extends BaseContorller {
 			// 热度处理
 			updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_VISIT);
 
-			updateCount(noteid, Constant.VISIT_NUM, 1);
+			updateNoteCount(noteid, Constant.VISIT_NUM, 1);
 			boToVo(noteBo, noteVo, userService.getUser(noteBo.getCreateuid()), userid);
 			CircleBo circleBo = circleService.selectByIdIgnoreDel(noteBo.getCircleId());
 			if (circleBo != null) {
@@ -657,21 +585,14 @@ public class NoteController extends BaseContorller {
 		commentBo.setCreateTime(currentDate);
 		commentService.insert(commentBo);
 
-		updateCount(noteid, Constant.COMMENT_NUM, 1);
+		updateNoteCount(noteid, Constant.COMMENT_NUM, 1);
 		userService.addUserLevel(userBo.getId(), 1, Constant.LEVEL_COMMENT, 0);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_COMMENT);
 		asyncController.updateRedStar(userBo, noteBo, noteBo.getCircleId(), currentDate);
 		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
 		String path = "/note/note-info.do?noteid=" + noteid;
 		String content = "有人刚刚评论了你的帖子，快去看看吧!";
-//		JPushUtil.pushMessage(pushTitle, content, path, noteBo.getCreateuid());
-//		String alias = noteBo.getCreateuid();
-//		List<String> aliasList = new ArrayList<>();
-//		aliasList.add(alias);
-//		Map<String,String> msgMap = new HashMap<>();
-//		msgMap.put("path", path);
-//		String message = JSON.toJSONString(msgMap);
-//		push(redisServer, pushTitle, message, content, path, aliasList, alias);
+
 		usePush(noteBo.getCreateuid(), pushTitle, content, path);
 
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
@@ -681,12 +602,8 @@ public class NoteController extends BaseContorller {
 			if (comment != null) {
 				asyncController.updateCircieUnReadNum(comment.getCreateuid(), noteBo.getCircleId());
 				content = "有人刚刚回复了你的评论，快去看看吧!";
-//				JPushUtil.pushMessage(pushTitle, content, path, comment.getCreateuid());
-//				alias = comment.getCreateuid();
-//				aliasList = new ArrayList<>();
-//				aliasList.add(alias);
-//				push(redisServer, pushTitle, message, content, path, aliasList, alias);
-				usePush(noteBo.getCreateuid(), pushTitle, content, path);
+
+				usePush(comment.getCreateuid(), pushTitle, content, path);
 
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
@@ -719,7 +636,7 @@ public class NoteController extends BaseContorller {
 			if (userBo.getId().equals(commentBo.getCreateuid())) {
 				commentService.delete(commentid);
 				messageService.deleteMessageBySource(commentid, 1);
-				updateCount(commentBo.getNoteid(), Constant.COMMENT_NUM, -1);
+				updateNoteCount(commentBo.getNoteid(), Constant.COMMENT_NUM, -1);
 			} else {
 				return CommonUtil.toErrorResult(ERRORCODE.NOTE_NOT_MASTER.getIndex(),
 						ERRORCODE.NOTE_NOT_MASTER.getReason());
@@ -886,32 +803,18 @@ public class NoteController extends BaseContorller {
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(commentid, userBo.getId());
-		int num = 0;
-		if (isThumnbsup) {
-			if (null == thumbsupBo) {
-				thumbsupBo = new ThumbsupBo();
-				thumbsupBo.setType(Constant.NOTE_COM_TYPE);
-				thumbsupBo.setOwner_id(commentid);
-				thumbsupBo.setImage(userBo.getHeadPictureName());
-				thumbsupBo.setVisitor_id(userBo.getId());
-				thumbsupBo.setCreateuid(userBo.getId());
-				thumbsupService.insert(thumbsupBo);
-				num++;
-			} else {
-				if (thumbsupBo.getDeleted() == Constant.DELETED) {
-					thumbsupService.udateDeleteById(thumbsupBo.getId());
-					num++;
-				}
-			}
-		} else {
-			if (null != thumbsupBo && thumbsupBo.getDeleted() == Constant.ACTIVITY) {
-				thumbsupService.deleteById(thumbsupBo.getId());
-				num--;
+		
+		CommentBo commentBo = commentService.findById(commentid);
+		String result = null;
+		if (commentBo!=null) {
+			int thumbsup = thumbsup(userBo, commentBo, isThumnbsup);
+			if(thumbsup == 0) {
+				result = Constant.COM_RESP;
+			}else {
+				result = Constant.RESP_SUCCES;
 			}
 		}
-		asyncController.updateCommentThumbsup(commentid, num);
-		return Constant.COM_RESP;
+		return result;
 	}
 
 	/**
@@ -1191,7 +1094,6 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/forward-dynamic")
 	public String forwardDynamic(String noteid, String view, String landmark, HttpServletRequest request,
 			HttpServletResponse response) {
-		// TODO
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -1228,7 +1130,7 @@ public class NoteController extends BaseContorller {
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
 		dynamicBo.setUnReadFrend(new LinkedHashSet<>(friends));
 		dynamicService.addDynamic(dynamicBo);
-		updateCount(noteid, Constant.SHARE_NUM, 1);
+		updateNoteCount(noteid, Constant.SHARE_NUM, 1);
 		updateDynamicNums(userBo.getId(), 1, dynamicService, redisServer);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
 		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
@@ -1286,7 +1188,7 @@ public class NoteController extends BaseContorller {
 		}
 		collectService.insert(chatBo);
 		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
-		updateCount(noteid, Constant.COLLECT_NUM, 1);
+		updateNoteCount(noteid, Constant.COLLECT_NUM, 1);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("col-time", CommonUtil.time2str(chatBo.getCreateTime()));
@@ -1351,7 +1253,7 @@ public class NoteController extends BaseContorller {
 		asyncController.updateCircieNoteUnReadNum(userid, circleid, insert.getId());
 
 		addCircleShow(noteBo);
-		updateCount(noteid, Constant.SHARE_NUM, 1);
+		updateNoteCount(noteid, Constant.SHARE_NUM, 1);
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
 		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 		NoteVo noteVo = new NoteVo();
@@ -1406,7 +1308,7 @@ public class NoteController extends BaseContorller {
 		noteBo.setForward(1);
 		noteService.insert(noteBo);
 		addCircleShow(noteBo);
-		updateCount(noteid, Constant.SHARE_NUM, 1);
+		updateNoteCount(noteid, Constant.SHARE_NUM, 1);
 		userReasonHander(userBo.getId(), noteBo.getCircleId(), noteid);
 
 		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_SHARE);
@@ -2011,34 +1913,7 @@ public class NoteController extends BaseContorller {
 		return false;
 	}
 
-	private void updateCount(String noteid, int type, int num) {
-		RLock lock = redisServer.getRLock(noteid.concat(String.valueOf(type)));
-		try {
-			lock.lock(2, TimeUnit.SECONDS);
-			switch (type) {
 
-			case Constant.VISIT_NUM:// 访问
-				noteService.updateVisitCount(noteid);
-				break;
-			case Constant.COMMENT_NUM:// 评论
-				noteService.updateCommentCount(noteid, num);
-				break;
-			case Constant.THUMPSUB_NUM:// 点赞
-				noteService.updateThumpsubCount(noteid, num);
-				break;
-			case Constant.SHARE_NUM:// 分享
-				noteService.updateTransCount(noteid, num);
-				break;
-			case Constant.COLLECT_NUM:// 收藏
-				noteService.updateCollectCount(noteid, num);
-				break;
-			default:
-				break;
-			}
-		} finally {
-			lock.unlock();
-		}
-	}
 
 	/**
 	 * 需要和聚会展示最新信息
@@ -2063,30 +1938,5 @@ public class NoteController extends BaseContorller {
 		circleService.deleteShow(noteid);
 	}
 
-	private void userReasonHander(String userid, String circleId, String noteId) {
-		// 处理是否已读
-		ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, circleId, 1);
-		if (reasonBo != null) {
-			HashSet<String> unReadSet = reasonBo.getUnReadSet() == null ? new HashSet<String>()
-					: reasonBo.getUnReadSet();
-			unReadSet.remove(noteId);
-			reasonService.updateUnReadSet(userid, circleId, unReadSet);
-		}
-		updateNoteReadHistory(userid, noteId);
-	}
 
-	private void updateNoteReadHistory(String userid, String noteid) {
-		ReadHistoryBo historyByUseridAndNoteId = readHistoryService.getHistoryByUseridAndNoteId(noteid, noteid);
-		if (historyByUseridAndNoteId == null) {
-			ReadHistoryBo historyBo = new ReadHistoryBo();
-			historyBo.setReaderId(userid);
-			historyBo.setBeReaderId(noteid);
-			historyBo.setType(0);
-			historyBo.setReadNum(1);
-			readHistoryService.addReadHistory(historyBo);
-		} else {
-			int readNum = historyByUseridAndNoteId.getReadNum() + 1;
-			readHistoryService.updateReadNum(historyByUseridAndNoteId.getId(), readNum);
-		}
-	}
 }

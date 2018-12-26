@@ -2,12 +2,10 @@ package com.lad.controller;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,11 +34,9 @@ import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.lad.bo.UserBo;
 import com.lad.constants.UserCenterConstants;
-import com.lad.service.ICircleService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IMarriageService;
-import com.lad.service.INoteService;
 import com.lad.service.IRestHomeService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
@@ -50,13 +46,11 @@ import com.lad.util.MyException;
 import com.lad.vo.RestHomeVo;
 import com.lad.vo.RetiredPeopleVo;
 import com.lad.vo.UserBaseVo;
-import com.qiniu.util.Json;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
-import net.bytebuddy.description.modifier.SynchronizationState;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 
@@ -80,11 +74,8 @@ public class RestHomeController extends BaseContorller {
 	
 	@Autowired
 	private IFriendsService friendsService;
-	
 	@Autowired
-	private ICircleService circleService;
-	@Autowired
-	private INoteService noteService;
+	private AsyncController asyncController;
 	
 	@ApiOperation("转发养老院到我的动态")
 	@ApiImplicitParams({
@@ -132,9 +123,6 @@ public class RestHomeController extends BaseContorller {
 		map.put("dynamicid", dynamicBo.getId());
 		return JSONObject.fromObject(map).toString();
 	}
-
-	@Autowired
-	private AsyncController asyncController;
 
 	@ApiOperation("转发指定的圈子")
 	@ApiImplicitParams({

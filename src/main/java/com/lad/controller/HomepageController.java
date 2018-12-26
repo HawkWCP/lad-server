@@ -40,13 +40,10 @@ import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
 import com.lad.bo.UserVisitBo;
-import com.lad.redis.RedisServer;
 import com.lad.service.IChatroomService;
-import com.lad.service.ICircleService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IHomepageService;
 import com.lad.service.IPictureService;
-import com.lad.service.IThumbsupService;
 import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
@@ -70,16 +67,10 @@ public class HomepageController extends BaseContorller {
 	private static final Logger logger = LogManager.getLogger(HomepageController.class);
 	@Autowired
 	private IHomepageService homepageService;
-	@Autowired
-	private IThumbsupService thumbsupService;
+
 	@Autowired
 	private IUserService userService;
 
-	@Autowired
-	private ICircleService circleService;
-
-	@Autowired
-	private RedisServer redisServer;
 
 	@Autowired
 	private IChatroomService chatroomService;
