@@ -33,6 +33,7 @@ import com.lad.bo.OptionBo;
 import com.lad.bo.RestHomeBo;
 import com.lad.bo.RetiredPeopleBo;
 import com.lad.bo.UserBo;
+import com.lad.constants.GeneralContants;
 import com.lad.constants.UserCenterConstants;
 import com.lad.service.IDynamicService;
 import com.lad.service.IFriendsService;
@@ -101,6 +102,7 @@ public class RestHomeController extends BaseContorller {
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(home.getName());
 		dynamicBo.setView(view);
+		dynamicBo.setForward(GeneralContants.YES);
 		dynamicBo.setSourceId(homeId);
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setOwner(home.getCreateuid());

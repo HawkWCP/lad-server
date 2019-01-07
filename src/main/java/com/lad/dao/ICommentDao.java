@@ -101,4 +101,6 @@ public interface ICommentDao {
      * @return
      */
     WriteResult updateThumpsubNum(String commentId, int num);
+
+	List<CommentBo> findCommentsBySourceId(String sourceId);
 }

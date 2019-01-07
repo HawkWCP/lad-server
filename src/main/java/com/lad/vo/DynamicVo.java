@@ -2,6 +2,7 @@ package com.lad.vo;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,7 @@ import lombok.ToString;
 public class DynamicVo extends BaseVo {
 	
 	
+	private List<UserBaseVo> atUsers;
 
 	private String title;
 	private String content;

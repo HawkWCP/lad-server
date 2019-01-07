@@ -10,23 +10,35 @@ import java.util.LinkedHashSet;
  * Time:2017/12/14
  */
 public class CollectVo extends BaseVo {
-
+	// 收藏本身id
     private String collectid;
-
+    // 收藏内容
     private String content;
+    // 收藏资源所属的大框架id,比如收藏帖子,则sourceid的值应该是circleid
+	private String sourceid;
 
-    private String userid;
+    public String getSourceid() {
+		return sourceid;
+	}
 
+	public void setSourceid(String sourceid) {
+		this.sourceid = sourceid;
+	}
+
+	// 收藏者id
+	private String userid;
+	// 标题
     private String title;
-
+    // 路径
     private String path;
-
+    // 大类型: 文件 或 圈子
     private int type;
     //子分类，在url中区分文章、帖子、聚会、圈子
     private int sub_type;
-
+    
+    // 收藏目标id
     private String targetid;
-    //来源
+    //sourceid对应资源的name
     private String source;
     //收藏来源类型，资讯类型来源分类，1 健康， 2安防， 3 广播， 4 视频， 5 圈子
     private int sourceType;
@@ -57,7 +69,59 @@ public class CollectVo extends BaseVo {
 
     private boolean inforGroups;
 
-    public String getCollectid() {
+
+    // 帖子是否为转发
+    private int noteForward; 
+    // 帖子转发的大类型
+    private int noteForwardType;
+    public int getNoteForwardType() {
+		return noteForwardType;
+	}
+
+	public void setNoteForwardType(int noteForwardType) {
+		this.noteForwardType = noteForwardType;
+	}
+
+	// 帖子转发的资讯类型
+    private int noteForwardInforType;
+    // note下的文件资源类型 : 1. 存文本; 2.图片; 3. 视屏 ; 4. 广播
+    private int noteFileType;
+    public int getNoteForward() {
+		return noteForward;
+	}
+
+	public void setNoteForward(int noteForward) {
+		this.noteForward = noteForward;
+	}
+
+	public int getNoteForwardInforType() {
+		return noteForwardInforType;
+	}
+
+	public void setNoteForwardInforType(int noteForwardInforType) {
+		this.noteForwardInforType = noteForwardInforType;
+	}
+
+	public String getNoteForwardSourceId() {
+		return noteForwardSourceId;
+	}
+
+	public void setNoteForwardSourceId(String noteForwardSourceId) {
+		this.noteForwardSourceId = noteForwardSourceId;
+	}
+
+	// 帖子转发的资源id
+    private String noteForwardSourceId;
+    
+    public int getNoteFileType() {
+		return noteFileType;
+	}
+
+	public void setNoteFileType(int noteFileType) {
+		this.noteFileType = noteFileType;
+	}
+
+	public String getCollectid() {
         return collectid;
     }
 

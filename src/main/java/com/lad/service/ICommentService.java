@@ -144,4 +144,6 @@ public interface ICommentService {
      */
     WriteResult updateThumpsubNum(String commentId, int num);
 
+	List<CommentBo> findCommentsBySourceId(String sourceId);
+
 }

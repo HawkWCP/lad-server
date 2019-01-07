@@ -38,14 +38,16 @@ public class DynamicBo extends BaseBo {
 	private double[] postion;
 	// 地理位置
 	private String landmark;
+	
+	private LinkedHashSet<String> atIds;
 
 	/* ==============================转发相关字段================================= */
 
-	// 是否转发:对应UserCenterConstants中的FORWARD_TURE和FORWARD_FALSE两个值
+	// 是否转发:0 非转发,1,转发对应UserCenterConstants中的FORWARD_TURE和FORWARD_FALSE两个值
 	private int forward = GeneralContants.NO;
 	// 转发或分享时点评内容
 	private String view;
-	// 转发类型
+	// 转发类型,转发自资讯:1,转发自圈子:3,转发自帖子:0,转发自聚会:4,转发自养老院:31
 	private int type;
 
 	// 来源名称 资讯则标注二级分类名,帖子则标注圈子名,聚会则标注圈子名

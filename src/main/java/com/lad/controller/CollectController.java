@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.lad.bo.CircleBo;
 import com.lad.bo.CollectBo;
+import com.lad.bo.NoteBo;
 import com.lad.bo.PartyBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTagBo;
@@ -313,8 +314,109 @@ public class CollectController extends BaseContorller {
 					CircleBo circleBo = circleService.selectById(id);
 					if (circleBo != null) {
 						vo.setCollectPic(circleBo.getHeadPicture());
+					}	
+				} else if(collectBo.getSub_type() == Constant.NOTE_TYPE) {
+					NoteBo noteBo = noteService.selectById(id);
+					if(noteBo.getForward() == 1) {
+						if(noteBo!=null) {
+
+							vo.setNoteForward(1);
+							int noteType = noteBo.getNoteType();
+							// TODO
+							// 从其他帖子转发的帖子
+//							public static final int NOTE_FORWARD = 0;
+							// 从资讯转发的帖子
+//							public static final int INFOR_FORWARD = 1;
+							// 从养老院转发的帖子
+//							public static final int REST_FORWARD = 2;
+							// 从演出转发的帖子
+//							public static final int SHOW_FORWARD = 3;
+							if(noteType == NoteBo.NOTE_FORWARD) {
+								vo.setNoteForwardType(NoteBo.NOTE_FORWARD);
+								noteBo = noteService.selectById(noteBo.getSourceid());
+								if("pic".equals(noteBo.getType())) {
+									vo.setNoteFileType(2);
+									vo.setCollectPic(noteBo.getPhotos().get(0));
+								}else if("video".equals(noteBo.getType())){
+									vo.setNoteFileType(3);
+									vo.setVideo(noteBo.getPhotos().get(0));
+									vo.setVideoPic(noteBo.getVideoPic());
+								}else if("notes".equals(noteBo.getType())) {
+									vo.setNoteFileType(1);
+								}
+							}else if(noteType == NoteBo.INFOR_FORWARD) {
+								vo.setNoteForwardType(NoteBo.INFOR_FORWARD);
+								String inforid = noteBo.getSourceid();
+								int inforType = noteBo.getInforType();
+								vo.setTargetid(inforid);
+								switch (inforType) {
+								case Constant.INFOR_HEALTH:
+									InforBo inforBo = inforService.findById(inforid);
+									
+									if (inforBo != null) {
+										vo.setModule(inforBo.getModule());
+										vo.setClassName(inforBo.getClassName());
+										vo.setTitle(inforBo.getTitle());
+										//收藏来源类型，资讯类型来源分类，1 健康， 2安防， 3 广播， 4 视频， 5 圈子
+										vo.setNoteForwardInforType(1);
+										vo.setNoteForwardSourceId(inforBo.getId());
+										vo.setNoteFileType(inforBo.getImageUrls().size()>0?2:1);
+										vo.setCollectPic(inforBo.getImageUrls().get(0));
+									}
+									break;
+								case Constant.INFOR_SECRITY:
+									SecurityBo securityBo = inforService.findSecurityById(inforid);
+									if (securityBo != null) {
+										vo.setModule(securityBo.getNewsType());
+										vo.setTitle(securityBo.getTitle());
+										vo.setNoteForwardInforType(2);
+										vo.setNoteForwardSourceId(securityBo.getId());
+										vo.setNoteFileType(1);
+									}
+									break;
+								case Constant.INFOR_RADIO:
+									BroadcastBo broadcastBo = inforService.findBroadById(inforid);
+									if (broadcastBo != null) {
+										vo.setModule(broadcastBo.getModule());
+										vo.setClassName(broadcastBo.getClassName());
+										vo.setTitle(broadcastBo.getTitle());
+										vo.setNoteForwardInforType(3);
+										vo.setNoteForwardSourceId(broadcastBo.getId());
+										vo.setNoteFileType(4);
+									}
+									break;
+								case Constant.INFOR_VIDEO:
+									VideoBo videoBo = inforService.findVideoById(inforid);
+									if (videoBo != null) {
+										vo.setModule(videoBo.getModule());
+										vo.setClassName(videoBo.getClassName());
+										vo.setTitle(videoBo.getTitle());
+										vo.setNoteForwardInforType(4);
+										vo.setNoteForwardSourceId(videoBo.getId());
+										vo.setNoteFileType(2);
+										vo.setVideo(videoBo.getUrl());
+									}
+									break;
+								default:
+									break;
+								}
+							}
+						}
+					}else{
+						vo.setNoteForward(0);
+						if("pic".equals(noteBo.getType())) {
+							vo.setNoteFileType(2);
+							vo.setCollectPic(noteBo.getPhotos().get(0));
+						}else if("video".equals(noteBo.getType())){
+							vo.setNoteFileType(3);
+							vo.setVideo(noteBo.getPhotos().get(0));
+							vo.setVideoPic(noteBo.getVideoPic());
+						}else if("notes".equals(noteBo.getType())) {
+							vo.setNoteFileType(1);
+						}
 					}
-				} else if (collectBo.getSub_type() == Constant.PARTY_TYPE) {
+					
+				}else if (collectBo.getSub_type() == Constant.PARTY_TYPE) {
 					PartyBo partyBo = partyService.findById(id);
 					if (partyBo != null) {
 						vo.setCollectPic(partyBo.getBackPic());

@@ -21,6 +21,8 @@ public class UserBaseVo implements Serializable {
 
     private String userName;
 
+    private String backName;
+    
     private String phone;
 
     private String sex;

@@ -609,6 +609,7 @@ public class NoteController extends BaseContorller {
 						userBo.getId(), noteBo.getCreateuid());
 			}
 		}
+//		CommentBo commentBo = comment(userBo, noteBo, countent, new LinkedHashSet<>());
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("commentVo", comentBo2Vo(commentBo));

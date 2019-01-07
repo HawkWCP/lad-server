@@ -30,14 +30,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleHistoryBo;
+import com.lad.bo.CommentBo;
+import com.lad.bo.DynamicBo;
 import com.lad.bo.DynamicNumBo;
 import com.lad.bo.InforHistoryBo;
 import com.lad.bo.InforRecomBo;
 import com.lad.bo.LocationBo;
 import com.lad.bo.MessageBo;
+import com.lad.bo.NoteBo;
 import com.lad.bo.PushTokenBo;
 import com.lad.bo.ReadHistoryBo;
 import com.lad.bo.ReasonBo;
+import com.lad.bo.RedstarBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
@@ -94,18 +98,22 @@ public abstract class BaseContorller {
 	protected IMessageService messageService;
 	@Autowired
 	protected IInforService inforService;
-	
+
 	@Autowired
 	protected IInforRecomService inforRecomService;
 	@Autowired
 	protected ICommentService commentService;
-	@Autowired 
+	@Autowired
 	protected IDynamicService dynamicService;
 
 	@Autowired
 	protected IExposeService exposeService;
+	@Autowired
+	protected IUserService userService;
 	
-	
+	@Autowired
+	protected ILocationService locationService;
+ 
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
 
@@ -113,21 +121,262 @@ public abstract class BaseContorller {
 
 	
 	/**
-	 * 点赞或取消点赞
-	 * @param userBo		行为的发起者
-	 * @param obj			被点赞或取消点赞的实体
-	 * @param isThumbsup	点赞/取消点赞
+	 * 
+	 * @param user
+	 * @param obj
 	 * @return
 	 */
-	protected int thumbsup(UserBo userBo, Object obj,boolean isThumbsup) {
-		if(isThumbsup) {
+	protected CommentBo comment(UserBo user,Object obj,String content,LinkedHashSet<String> photos) {
+		CommentBo comment = new CommentBo();
+
+		try {
+			if(user== null || obj == null) {
+				throw new Exception();
+			}
+			JSONObject object = JSON.parseObject(JSON.toJSONString(obj));
+			String clazz = obj.getClass().getName();
+			saveComment(user, content, photos, comment, object, clazz);
+			
+			String objId = object.getString("id");
+			
+			if("com.lad.bo.NoteBo".equals(clazz)) {
+				NoteBo noteBo = JSON.parseObject(JSON.toJSONString(object), NoteBo.class);
+
+				updateHistory(user.getId(), noteBo.getCircleId(), locationService, circleService);
+				String pushTitle = "互动通知";
+
+				updateNoteCount(objId, Constant.COMMENT_NUM, 1);
+				userService.addUserLevel(user.getId(), 1, Constant.LEVEL_COMMENT, 0);
+				updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_COMMENT);
+				updateRedStar(user, noteBo, noteBo.getCircleId(), new Date());
+				updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
+				String path = "/note/note-info.do?noteid=" + objId;
+				String pushContent = "有人刚刚评论了你的帖子，快去看看吧!";
+
+				usePush(noteBo.getCreateuid(), pushTitle, content, path);
+
+				addMessage(messageService, path, pushContent, pushTitle, objId, 1, comment.getId(), noteBo.getCircleId(),
+						user.getId(), noteBo.getCreateuid());
+
+			}
+			if("com.lad.bo.CommentBo".equals(clazz)) {
+				String pushTitle = "互动通知";
+				CommentBo parent = commentService.findById(comment.getTargetid());
+				if (parent != null) {
+					String path = "/note/note-info.do?noteid=" + parent.getId();
+					String pushContent = "有人刚刚回复了你的评论，快去看看吧!";
+					usePush(parent.getCreateuid(), pushTitle, pushContent, path);
+					addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(), comment.getTargetid(),
+							user.getId(), comment.getCreateuid());
+				}
+			}
+			if("com.lad.bo.DynamicBo".equals(clazz)) {
+				String pushTitle = "互动通知";
+				DynamicBo parent = dynamicService.findDynamicById(comment.getTargetid());
+				String path = "/dynamic/dynamic-infor?dynamicId=" + parent.getId();
+				String pushContent = "有人刚刚回复了你的评论，快去看看吧!";
+				usePush(parent.getCreateuid(), pushTitle, pushContent, path);
+				addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(), comment.getTargetid(),
+						user.getId(), comment.getCreateuid());
+			}
+		}catch(Exception e) {
+			logger.error("add comment=====e:{}", e);
+		}
+
+		return comment;
+	}
+    /**
+     * 帖子阅读
+     * 更新红人信息
+     * @param userBo
+     * @param noteBo
+     * @param circleid
+     * @param currentDate
+     */
+    @Async
+    private void updateRedStar(UserBo userBo, NoteBo noteBo, String circleid, Date currentDate){
+        RedstarBo redstarBo = commentService.findRedstarBo(userBo.getId(), circleid);
+        int curretWeekNo = CommonUtil.getWeekOfYear(currentDate);
+        int year = CommonUtil.getYear(currentDate);
+        if (redstarBo == null) {
+            redstarBo = setRedstarBo(userBo.getId(), circleid, curretWeekNo, year);
+            commentService.insertRedstar(redstarBo);
+        }
+        //判断贴的作者是不是自己
+        boolean isNotSelf = !userBo.getId().equals(noteBo.getCreateuid());
+        boolean isNoteUserCurrWeek = true;
+        //如果帖子作者不是自己
+        if (isNotSelf) {
+            //帖子作者没有红人数据信息，则添加
+            RedstarBo noteRedstarBo = commentService.findRedstarBo(noteBo.getCreateuid(), circleid);
+            if (noteRedstarBo == null) {
+                noteRedstarBo = setRedstarBo(noteBo.getCreateuid(), circleid, curretWeekNo, year);
+                commentService.insertRedstar(noteRedstarBo);
+            } else {
+                //判断帖子作者周榜是不是当前周，是则添加数据，不是则更新周榜数据
+                isNoteUserCurrWeek = (year == noteRedstarBo.getYear() && curretWeekNo == noteRedstarBo.getWeekNo());
+            }
+        }
+        //判断自己周榜是不是同一周，是则添加数据，不是则更新周榜数据
+        boolean isCurrentWeek = (year == redstarBo.getYear() && curretWeekNo == redstarBo.getWeekNo());
+        //更新自己或他人红人评论数量，需要加锁，保证数据准确
+        RLock lock = redisServer.getRLock(Constant.COMOMENT_LOCK);
+        try {
+            lock.lock(5, TimeUnit.SECONDS);
+            //更新自己的红人信息
+            if (isCurrentWeek) {
+                commentService.addRadstarCount(userBo.getId(), circleid);
+            } else {
+                commentService.updateRedWeekByUser(userBo.getId(), curretWeekNo, year);
+            }
+            if (isNotSelf) {
+                //更新帖子作者的红人信息
+                if (isNoteUserCurrWeek) {
+                    commentService.addRadstarCount(noteBo.getCreateuid(), circleid);
+                } else {
+                    commentService.updateRedWeekByUser(noteBo.getCreateuid(), curretWeekNo, year);
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+    private RedstarBo setRedstarBo(String userid, String circleid, int weekNo, int year){
+        RedstarBo redstarBo = new RedstarBo();
+        redstarBo.setUserid(userid);
+        redstarBo.setCommentTotal((long) 1);
+        redstarBo.setCommentWeek((long) 1);
+        redstarBo.setWeekNo(weekNo);
+        redstarBo.setCircleid(circleid);
+        redstarBo.setYear(year);
+        return redstarBo;
+    }
+    
+	private void saveComment(UserBo user, String content, LinkedHashSet<String> photos, CommentBo comment,
+			JSONObject object, String clazz) {
+		comment.setVisitor_id(user.getId());
+		comment.setUserName(user.getUserName());
+		comment.setOwnerid(object.getString("createuid"));
+		comment.setTargetid(object.getString("id"));
+		comment.setContent(content);
+		comment.setHeadPicture(user.getHeadPictureName());
+		comment.setPhotos(photos);
+		comment.setCreateTime(new Date());
+		comment.setCreateuid(user.getId());
+		comment.setSourceId(object.getString("id"));
+		switch(clazz) {
+			case "com.lad.bo.NoteBo":					
+				comment.setTargetType(1);
+				break;
+			case "lad.scrapybo.InforBo":					
+				comment.setTargetType(2);
+				break;
+			case "lad.scrapybo.SecurityBo":					
+				comment.setTargetType(7);
+				break;
+			case "lad.scrapybo.BroadcastBo":					
+				comment.setTargetType(8);
+				break;
+			case "lad.scrapybo.VideoBo":					
+				comment.setTargetType(9);
+				break;
+			case "lad.scrapybo.DailynewsBo":					
+				comment.setTargetType(10);
+				break;
+			case "lad.scrapybo.YanglaoBo":					
+				comment.setTargetType(11);
+				break;
+			case "com.lad.bo.CommentBo":					
+				comment.setTargetType(3);
+				CommentBo commentBo = commentService.findById(object.getString("id"));
+				comment.setSourceId(commentBo.getSourceId());
+				break;
+			case "com.lad.bo.DynamicBo":					
+				comment.setTargetType(4);
+				break;
+			case "com.lad.bo.ExposeBo":					
+				comment.setTargetType(5);					
+				break;
+			case "com.lad.bo.PartyBo":					
+				comment.setTargetType(6);					
+				break;
+		}
+		commentService.insert(comment);
+	}
+
+/*	public String addComment(@RequestParam(required = true) String noteid,
+			@RequestParam(required = true) String countent, String parentid, HttpServletRequest request,
+			HttpServletResponse response) {
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		NoteBo noteBo = noteService.selectById(noteid);
+		if (noteBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.NOTE_IS_NULL.getIndex(), ERRORCODE.NOTE_IS_NULL.getReason());
+		}
+		updateHistory(userBo.getId(), noteBo.getCircleId(), locationService, circleService);
+		Date currentDate = new Date();
+		CommentBo commentBo = new CommentBo();
+		commentBo.setNoteid(noteBo.getId());
+		commentBo.setParentid(parentid);
+		commentBo.setUserName(userBo.getUserName());
+		commentBo.setContent(countent);
+		commentBo.setType(Constant.NOTE_TYPE);
+		commentBo.setCreateuid(userBo.getId());
+		commentBo.setOwnerid(noteBo.getCreateuid());
+		commentBo.setCreateTime(currentDate);
+		commentService.insert(commentBo);
+
+		updateNoteCount(noteid, Constant.COMMENT_NUM, 1);
+		userService.addUserLevel(userBo.getId(), 1, Constant.LEVEL_COMMENT, 0);
+		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_COMMENT);
+		asyncController.updateRedStar(userBo, noteBo, noteBo.getCircleId(), currentDate);
+		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
+		String path = "/note/note-info.do?noteid=" + noteid;
+		String content = "有人刚刚评论了你的帖子，快去看看吧!";
+
+		usePush(noteBo.getCreateuid(), pushTitle, content, path);
+
+		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
+				userBo.getId(), noteBo.getCreateuid());
+		if (!StringUtils.isEmpty(parentid)) {
+			CommentBo comment = commentService.findById(parentid);
+			if (comment != null) {
+				asyncController.updateCircieUnReadNum(comment.getCreateuid(), noteBo.getCircleId());
+				content = "有人刚刚回复了你的评论，快去看看吧!";
+
+				usePush(comment.getCreateuid(), pushTitle, content, path);
+
+				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
+						userBo.getId(), noteBo.getCreateuid());
+			}
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("commentVo", comentBo2Vo(commentBo));
+		return JSONObject.fromObject(map).toString();
+	}*/
+
+	/**
+	 * 点赞或取消点赞
+	 * 
+	 * @param userBo     行为的发起者
+	 * @param obj        被点赞或取消点赞的实体
+	 * @param isThumbsup 点赞/取消点赞
+	 * @return
+	 */
+	protected int thumbsup(UserBo userBo, Object obj, boolean isThumbsup) {
+		if (isThumbsup) {
 			return thumbsup(userBo, obj);
-		}else {
+		} else {
 			return deletedThumbsup(userBo, obj);
 		}
-		
+
 	}
-	
+
 	private int deletedThumbsup(UserBo userBo, Object obj) {
 		if (obj == null) {
 			return -1;
@@ -136,15 +385,15 @@ public abstract class BaseContorller {
 		String owner_id = jsonObject.getString("id");
 		String visitor_id = userBo.getId();
 		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(visitor_id, owner_id);
-		if(thumbsupBo!=null&&thumbsupBo.getDeleted()==Constant.ACTIVITY) {
+		if (thumbsupBo != null && thumbsupBo.getDeleted() == Constant.ACTIVITY) {
 			thumbsupService.deleteById(thumbsupBo.getId());
 		}
 		// 还需要根据每个实体的类型减少实体中的点赞数
 //		updateInforNum(targetid, inforType, -1, Constant.THUMPSUB_NUM);
 		return 0;
-		
+
 	}
-	
+
 	/**
 	 * 
 	 * 统一点赞接口
@@ -184,26 +433,26 @@ public abstract class BaseContorller {
 		if (obj instanceof lad.scrapybo.BaseInforBo) {
 			type = 2;
 			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
-			if(thumbsupBo!=null) {
+			if (thumbsupBo != null) {
 				String inforid = jsonObject.getString("id");
 				String clazz = obj.getClass().getName();
 				Integer inforType = null;
-				if("lad.scrapybo.InforBo".equals(clazz)) {
+				if ("lad.scrapybo.InforBo".equals(clazz)) {
 					inforType = 1;
 				}
-				if("lad.scrapybo.SecurityBo".equals(clazz)) {
+				if ("lad.scrapybo.SecurityBo".equals(clazz)) {
 					inforType = 2;
 				}
-				if("lad.scrapybo.BroadcastBo".equals(clazz)) {
+				if ("lad.scrapybo.BroadcastBo".equals(clazz)) {
 					inforType = 3;
 				}
-				if("lad.scrapybo.VideoBo".equals(clazz)) {
+				if ("lad.scrapybo.VideoBo".equals(clazz)) {
 					inforType = 4;
 				}
-				if("lad.scrapybo.DailynewsBo".equals(clazz)) {
+				if ("lad.scrapybo.DailynewsBo".equals(clazz)) {
 					inforType = 5;
 				}
-				if("lad.scrapybo.YanglaoBo".equals(clazz)) {
+				if ("lad.scrapybo.YanglaoBo".equals(clazz)) {
 					inforType = 6;
 				}
 				updateInforNum(inforid, inforType, 1, Constant.THUMPSUB_NUM);
@@ -213,7 +462,7 @@ public abstract class BaseContorller {
 		if (obj instanceof com.lad.bo.CommentBo) {
 			type = 3;
 			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
-			if(thumbsupBo !=null) {
+			if (thumbsupBo != null) {
 				String commentid = jsonObject.getString("id");
 				updateCommentThumbsup(commentid, 1);
 			}
@@ -221,189 +470,187 @@ public abstract class BaseContorller {
 		if (obj instanceof com.lad.bo.DynamicBo) {
 			type = 4;
 			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
-			if(thumbsupBo!=null) {
-				
+			if (thumbsupBo != null) {
+
 			}
 		}
-		if(obj instanceof com.lad.bo.ExposeBo) {
+		if (obj instanceof com.lad.bo.ExposeBo) {
 			type = 6;
 			ThumbsupBo thumbsupBo = saveThumbsup(userBo, jsonObject, type);
-			if(thumbsupBo!=null) {
+			if (thumbsupBo != null) {
 				String exposeid = jsonObject.getString("id");
 				updateExposeCounts(exposeService, exposeid, Constant.THUMPSUB_NUM, 1);
 			}
 		}
-		
+
 		if (type == null) {
 			return -1;
 		}
 
 		return 0;
 	}
-	
-    /**
-     * 异步更新阅读点赞等数据
-     * @param id
-     * @param numType
-     * @param num
-     * @return
-     */
-    @Async
-    private void updateExposeCounts(IExposeService service, String id, int numType, int num){
-        RLock lock = redisServer.getRLock(id.concat(String.valueOf(numType)));
-        try {
-            lock.lock(2, TimeUnit.SECONDS);
-            service.updateCounts(id, numType, num);
-        } finally {
-            lock.unlock();
-        }
-    }
-	
-    /**
-     * 帖子点赞
-     * @param commentid
-     * @param num
-     */
-    @Async
-    private void updateDynamicThumbsup(String dynamicId, int num){
-        if (num != 0){
-            RLock lock = redisServer.getRLock(dynamicId);
-            try {
-                lock.lock(1, TimeUnit.SECONDS);
-                dynamicService.updateThumpsubNum(dynamicId, num);
-            } finally {
-                lock.unlock();
-            }
-        }
-        // 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
-        /*if (num > 0) {
-            CommentBo commentBo = commentService.findById(commentid);
-            if (commentBo != null &&  commentBo.getType() == Constant.NOTE_TYPE) {
-                NoteBo noteBo = noteService.selectById(commentBo.getNoteid());
-                if (noteBo != null) {
-                    updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId());
-                }
-            }
-        }*/
-    }
-	
-	
-    /**
-     * 帖子点赞
-     * @param commentid
-     * @param num
-     */
-    @Async
-    private void updateCommentThumbsup(String commentid, int num){
-        if (num != 0){
-            RLock lock = redisServer.getRLock(commentid);
-            try {
-                lock.lock(1, TimeUnit.SECONDS);
-                commentService.updateThumpsubNum(commentid, num);
-            } finally {
-                lock.unlock();
-            }
-        }
-        // 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
-        /*if (num > 0) {
-            CommentBo commentBo = commentService.findById(commentid);
-            if (commentBo != null &&  commentBo.getType() == Constant.NOTE_TYPE) {
-                NoteBo noteBo = noteService.selectById(commentBo.getNoteid());
-                if (noteBo != null) {
-                    updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId());
-                }
-            }
-        }*/
-    }
-    /**
-     * 帖子 未读信息
-     * @param userid
-     * @param cirlceid
-     */
-    @Async
-    private void updateCircieUnReadNum(String userid, String cirlceid){
-        RLock lock = redisServer.getRLock(userid + "UnReadNumLock");
-        try{
-            lock.lock(2, TimeUnit.SECONDS);
-            ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, cirlceid, Constant.ADD_AGREE);
-            if (reasonBo == null) {
-                reasonBo = new ReasonBo();
-                reasonBo.setCircleid(cirlceid);
-                reasonBo.setCreateuid(userid);
-                reasonBo.setStatus(Constant.ADD_AGREE);
-                reasonBo.setUnReadNum(1);
-                reasonService.insert(reasonBo);
-            } else {
-                reasonService.updateUnReadNum(userid, cirlceid, 1);
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-	
-    /**
-     * 资讯
-     * 更新单条咨询访问信息记录
-     * @param inforid
-     * @param module
-     * @param type
-     */
-    @Async
-    private void updateInforHistroy(String inforid, String module, int type){
-        Date currenDate = CommonUtil.getZeroDate(new Date());
-        String dateStr = CommonUtil.getCurrentDate(new Date());
 
-        Date halfTime = CommonUtil.getHalfYearTime(currenDate);
-        String halgStr = CommonUtil.getCurrentDate(halfTime);
+	/**
+	 * 异步更新阅读点赞等数据
+	 * 
+	 * @param id
+	 * @param numType
+	 * @param num
+	 * @return
+	 */
+	@Async
+	private void updateExposeCounts(IExposeService service, String id, int numType, int num) {
+		RLock lock = redisServer.getRLock(id.concat(String.valueOf(numType)));
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			service.updateCounts(id, numType, num);
+		} finally {
+			lock.unlock();
+		}
+	}
 
-        RLock lock = redisServer.getRLock(inforid);
-        List<InforHistoryBo> historyBos = null;
-        List<String> ids = new ArrayList<>();
-        try {
-            lock.lock(5, TimeUnit.SECONDS);
-            InforHistoryBo historyBo = inforRecomService.findTodayHis(inforid, dateStr);
-            if (historyBo == null) {
-                historyBo = new InforHistoryBo();
-                historyBo.setDayNum(1);
-                historyBo.setInforid(inforid);
-                historyBo.setModule(module);
-                historyBo.setType(type);
-                historyBo.setReadDate(dateStr);
-                inforRecomService.addInfoHis(historyBo);
-            } else {
-                inforRecomService.updateHisDayNum(historyBo.getId(),1);
-            }
-            InforRecomBo recomBo = inforRecomService.findRecomByInforid(inforid);
-            if (recomBo == null) {
-                recomBo = new InforRecomBo();
-                recomBo.setInforid(inforid);
-                recomBo.setModule(module);
-                recomBo.setType(type);
-                recomBo.setHalfyearNum(1);
-                recomBo.setTotalNum(1);
-                inforRecomService.addInforRecom(recomBo);
-            } else {
-                inforRecomService.updateRecomByInforid(recomBo.getId(), 1, 1);
-                historyBos = inforRecomService.findHalfYearHis(inforid, halgStr);
-                if (historyBos == null || historyBos.isEmpty()){
-                    return;
-                } else {
-                    int disNum = 0;
-                    for (InforHistoryBo history : historyBos) {
-                        disNum += history.getDayNum();
-                        ids.add(history.getId());
-                    }
-                    inforRecomService.updateRecomByInforid(recomBo.getId(), -disNum, 1);
-                }
-            }
-        } finally {
-            lock.unlock();
-        }
-        if (!ids.isEmpty()){
-            inforRecomService.updateZeroHis(ids);
-        }
-    }
-    
+	/**
+	 * 帖子点赞
+	 * 
+	 * @param commentid
+	 * @param num
+	 */
+	@Async
+	private void updateDynamicThumbsup(String dynamicId, int num) {
+		if (num != 0) {
+			RLock lock = redisServer.getRLock(dynamicId);
+			try {
+				lock.lock(1, TimeUnit.SECONDS);
+				dynamicService.updateThumpsubNum(dynamicId, num);
+			} finally {
+				lock.unlock();
+			}
+		}
+		// 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
+		/*
+		 * if (num > 0) { CommentBo commentBo = commentService.findById(commentid); if
+		 * (commentBo != null && commentBo.getType() == Constant.NOTE_TYPE) { NoteBo
+		 * noteBo = noteService.selectById(commentBo.getNoteid()); if (noteBo != null) {
+		 * updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId()); } } }
+		 */
+	}
+
+	/**
+	 * 帖子点赞
+	 * 
+	 * @param commentid
+	 * @param num
+	 */
+	@Async
+	private void updateCommentThumbsup(String commentid, int num) {
+		if (num != 0) {
+			RLock lock = redisServer.getRLock(commentid);
+			try {
+				lock.lock(1, TimeUnit.SECONDS);
+				commentService.updateThumpsubNum(commentid, num);
+			} finally {
+				lock.unlock();
+			}
+		}
+		// 还需要讲评论大模块本身的阅读状态改为已读,但这可以在上面的处理
+		/*
+		 * if (num > 0) { CommentBo commentBo = commentService.findById(commentid); if
+		 * (commentBo != null && commentBo.getType() == Constant.NOTE_TYPE) { NoteBo
+		 * noteBo = noteService.selectById(commentBo.getNoteid()); if (noteBo != null) {
+		 * updateCircieUnReadNum(commentBo.getCreateuid(), noteBo.getCircleId()); } } }
+		 */
+	}
+
+	/**
+	 * 帖子 未读信息
+	 * 
+	 * @param userid
+	 * @param cirlceid
+	 */
+	@Async
+	private void updateCircieUnReadNum(String userid, String cirlceid) {
+		RLock lock = redisServer.getRLock(userid + "UnReadNumLock");
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			ReasonBo reasonBo = reasonService.findByUserAndCircle(userid, cirlceid, Constant.ADD_AGREE);
+			if (reasonBo == null) {
+				reasonBo = new ReasonBo();
+				reasonBo.setCircleid(cirlceid);
+				reasonBo.setCreateuid(userid);
+				reasonBo.setStatus(Constant.ADD_AGREE);
+				reasonBo.setUnReadNum(1);
+				reasonService.insert(reasonBo);
+			} else {
+				reasonService.updateUnReadNum(userid, cirlceid, 1);
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * 资讯 更新单条咨询访问信息记录
+	 * 
+	 * @param inforid
+	 * @param module
+	 * @param type
+	 */
+	@Async
+	private void updateInforHistroy(String inforid, String module, int type) {
+		Date currenDate = CommonUtil.getZeroDate(new Date());
+		String dateStr = CommonUtil.getCurrentDate(new Date());
+
+		Date halfTime = CommonUtil.getHalfYearTime(currenDate);
+		String halgStr = CommonUtil.getCurrentDate(halfTime);
+
+		RLock lock = redisServer.getRLock(inforid);
+		List<InforHistoryBo> historyBos = null;
+		List<String> ids = new ArrayList<>();
+		try {
+			lock.lock(5, TimeUnit.SECONDS);
+			InforHistoryBo historyBo = inforRecomService.findTodayHis(inforid, dateStr);
+			if (historyBo == null) {
+				historyBo = new InforHistoryBo();
+				historyBo.setDayNum(1);
+				historyBo.setInforid(inforid);
+				historyBo.setModule(module);
+				historyBo.setType(type);
+				historyBo.setReadDate(dateStr);
+				inforRecomService.addInfoHis(historyBo);
+			} else {
+				inforRecomService.updateHisDayNum(historyBo.getId(), 1);
+			}
+			InforRecomBo recomBo = inforRecomService.findRecomByInforid(inforid);
+			if (recomBo == null) {
+				recomBo = new InforRecomBo();
+				recomBo.setInforid(inforid);
+				recomBo.setModule(module);
+				recomBo.setType(type);
+				recomBo.setHalfyearNum(1);
+				recomBo.setTotalNum(1);
+				inforRecomService.addInforRecom(recomBo);
+			} else {
+				inforRecomService.updateRecomByInforid(recomBo.getId(), 1, 1);
+				historyBos = inforRecomService.findHalfYearHis(inforid, halgStr);
+				if (historyBos == null || historyBos.isEmpty()) {
+					return;
+				} else {
+					int disNum = 0;
+					for (InforHistoryBo history : historyBos) {
+						disNum += history.getDayNum();
+						ids.add(history.getId());
+					}
+					inforRecomService.updateRecomByInforid(recomBo.getId(), -disNum, 1);
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+		if (!ids.isEmpty()) {
+			inforRecomService.updateZeroHis(ids);
+		}
+	}
+
 	/**
 	 * 阅读点赞评论等数据更新
 	 * 
@@ -442,6 +689,7 @@ public abstract class BaseContorller {
 			lock.unlock();
 		}
 	}
+
 	/**
 	 * 热度信息更新
 	 * 
@@ -483,7 +731,7 @@ public abstract class BaseContorller {
 			updateInforHistroy(inforid, module, inforType);
 		}
 	}
-	
+
 	protected void updateNoteCount(String noteid, int type, int num) {
 		RLock lock = redisServer.getRLock(noteid.concat(String.valueOf(type)));
 		try {

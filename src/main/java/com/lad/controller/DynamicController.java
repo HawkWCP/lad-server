@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.alibaba.fastjson.JSON;
+import com.lad.bo.CommentBo;
 import com.lad.bo.DynamicBackBo;
 import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
@@ -41,6 +42,7 @@ import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.MyException;
+import com.lad.vo.CommentVo;
 import com.lad.vo.DynamicVo;
 import com.lad.vo.UserBaseVo;
 
@@ -69,8 +71,41 @@ public class DynamicController extends BaseContorller {
 	@Autowired
 	private IHomepageService homepageService;
 
+
 	private String pushTitle = "动态通知";
 
+	
+	
+	@PostMapping("dynamic-comment")
+	public String dynamiccomment(String dynamicId,int type,String content,LinkedHashSet<String> photos,HttpServletRequest request,HttpServletResponse response) {
+		Map<String,Object> map =new  HashMap<>();
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		CommentBo comment = null;
+		// type:0 动态;1 评论
+		if(type == 0) {			
+			DynamicBo dynamicBo = dynamicService.findDynamicById(dynamicId);
+			comment = comment(userBo, dynamicBo, content, photos);
+		}else if(type == 1){
+			CommentBo commentBo = commentService.findById(dynamicId);
+			comment = comment(userBo, commentBo, content, photos);
+		}
+		map.put("ret", 0);
+		map.put("result", comentBo2Vo(comment));
+		return JSON.toJSONString(map);
+	}
+	
+	
+	private CommentVo comentBo2Vo(CommentBo commentBo) {
+		CommentVo commentVo = new CommentVo();
+		BeanUtils.copyProperties(commentBo, commentVo);
+		commentVo.setCommentId(commentBo.getId());
+		commentVo.setUserid(commentBo.getCreateuid());
+		return commentVo;
+	}
 	@PostMapping("/thuumbsup")
 	public String thumbsup(String dynamicId, boolean isThumbsup, HttpServletRequest request,
 			HttpServletResponse response) {
@@ -98,6 +133,8 @@ public class DynamicController extends BaseContorller {
 		return result;
 	}
 
+
+	
 	@ApiOperation("动态详情")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "dynamicId", value = "动态id", required = true, paramType = "query", dataType = "string") })
@@ -117,8 +154,12 @@ public class DynamicController extends BaseContorller {
 			DynamicVo dynamicVo = new DynamicVo();
 			bo2vo(dynamicBo, dynamicVo, userBo);
 
+			//	TODO
+			List<CommentBo> bos = commentService.findCommentsBySourceId(dynamicBo.getId());
+
 			map.put("ret", 0);
 			map.put("result", dynamicVo);
+			map.put("comments", bos);
 		} catch (Exception e) {
 			logger.error("@PostMapping(value = \"/dynamic-infor\") throw exception:{}", e);
 			map.put("ret", -1);
@@ -370,8 +411,8 @@ public class DynamicController extends BaseContorller {
 			return e.getMessage();
 		}
 		logger.info(
-				"@RequestMapping(value = \"/insert\")=====user:{}({}),position:[{},{}],title:{},content:{},landmark:{},type:{}",
-				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type);
+				"@RequestMapping(value = \"/insert\")=====user:{}({}),position:[{},{}],title:{},content:{},landmark:{},type:{},atIds:{}",
+				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type,JSON.toJSONString(atIds));
 		String userId = userBo.getId();
 		DynamicBo dynamicBo = new DynamicBo();
 
@@ -381,6 +422,7 @@ public class DynamicController extends BaseContorller {
 
 		dynamicBo.setLandmark(landmark);
 		dynamicBo.setPostion(new double[] { px, py });
+		dynamicBo.setAtIds(atIds);
 
 		if (pictures != null) {
 			LinkedHashSet<String> images = dynamicBo.getPhotos();
@@ -434,9 +476,9 @@ public class DynamicController extends BaseContorller {
 	 */
 	@ApiOperation("添加动态信息")
 	@PostMapping(value = "/insert")
-	public String insert(String paramString, MultipartFile[] pictures, LinkedHashSet<String> atIds,
-			HttpServletRequest request, HttpServletResponse response) {
+	public String insert(String paramString, MultipartFile[] pictures, HttpServletRequest request, HttpServletResponse response) {
 		// {"px":114.15455,"py":30.6575,"content":"内容","landmark":"地标","type":"picture类型","ishide":false}
+		logger.info("@PostMapping(value = \"/insert\")=====json:{}", paramString);
 		com.alibaba.fastjson.JSONObject jsonObject = JSON.parseObject(paramString);
 		double px = jsonObject.getDouble("px");
 		double py = jsonObject.getDouble("py");
@@ -444,6 +486,8 @@ public class DynamicController extends BaseContorller {
 		String content = jsonObject.getString("content");
 		String type = jsonObject.getString("type");
 		Boolean ishide = jsonObject.getBoolean("ishide");
+		List<String> list = (List<String>) jsonObject.get("atIds");
+		LinkedHashSet<String> atIds = new LinkedHashSet<>(list);
 		return insert(px, py, null, content, landmark, pictures, type, atIds, ishide, request, response);
 	}
 
@@ -467,6 +511,7 @@ public class DynamicController extends BaseContorller {
 		logger.info("@RequestMapping(value = \"/all-dynamics\")=====user:{}({}),page:{},limit:{}", userBo.getUserName(),
 				userBo.getId(), page, limit);
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+		friends.add(userBo.getId());
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
 		bo2vo(msgBos, dynamicVos, userBo);
@@ -498,6 +543,7 @@ public class DynamicController extends BaseContorller {
 		logger.info("@RequestMapping(value = \"/all-dynamics-num\")=====user:{}({})", userBo.getUserName(),
 				userBo.getId());
 		List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
+		friends.add(userBo.getId());
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, -1, 0);
 		long notReadNum = dynamicService.findDynamicNotReadNum(userBo.getId());
 		int hideNum = 0;
@@ -609,7 +655,7 @@ public class DynamicController extends BaseContorller {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
-		logger.info("@RequestMapping(value = \"/my-dynamics\")=====user:{}({}),friendid:{},page:{},limit:{}",
+		logger.info("@RequestMapping(value = \"/my-dynamics\")=====user:{}({}),page:{},limit:{}",
 				userBo.getUserName(), userBo.getId(), page, limit);
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(userBo.getId(), page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
@@ -900,6 +946,13 @@ public class DynamicController extends BaseContorller {
 			dynamicVo.setUserName(userBo.getUserName());
 		}
 
+		
+		LinkedHashSet<String> atIds = msgBo.getAtIds();
+		if(atIds!=null) {
+			List<UserBo> atUsers = userService.findUserByIds(new ArrayList<>(atIds));
+			ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
+			dynamicVo.setAtUsers(userVos);
+		}
 		dynamicVo.setTime(msgBo.getCreateTime());
 		dynamicVo.setIsMyThumbsup(
 				thumbsupService.findHaveOwenidAndVisitorid(msgBo.getSourceId(), userBo.getId()) != null);
@@ -912,13 +965,32 @@ public class DynamicController extends BaseContorller {
 		}
 	}
 
+
+	private ArrayList<UserBaseVo> userBo2Vo(UserBo userBo, List<UserBo> atUsers) {
+		ArrayList<UserBaseVo> userVos = new ArrayList<>();
+		for (UserBo user : atUsers) {
+			UserBaseVo userVo = new UserBaseVo();
+			BeanUtils.copyProperties(user, userVo);
+			FriendsBo friend = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), user.getId());
+			userVo.setBackName(user.getUserName());
+			if(friend!=null) {
+				String backname = friend.getBackname();
+				if(backname!=null) {
+					userVo.setBackName(friend.getBackname());
+				}
+			}
+			userVos.add(userVo);
+		}
+		return userVos;
+	}
+
 	private void bo2vo(List<DynamicBo> msgBos, List<DynamicVo> dynamicVos, UserBo userBo) {
 		// userBo 动态的浏览者
 		for (DynamicBo msgBo : msgBos) {
-			if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
+			if (!msgBo.getCreateuid().equals(userBo.getId())&& msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
 				continue;
 			}
-			if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_PART) {
+			if (!msgBo.getCreateuid().equals(userBo.getId())&& msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_PART) {
 				LinkedHashSet<String> access_allow_set = msgBo.getAccess_allow_set();
 				if (!access_allow_set.contains(userBo.getId())) {
 					continue;
@@ -948,7 +1020,16 @@ public class DynamicController extends BaseContorller {
 			dynamicVo.setTime(msgBo.getCreateTime());
 			dynamicVo.setIsMyThumbsup(
 					thumbsupService.findHaveOwenidAndVisitorid(msgBo.getSourceId(), userBo.getId()) != null);
-
+			// 获取@user
+			LinkedHashSet<String> atIds = msgBo.getAtIds();
+			
+			System.out.println(atIds);
+			
+			if(atIds!=null) {
+				List<UserBo> atUsers = userService.findUserByIds(new ArrayList<>(atIds));
+				ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
+				dynamicVo.setAtUsers(userVos);
+			}
 			LinkedHashSet<String> unReadFrend = msgBo.getUnReadFrend();
 			if (unReadFrend != null && unReadFrend.contains(userBo.getId())) {
 				unReadFrend.remove(userBo.getId());

@@ -1665,6 +1665,7 @@ public class InforController extends BaseContorller {
 		dynamicBo.setLandmark(landmark);
 		dynamicBo.setForward(GeneralContants.YES);
 		dynamicBo.setType(Constant.INFOR_TYPE);
+		dynamicBo.setForward(1);
 		switch (inforType) {
 		case Constant.INFOR_HEALTH:
 			InforBo inforBo = inforService.findById(inforid);

@@ -69,8 +69,12 @@ public class UserCenterConstants {
     /**
      * 单条个人动态访问权限
      */
+    // 所有人可访问
     public static final int ACCESS_SECURITY_ALLOW_ALL =0;
+    // 好友可访问
     public static final int ACCESS_SECURITY_ALLOW_FRIEND =1;
+    // 部分人访问
     public static final int ACCESS_SECURITY_ALLOW_PART =2;
+    // 私密
     public static final int ACCESS_SECURITY_ALLOW_NONE =3;
 }

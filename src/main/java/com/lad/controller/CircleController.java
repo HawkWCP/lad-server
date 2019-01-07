@@ -2804,6 +2804,7 @@ public class CircleController extends BaseContorller {
 		}
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setForward(GeneralContants.YES);
+		dynamicBo.setForward(1);
 		dynamicBo.setTitle(circleBo.getName());
 		dynamicBo.setSourceId(circleid);
 		dynamicBo.setOwner(circleBo.getCreateuid());

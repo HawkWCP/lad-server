@@ -84,6 +84,7 @@ public class DynamicDaoImpl implements IDynamicDao {
     @Override
     public List<DynamicBo> findAllFriendsMsg(List<String> friendids, int page, int limit) {
         Query query = new Query();
+
         query.addCriteria(new Criteria("createuid").in(friendids).and("deleted").is(Constant.ACTIVITY));
         query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "_id")));
         //-1表示查询所有动态信息

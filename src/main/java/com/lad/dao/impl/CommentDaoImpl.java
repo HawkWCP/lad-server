@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -162,4 +163,11 @@ public class CommentDaoImpl implements ICommentDao {
         update.inc("thumpsubNum", num);
         return mongoTemplate.updateFirst(query, update, CommentBo.class);
     }
+
+	@Override
+	public List<CommentBo> findCommentsBySourceId(String sourceId) {
+		Query query = new Query(Criteria.where("sourceId").is(sourceId).and("deleted").is(0));
+		query.with(new Sort(Direction.DESC, "_id"));
+		return mongoTemplate.find(query, CommentBo.class);
+	}
 }
