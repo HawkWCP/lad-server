@@ -144,7 +144,8 @@ public enum ERRORCODE {
 	UPDATE_NO_CHANGE(210005,"传入数据与原数据相比无变动"),
 	USERNAME_REPEAT(210006,"用户名重复"),
 	HOME_IS_NULL(210007, "养老院不存在"),
-	SHOW_IS_NULL(210008, "演出不存在")
+	SHOW_IS_NULL(210008, "演出不存在"),
+	COMMENT_OBJ_NULL(210009, "评论对象不存在")
 ;
 	
 

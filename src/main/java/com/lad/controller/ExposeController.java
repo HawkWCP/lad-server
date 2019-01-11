@@ -422,7 +422,7 @@ public class ExposeController extends BaseContorller {
             commentVo.setCommentId(commentBo.getId());
             commentVo.setUserid(commentBo.getCreateuid());
             ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(commentBo.getId(), userid);
-            commentVo.setMyThumbsup(thumbsupBo != null);
+            commentVo.setIsMyThumbsup(thumbsupBo != null);
             commentVo.setThumpsubCount(commentBo.getThumpsubNum());
             if (!StringUtils.isEmpty(commentBo.getParentid())) {
                 CommentBo parent = commentService.findById(commentBo.getParentid());

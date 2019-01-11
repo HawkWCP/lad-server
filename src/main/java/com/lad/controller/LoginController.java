@@ -336,7 +336,7 @@ public class LoginController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-
+	// qqKing: TgItJikdlNnRzouO
 	@ApiOperation("QQ授权登录")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "accessToken", value = "qq返回token", required = true, dataType = "string",

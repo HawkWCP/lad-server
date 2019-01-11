@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -115,5 +116,12 @@ public class ThumbsupDaoImpl implements IThumbsupDao {
 		Query query = new Query();
 		query.addCriteria(new Criteria("_id").is(thumbsupId).and("deleted").is(0));
 		return mongoTemplate.findOne(query, ThumbsupBo.class);
+	}
+
+	@Override
+	public List<ThumbsupBo> findThumbsupsByOwnerAndType(String ownerId, int type) {
+		Query query = new Query(Criteria.where("owner_id").is(ownerId).and("type").is(type).and("deleted").is(0));
+		query.with(new Sort(Direction.DESC, "_id"));
+		return mongoTemplate.find(query, ThumbsupBo.class);
 	}
 }

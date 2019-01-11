@@ -38,7 +38,7 @@ import com.lad.bo.FriendsBo;
 import com.lad.bo.SpouseBaseBo;
 import com.lad.bo.SpouseRequireBo;
 import com.lad.bo.UserBo;
-import com.lad.service.CareAndPassService;
+import com.lad.service.ICareService;
 import com.lad.service.IFriendsService;
 import com.lad.service.SpouseService;
 import com.lad.util.CommonUtil;
@@ -61,9 +61,6 @@ import net.sf.json.JSONObject;
 public class SpouseController extends BaseContorller {
 	@Autowired
 	private SpouseService spouseService;
-
-	@Autowired
-	private CareAndPassService careAndPassService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -347,13 +344,13 @@ public class SpouseController extends BaseContorller {
 			return JSONObject.fromObject(map).toString();
 		}
 
-		Set<String> passRoster = careAndPassService.findSpousePassList(baseBo.getId());
+		Set<String> passRoster = careService.findSpousePassList(baseBo.getId());
 
 		// 如果存在这个记录
 		if (passRoster != null) {
 			if (!passRoster.contains(passId)) {
 				passRoster.add(passId);
-				Map<String, Set<String>> careMap = careAndPassService.findSpouseCareMap(baseBo.getId());
+				Map<String, Set<String>> careMap = careService.findSpouseCareMap(baseBo.getId());
 				for (Entry<String, Set<String>> entity : careMap.entrySet()) {
 					if (entity.getValue().contains(passId)) {
 						entity.getValue().remove(passId);
@@ -361,11 +358,11 @@ public class SpouseController extends BaseContorller {
 						if (entity.getValue().size() == 0) {
 							careMap.remove(entity.getKey());
 						}
-						careAndPassService.updateCare(Constant.SPOUSE, baseBo.getId(), careMap);
+						careService.updateCare(Constant.SPOUSE, baseBo.getId(), careMap);
 						break;
 					}
 				}
-				careAndPassService.updatePass(Constant.SPOUSE, baseBo.getId(), passRoster);
+				careService.updatePass(Constant.SPOUSE, baseBo.getId(), passRoster);
 			}
 		} else {
 			CareAndPassBo care = new CareAndPassBo();
@@ -382,7 +379,7 @@ public class SpouseController extends BaseContorller {
 			care.setCreateuid(userBo.getId());
 			// 设置为找驴友情境
 			care.setSituation(Constant.SPOUSE);
-			careAndPassService.insert(care);
+			careService.insert(care);
 		}
 		Map map = new HashMap<>();
 		map.put("ret", 0);
@@ -407,7 +404,7 @@ public class SpouseController extends BaseContorller {
 		}
 
 		// 在找老伴的逻辑中,主id为SpouseBaseId
-		CareAndPassBo care = careAndPassService.findSpouseCare(baseBo.getId());
+		CareAndPassBo care = careService.findSpouseCare(baseBo.getId());
 
 		// 设置装载CareResultVo的容器
 		List<CareResultVo> resultContainer = new ArrayList<>();
@@ -461,7 +458,7 @@ public class SpouseController extends BaseContorller {
 			return JSONObject.fromObject(map).toString();
 		}
 
-		Map<String, Set<String>> careMap = careAndPassService.findSpouseCareMap(baseBo.getId());
+		Map<String, Set<String>> careMap = careService.findSpouseCareMap(baseBo.getId());
 
 		if (careMap == null) {
 			careMap = new HashMap<String, Set<String>>();
@@ -473,7 +470,7 @@ public class SpouseController extends BaseContorller {
 				if (entrySet.getValue().size() == 0) {
 					careMap.remove(entrySet.getKey());
 				}
-				careAndPassService.updateCare(Constant.SPOUSE, baseBo.getId(), careMap);
+				careService.updateCare(Constant.SPOUSE, baseBo.getId(), careMap);
 				break;
 			}
 		}
@@ -498,7 +495,7 @@ public class SpouseController extends BaseContorller {
 			return JSONObject.fromObject(map).toString();
 		}
 		// 获取关注实体
-		CareAndPassBo careAndPassBo = careAndPassService.findSpouseCare(baseBo.getId());
+		CareAndPassBo careAndPassBo = careService.findSpouseCare(baseBo.getId());
 		// 获取当前日期的字符串表示
 		String time = CommonUtil.getDateStr(new Date(), "yyyy-MM-dd");
 		if (careAndPassBo != null) {
@@ -519,7 +516,7 @@ public class SpouseController extends BaseContorller {
 				careSet.add(careId);
 				careRoster.put(time, careSet);
 			}
-			careAndPassService.updateCare(Constant.SPOUSE, baseBo.getId(), careRoster);
+			careService.updateCare(Constant.SPOUSE, baseBo.getId(), careRoster);
 
 		} else {
 			CareAndPassBo care = new CareAndPassBo();
@@ -538,7 +535,7 @@ public class SpouseController extends BaseContorller {
 			care.setCreateuid(userBo.getId());
 			// 设置为找驴友情境
 			care.setSituation(Constant.SPOUSE);
-			careAndPassService.insert(care);
+			careService.insert(care);
 		}
 
 		Map map = new HashMap<>();

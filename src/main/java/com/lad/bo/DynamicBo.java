@@ -28,6 +28,8 @@ public class DynamicBo extends BaseBo {
 
 	/* ==============================资源相关字段================================= */
 
+	// 文件类型
+	private String fileType;
 	// 图片
 	private LinkedHashSet<String> photos = new LinkedHashSet<>();
 	// 视频缩略图

@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -25,7 +23,6 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import com.lad.bo.ChatroomBo;
-import com.lad.controller.ChatroomController;
 import com.lad.dao.IChatroomDao;
 import com.lad.util.Constant;
 import com.mongodb.BasicDBObject;
@@ -157,7 +154,6 @@ public class ChatroomDaoImpl implements IChatroomDao {
 
 	@Override
 	public ChatroomBo selectBySeqInTen(int seq, double[] position, int radius) {
-		org.slf4j.Logger logger2 = org.slf4j.LoggerFactory.getLogger(ChatroomController.class);
 		// 主键筛选条件
 		Query query = new Query();
 		query.addCriteria(new Criteria("seq").is(seq));

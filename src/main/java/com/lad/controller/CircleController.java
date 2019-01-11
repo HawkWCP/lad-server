@@ -64,7 +64,6 @@ import com.lad.service.IFeedbackService;
 import com.lad.service.IFriendsService;
 import com.lad.service.ILocationService;
 import com.lad.service.IPartyService;
-import com.lad.service.IRestHomeService;
 import com.lad.service.ISearchService;
 import com.lad.service.IShowService;
 import com.lad.service.IUserService;
@@ -3198,9 +3197,7 @@ public class CircleController extends BaseContorller {
 		circleVo.setUsersSize(circleBo.getUsers().size());
 		circleVo.setTop(top);
 		if (null != userBo) {
-//			ReasonBo reasonBo = reasonService.findByUserAndCircle(userBo.getId(), circleBo.getId(), Constant.ADD_AGREE);
-			ReasonBo reasonBo = reasonService.findByUserAndCircle(userBo.getId(), circleBo.getId(), Constant.ADD_AGREE,
-					0);
+			ReasonBo reasonBo = reasonService.findByUserAndCircle(userBo.getId(), circleBo.getId(), Constant.ADD_AGREE, 0);
 			// 圈子未读数量信息
 			if (reasonBo != null) {
 				// 思路:获取未读列表
@@ -3217,8 +3214,7 @@ public class CircleController extends BaseContorller {
 		return circleVo;
 	}
 
-	@Autowired
-	private IRestHomeService restHomeService;
+
 
 	/**
 	 *

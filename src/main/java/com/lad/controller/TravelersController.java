@@ -34,7 +34,7 @@ import com.lad.bo.FriendsBo;
 import com.lad.bo.TravelersRequireBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserTasteBo;
-import com.lad.service.CareAndPassService;
+import com.lad.service.ICareService;
 import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IUserService;
@@ -62,9 +62,6 @@ public class TravelersController extends BaseContorller {
 
 	@Autowired
 	private IUserService userService;
-
-	@Autowired
-	private CareAndPassService careAndPassService;
 
 	@Autowired
 	private IFriendsService friendsService;
@@ -721,13 +718,13 @@ public class TravelersController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 
-		Set<String> passRoster = careAndPassService.findTravelersPassList(requireId);
+		Set<String> passRoster = careService.findTravelersPassList(requireId);
 
 		// 如果存在这个记录
 		if (passRoster != null) {
 			if (!passRoster.contains(passId)) {
 				passRoster.add(passId);
-				Map<String, Set<String>> careMap = careAndPassService.findTravelersCareMap(requireId);
+				Map<String, Set<String>> careMap = careService.findTravelersCareMap(requireId);
 				for (Entry<String, Set<String>> entity : careMap.entrySet()) {
 					if (entity.getValue().contains(passId)) {
 						entity.getValue().remove(passId);
@@ -735,11 +732,11 @@ public class TravelersController extends BaseContorller {
 						if (entity.getValue().size() == 0) {
 							careMap.remove(entity.getKey());
 						}
-						careAndPassService.updateCare(Constant.TRAVELERS, requireId, careMap);
+						careService.updateCare(Constant.TRAVELERS, requireId, careMap);
 						break;
 					}
 				}
-				careAndPassService.updatePass(Constant.TRAVELERS, requireId, passRoster);
+				careService.updatePass(Constant.TRAVELERS, requireId, passRoster);
 			}
 		} else {
 			CareAndPassBo care = new CareAndPassBo();
@@ -756,7 +753,7 @@ public class TravelersController extends BaseContorller {
 			care.setCreateuid(userBo.getId());
 			// 设置为找驴友情境
 			care.setSituation(Constant.TRAVELERS);
-			careAndPassService.insert(care);
+			careService.insert(care);
 		}
 		Map map = new HashMap<>();
 		map.put("ret", 0);
@@ -775,7 +772,7 @@ public class TravelersController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 
-		Map<String, Set<String>> careMap = careAndPassService.findTravelersCareMap(requireId);
+		Map<String, Set<String>> careMap = careService.findTravelersCareMap(requireId);
 
 		if (careMap == null) {
 			careMap = new HashMap<String, Set<String>>();
@@ -787,7 +784,7 @@ public class TravelersController extends BaseContorller {
 				if (entrySet.getValue().size() == 0) {
 					careMap.remove(entrySet.getKey());
 				}
-				careAndPassService.updateCare(Constant.TRAVELERS, requireId, careMap);
+				careService.updateCare(Constant.TRAVELERS, requireId, careMap);
 				break;
 			}
 		}
@@ -805,7 +802,7 @@ public class TravelersController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		// 在找驴友的逻辑中,主id即requireId
-		CareAndPassBo care = careAndPassService.findTravelersCare(requireId);
+		CareAndPassBo care = careService.findTravelersCare(requireId);
 
 		// 设置壮哉CareResultVo的容器
 		List<CareResultVo> resultContainer = new ArrayList<>();
@@ -844,7 +841,7 @@ public class TravelersController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 
-		CareAndPassBo careAndPassBo = careAndPassService.findTravelersCare(requireId);
+		CareAndPassBo careAndPassBo = careService.findTravelersCare(requireId);
 		DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
 		String time = format.format(new Date());
 
@@ -866,7 +863,7 @@ public class TravelersController extends BaseContorller {
 				careList.add(careId);
 				careRoster.put(time, careList);
 			}
-			careAndPassService.updateCare(Constant.TRAVELERS, requireId, careRoster);
+			careService.updateCare(Constant.TRAVELERS, requireId, careRoster);
 
 		} else {
 			CareAndPassBo care = new CareAndPassBo();
@@ -885,7 +882,7 @@ public class TravelersController extends BaseContorller {
 			care.setCreateuid(userBo.getId());
 			// 设置为找驴友情境
 			care.setSituation(Constant.TRAVELERS);
-			careAndPassService.insert(care);
+			careService.insert(care);
 		}
 
 		Map map = new HashMap<>();

@@ -962,7 +962,7 @@ public class PartyController extends BaseContorller {
 			if (null != user) {
 				// 判断当前用户是否点赞
 				ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(commentBo.getId(), user.getId());
-				vo.setMyThumbsup(thumbsupBo != null);
+				vo.setIsMyThumbsup(thumbsupBo != null);
 			}
 			vo.setThumpsubCount(commentBo.getThumpsubNum());
 			commentVos.add(vo);

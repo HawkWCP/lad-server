@@ -32,6 +32,9 @@ public class DynamicVo extends BaseVo {
 	private String landmark;
 	// 经纬度
 	private double[] postion;
+	// 文件类型
+	private String fileType;
+	// 照片列表
 	private LinkedHashSet<String> photos;
 	// 视频缩略图
 	private String videoPic;
@@ -58,9 +61,9 @@ public class DynamicVo extends BaseVo {
 	// 转发量
 	private int transNum;
 	// 评论数量
-	private int commentNum;
+	private List<CommentVo> comment;
 	// 点赞数量
-	private int thumpNum;
+	private List<ThumbsupBaseVo> thumbsupUser;
 
 	
 	// 圈子id

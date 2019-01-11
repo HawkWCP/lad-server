@@ -11,6 +11,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+
+// 实体在后续修改中应该废弃掉,所有关注有关功能应当统一使用CareBo
 @Setter
 @Getter
 @ToString

@@ -69,4 +69,9 @@ public class ThumbsupService extends BaseServiceImpl  implements IThumbsupServic
 	public ThumbsupBo selectById(String thumbsupId) {
 		return thumbsupDao.selectById(thumbsupId);
 	}
+
+	@Override
+	public List<ThumbsupBo> findThumbsupsByOwnerAndType(String ownerId, int type) {
+		return thumbsupDao.findThumbsupsByOwnerAndType(ownerId,type);
+	}
 }

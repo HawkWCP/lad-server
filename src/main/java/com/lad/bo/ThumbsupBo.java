@@ -13,8 +13,18 @@ import lombok.ToString;
 @SuppressWarnings("serial")
 public class ThumbsupBo extends BaseBo {
 
+	public static final int THUMBSUP_NOTE=1;
+	public static final int THUMBSUP_INFOR=2;
+	public static final int THUMBSUP_COMMENT=3;
+	public static final int THUMBSUP_DYNAMIC=4;
+	public static final int THUMBSUP_PARTY=5;
+	public static final int THUMBSUP_EXPOSE=6;
+	public static final int THUMBSUP_HOMEPAGE=7;
+	
 	private String homepage_id;
+	// 被访问对象id
 	private String owner_id;
+	// 访问者id
 	private String visitor_id;
 
 	// 点赞人的头像图片

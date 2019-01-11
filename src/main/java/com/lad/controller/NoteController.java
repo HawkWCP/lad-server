@@ -359,7 +359,7 @@ public class NoteController extends BaseContorller {
 		UserBo userBo = getUserLogin(request);
 		boolean isLogin = userBo != null;
 		String userid = isLogin ? "" : userBo.getId();
-		List<ThumbsupBo> thumbsupBos = thumbsupService.selectByOwnerIdPaged(page, limit, noteid, Constant.NOTE_TYPE);
+		List<ThumbsupBo> thumbsupBos = thumbsupService.selectByOwnerIdPaged(page, limit, noteid, ThumbsupBo.THUMBSUP_NOTE);
 		List<UserBaseVo> userVos = new LinkedList<>();
 		for (ThumbsupBo thumbsupBo : thumbsupBos) {
 			UserBaseVo baseVo = new UserBaseVo();
@@ -677,7 +677,7 @@ public class NoteController extends BaseContorller {
 		for (CommentBo commentBo : commentBos) {
 			CommentVo commentVo = comentBo2Vo(commentBo);
 			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(commentBo.getId(), userid);
-			commentVo.setMyThumbsup(thumbsupBo != null);
+			commentVo.setIsMyThumbsup(thumbsupBo != null);
 			commentVo.setThumpsubCount(commentBo.getThumpsubNum());
 			if (!StringUtils.isEmpty(commentBo.getParentid())) {
 				CommentBo parent = commentService.findById(commentBo.getParentid());
@@ -831,7 +831,8 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/get-note-thumbsups")
 	public String getNoteThumbsups(String noteid, int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
-		List<ThumbsupBo> thumbsupBos = thumbsupService.selectByOwnerIdPaged(page, limit, noteid, Constant.NOTE_TYPE);
+		// TODO
+		List<ThumbsupBo> thumbsupBos = thumbsupService.selectByOwnerIdPaged(page, limit, noteid, ThumbsupBo.THUMBSUP_NOTE);
 		List<UserThumbsupVo> userVos = new ArrayList<>();
 		UserBo userBo = getUserLogin(request);
 		boolean isLogin = userBo != null;

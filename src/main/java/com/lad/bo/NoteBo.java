@@ -1,7 +1,6 @@
 package com.lad.bo;
 
 import java.util.Date;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -26,12 +25,60 @@ public class NoteBo extends BaseBo {
 	// 从演出转发的帖子
 	public static final int SHOW_FORWARD = 3;
 
+	/*============================基本数据========================*/
+	// 标题
 	private String subject;
+	// 内容
 	private String content;
+	// 照片
 	private LinkedList<String> photos = new LinkedList<>();
+	// 地标
 	private String landmark;
+	// 坐标
 	private double[] position;
+	// 上传的文件类型
+	private String type;
+	// 视频缩略图
+	private String videoPic;
+	
+	/*============================操作数据========================*/
+	// 归属圈子id
 	private String circleId;
+	// 是否是精华帖,管理员或圈主有操作权限
+	private int essence;
+	// 是否制定,管理员或圈主有操作权限
+	private int top;
+	// 置顶时间
+	private Date topUpdateTime;
+	// 加精时间
+	private Date essUpdateTime;
+	// 是否同步个人动态
+	private boolean isAsync;
+
+	/*============================转发有关=========================*/
+	// 0 原创 ， 1转发
+	private int forward;
+	// 转发的原帖子id
+	private String sourceid;
+	// 帖子中@的用户
+	private LinkedList<String> atUsers;
+	// 帖子的类型,见本类常量
+	private int noteType;
+	// 资讯类型,如果noteType显示该帖子转发自资讯,则设置该字段
+	private int inforType;
+	// 来源资讯类型名称
+	private String inforTypeName;
+	// 演出来源类型,如果noteType显示该帖子转发自演出,则设置该字段
+	private int showType;
+	// 转发者
+	private String forwardUsers;
+	// 转发时的评论
+	private String view;
+	// 转发时间
+	private String createDate;
+
+	
+	/*=========================动态数据=========================*/
 	// 访问量
 	private long visitcount;
 	// 转发量
@@ -42,48 +89,6 @@ public class NoteBo extends BaseBo {
 	private long thumpsubcount;
 	// 点赞数
 	private long collectcount;
-
-	// 精华 管理员操作
-	private int essence;
-	// 置顶 管理员操作
-	private int top;
-
-	// 上传的文件类型，前端传值
-	private String type;
-
-	// 视频缩略图
-	private String videoPic;
-
 	// 热门数
 	private double temp;
-
-	// 是否同步个人动态
-	private boolean isAsync;
-
-	// 0 原创 ， 1转发
-	private int forward;
-	// 转发的原帖子id
-	private String sourceid;
-	// 帖子中@的用户
-	private LinkedList<String> atUsers;
-
-	// 0 表示帖子， 1表示资讯, 2.表示养老院, 3.表示招接演出
-	private int noteType;
-	// 资讯类型
-	private int inforType;
-	// 来源资讯类型名称
-	private String inforTypeName;
-	// 演出来源类型
-	private int showType;
-	private String forwardUsers;
-
-	// 转发 时 前面涉及的所有noteid
-	private LinkedHashSet<String> preNoteids;
-	// 转发时的评论
-	private String view;
-
-	// 发布日期
-	private String createDate;
-	private Date topUpdateTime;
-	private Date essUpdateTime;
 }

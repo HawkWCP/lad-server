@@ -38,4 +38,6 @@ public interface IThumbsupService  {
 
 
 	ThumbsupBo selectById(String thumbsupId);
+
+	public List<ThumbsupBo> findThumbsupsByOwnerAndType(String ownerId, int type);
 }

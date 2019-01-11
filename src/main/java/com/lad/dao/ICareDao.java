@@ -4,9 +4,10 @@ import java.util.Map;
 import java.util.Set;
 
 import com.lad.bo.CareAndPassBo;
+import com.lad.bo.CareBo;
 import com.mongodb.WriteResult;
 
-public interface CareAndPassDao {
+public interface ICareDao {
 
 
 	// 关注 - 找儿媳
@@ -43,6 +44,9 @@ public interface CareAndPassDao {
 	// 修改数据
 	WriteResult updateCare(String situation, String mainId, Map<String, Set<String>> careRoster);
 	WriteResult updatePass(String situation, String mainId, Set<String> passRoster);
+	CareBo findCareByUidAndOid(String uid, String oid, int type);
+	void updateCare(CareBo careBo);
+	CareBo insert(CareBo careBo);
 
 
 }

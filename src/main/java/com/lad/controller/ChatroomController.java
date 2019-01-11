@@ -42,7 +42,6 @@ import com.lad.bo.MsgLogBo;
 import com.lad.bo.PartyBo;
 import com.lad.bo.ReasonBo;
 import com.lad.bo.UserBo;
-import com.lad.service.IChatroomService;
 import com.lad.service.IFriendsService;
 import com.lad.service.IMsgLogService;
 import com.lad.service.IPartyService;
@@ -72,12 +71,11 @@ import net.sf.json.JSONObject;
 @RestController
 @RequestMapping("chatroom")
 @SuppressWarnings("all")
-public class ChatroomController extends BaseContorller {
+public class ChatroomController extends ExtraController {
 
 	private static Logger logger = LogManager.getLogger(ChatroomController.class);
 
-	@Autowired
-	private IChatroomService chatroomService;
+
 	@Autowired
 	private IUserService userService;
 
@@ -728,7 +726,7 @@ public class ChatroomController extends BaseContorller {
 				ChatroomVo vo = new ChatroomVo();
 				BeanUtils.copyProperties(temp, vo);
 				if (temp.getType() != 1) {
-					bo2vo(temp, vo);
+					chatroomBo2Vo(temp, vo);
 					vo.setUserNum(temp.getUsers().size());
 					vo.setShowNick(has && chatroomUserBo.isShowNick());
 				}
@@ -748,7 +746,7 @@ public class ChatroomController extends BaseContorller {
 				ChatroomVo vo = new ChatroomVo();
 				BeanUtils.copyProperties(temp, vo);
 				if (temp.getType() != 1) {
-					bo2vo(temp, vo);
+					chatroomBo2Vo(temp, vo);
 					vo.setUserNum(temp.getUsers().size());
 					vo.setShowNick(has && chatroomUserBo.isShowNick());
 				}
@@ -805,7 +803,7 @@ public class ChatroomController extends BaseContorller {
 				ChatroomVo vo = new ChatroomVo();
 				BeanUtils.copyProperties(chatroomBo, vo);
 				if (chatroomBo.getType() != 1) {
-					bo2vo(chatroomBo, vo);
+					chatroomBo2Vo(chatroomBo, vo);
 					vo.setUserNum(chatroomBo.getUsers().size());
 					vo.setShowNick(has && chatroomUserBo.isShowNick());
 				}
@@ -843,60 +841,6 @@ public class ChatroomController extends BaseContorller {
 		}
 	}
 
-	private void bo2vo(ChatroomBo chatroomBo, ChatroomVo vo) {
-		LinkedHashSet<ChatroomUserVo> userVos = vo.getUserVos();
-		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomBo.getId());
-		for (ChatroomUserBo chatroomUser : chatroomUserBos) {
-			String userid = chatroomUser.getUserid();
-			UserBo chatUser = userService.getUser(userid);
-			if (chatUser == null) {
-				chatroomService.deleteUser(chatroomUser.getId());
-				continue;
-			}
-			ChatroomUserVo userVo = new ChatroomUserVo();
-			userVo.setUserid(chatUser.getId());
-			userVo.setUserPic(chatUser.getHeadPictureName());
-			if (userid.equals(chatroomBo.getMaster())) {
-				userVo.setRole(2);
-			}
-			if (StringUtils.isNotEmpty(chatroomUser.getNickname())) {
-				userVo.setNickname(chatroomUser.getNickname());
-			} else {
-				userVo.setNickname(chatUser.getUserName());
-			}
-			userVos.add(userVo);
-		}
-	}
-
-	// 常用
-	private void chatroomBo2Vo(ChatroomBo chatroomBo, ChatroomVo chatroomVo) {
-		BeanUtils.copyProperties(chatroomBo, chatroomVo);
-		LinkedHashSet<ChatroomUserVo> userVos = chatroomVo.getUserVos();
-		List<ChatroomUserBo> chatroomUserBos = chatroomService.findByUserRoomid(chatroomBo.getId());
-		for (ChatroomUserBo chatroomUser : chatroomUserBos) {
-			String userid = chatroomUser.getUserid();
-			UserBo chatUser = userService.getUser(userid);
-			if (chatUser == null) {
-				chatroomService.deleteUser(chatroomUser.getId());
-				continue;
-			}
-			ChatroomUserVo userVo = new ChatroomUserVo();
-			userVo.setUserid(chatUser.getId());
-			userVo.setUserPic(chatUser.getHeadPictureName());
-			if (userid.equals(chatroomBo.getMaster())) {
-				userVo.setRole(2);
-			}
-			if (StringUtils.isNotEmpty(chatroomUser.getNickname())) {
-				userVo.setNickname(chatroomUser.getNickname());
-			} else {
-				userVo.setNickname(chatUser.getUserName());
-			}
-			userVos.add(userVo);
-		}
-		chatroomVo.setUserNum(userVos.size());
-		chatroomVo.setUserVos(userVos);
-	}
-
 	@ApiOperation("获取聊天室详情")
 	@PostMapping("/get-chatroom-info")
 	public String getChatroomInfo(@RequestParam String chatroomid, HttpServletRequest request,
@@ -927,7 +871,7 @@ public class ChatroomController extends BaseContorller {
 			}
 
 			if (temp.getType() != 1) {
-				bo2vo(temp, vo);
+				chatroomBo2Vo(temp, vo);
 				vo.setUserNum(temp.getUsers().size());
 				vo.setShowNick(chatroomUserBo.isShowNick());
 			} else {

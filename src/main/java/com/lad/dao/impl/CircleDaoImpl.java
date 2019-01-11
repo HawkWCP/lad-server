@@ -262,7 +262,6 @@ public class CircleDaoImpl implements ICircleDao {
 		Point point = new Point(position[0], position[1]);
 		Criteria criteria = Criteria.where("position").nearSphere(point).minDistance(minDistance / 6378137.0);
 		if (StringUtils.isNotEmpty(city)) {
-			Criteria cr = new Criteria();
 			Criteria pro = new Criteria("province").is(city);
 			Criteria ci = new Criteria("city").is(city);
 			Criteria dist = new Criteria("district").is(city);

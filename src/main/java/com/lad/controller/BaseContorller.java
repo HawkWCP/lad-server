@@ -29,6 +29,7 @@ import org.springframework.ui.ModelMap;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lad.bo.ChatroomUserBo;
+import com.lad.bo.CircleBo;
 import com.lad.bo.CircleHistoryBo;
 import com.lad.bo.CommentBo;
 import com.lad.bo.DynamicBo;
@@ -45,11 +46,14 @@ import com.lad.bo.RedstarBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
+import com.lad.service.ICareService;
 import com.lad.service.IChatroomService;
 import com.lad.service.ICircleService;
 import com.lad.service.ICommentService;
 import com.lad.service.IDynamicService;
 import com.lad.service.IExposeService;
+import com.lad.service.IFriendsService;
+import com.lad.service.IHomepageService;
 import com.lad.service.IInforRecomService;
 import com.lad.service.IInforService;
 import com.lad.service.ILocationService;
@@ -57,6 +61,7 @@ import com.lad.service.IMessageService;
 import com.lad.service.INoteService;
 import com.lad.service.IReadHistoryService;
 import com.lad.service.IReasonService;
+import com.lad.service.IRestHomeService;
 import com.lad.service.IThumbsupService;
 import com.lad.service.ITokenService;
 import com.lad.service.IUserService;
@@ -110,36 +115,59 @@ public abstract class BaseContorller {
 	protected IExposeService exposeService;
 	@Autowired
 	protected IUserService userService;
-	
+
 	@Autowired
 	protected ILocationService locationService;
- 
+
+	@Autowired
+	protected IFriendsService friendsService;
+
+	@Autowired
+	protected IChatroomService chatroomService;
+
+	@Autowired
+	protected IHomepageService homepageService;
+	@Autowired
+	protected IRestHomeService restHomeService;
+	
+	@Autowired
+	protected ICareService careService;
+	
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
 
 	private static final ExecutorService THREADPOOL = Executors.newFixedThreadPool(5);
-
 	
+	/**
+	 * 将转发相关功能整合于此
+	 * @param user	行为的发起者
+	 * @param obj	被转发对象
+	 * @param destination	目的地
+	 */
+	protected void forwardAsNote(UserBo user ,Object obj,CircleBo destination) {
+		
+	}
+
 	/**
 	 * 
 	 * @param user
 	 * @param obj
 	 * @return
 	 */
-	protected CommentBo comment(UserBo user,Object obj,String content,LinkedHashSet<String> photos) {
+	protected CommentBo comment(UserBo user, Object obj, String content, LinkedHashSet<String> photos) {
 		CommentBo comment = new CommentBo();
 
 		try {
-			if(user== null || obj == null) {
+			if (user == null || obj == null) {
 				throw new Exception();
 			}
 			JSONObject object = JSON.parseObject(JSON.toJSONString(obj));
 			String clazz = obj.getClass().getName();
 			saveComment(user, content, photos, comment, object, clazz);
-			
+
 			String objId = object.getString("id");
-			
-			if("com.lad.bo.NoteBo".equals(clazz)) {
+
+			if ("com.lad.bo.NoteBo".equals(clazz)) {
 				NoteBo noteBo = JSON.parseObject(JSON.toJSONString(object), NoteBo.class);
 
 				updateHistory(user.getId(), noteBo.getCircleId(), locationService, circleService);
@@ -155,103 +183,105 @@ public abstract class BaseContorller {
 
 				usePush(noteBo.getCreateuid(), pushTitle, content, path);
 
-				addMessage(messageService, path, pushContent, pushTitle, objId, 1, comment.getId(), noteBo.getCircleId(),
-						user.getId(), noteBo.getCreateuid());
+				addMessage(messageService, path, pushContent, pushTitle, objId, 1, comment.getId(),
+						noteBo.getCircleId(), user.getId(), noteBo.getCreateuid());
 
 			}
-			if("com.lad.bo.CommentBo".equals(clazz)) {
+			if ("com.lad.bo.CommentBo".equals(clazz)) {
 				String pushTitle = "互动通知";
 				CommentBo parent = commentService.findById(comment.getTargetid());
 				if (parent != null) {
 					String path = "/note/note-info.do?noteid=" + parent.getId();
 					String pushContent = "有人刚刚回复了你的评论，快去看看吧!";
 					usePush(parent.getCreateuid(), pushTitle, pushContent, path);
-					addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(), comment.getTargetid(),
-							user.getId(), comment.getCreateuid());
+					addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(),
+							comment.getTargetid(), user.getId(), comment.getCreateuid());
 				}
 			}
-			if("com.lad.bo.DynamicBo".equals(clazz)) {
+			if ("com.lad.bo.DynamicBo".equals(clazz)) {
 				String pushTitle = "互动通知";
 				DynamicBo parent = dynamicService.findDynamicById(comment.getTargetid());
 				String path = "/dynamic/dynamic-infor?dynamicId=" + parent.getId();
 				String pushContent = "有人刚刚回复了你的评论，快去看看吧!";
 				usePush(parent.getCreateuid(), pushTitle, pushContent, path);
-				addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(), comment.getTargetid(),
-						user.getId(), comment.getCreateuid());
+				addMessage(messageService, path, pushContent, pushTitle, objId, 1, parent.getId(),
+						comment.getTargetid(), user.getId(), comment.getCreateuid());
 			}
-		}catch(Exception e) {
+		} catch (Exception e) {
 			logger.error("add comment=====e:{}", e);
 		}
 
 		return comment;
 	}
-    /**
-     * 帖子阅读
-     * 更新红人信息
-     * @param userBo
-     * @param noteBo
-     * @param circleid
-     * @param currentDate
-     */
-    @Async
-    private void updateRedStar(UserBo userBo, NoteBo noteBo, String circleid, Date currentDate){
-        RedstarBo redstarBo = commentService.findRedstarBo(userBo.getId(), circleid);
-        int curretWeekNo = CommonUtil.getWeekOfYear(currentDate);
-        int year = CommonUtil.getYear(currentDate);
-        if (redstarBo == null) {
-            redstarBo = setRedstarBo(userBo.getId(), circleid, curretWeekNo, year);
-            commentService.insertRedstar(redstarBo);
-        }
-        //判断贴的作者是不是自己
-        boolean isNotSelf = !userBo.getId().equals(noteBo.getCreateuid());
-        boolean isNoteUserCurrWeek = true;
-        //如果帖子作者不是自己
-        if (isNotSelf) {
-            //帖子作者没有红人数据信息，则添加
-            RedstarBo noteRedstarBo = commentService.findRedstarBo(noteBo.getCreateuid(), circleid);
-            if (noteRedstarBo == null) {
-                noteRedstarBo = setRedstarBo(noteBo.getCreateuid(), circleid, curretWeekNo, year);
-                commentService.insertRedstar(noteRedstarBo);
-            } else {
-                //判断帖子作者周榜是不是当前周，是则添加数据，不是则更新周榜数据
-                isNoteUserCurrWeek = (year == noteRedstarBo.getYear() && curretWeekNo == noteRedstarBo.getWeekNo());
-            }
-        }
-        //判断自己周榜是不是同一周，是则添加数据，不是则更新周榜数据
-        boolean isCurrentWeek = (year == redstarBo.getYear() && curretWeekNo == redstarBo.getWeekNo());
-        //更新自己或他人红人评论数量，需要加锁，保证数据准确
-        RLock lock = redisServer.getRLock(Constant.COMOMENT_LOCK);
-        try {
-            lock.lock(5, TimeUnit.SECONDS);
-            //更新自己的红人信息
-            if (isCurrentWeek) {
-                commentService.addRadstarCount(userBo.getId(), circleid);
-            } else {
-                commentService.updateRedWeekByUser(userBo.getId(), curretWeekNo, year);
-            }
-            if (isNotSelf) {
-                //更新帖子作者的红人信息
-                if (isNoteUserCurrWeek) {
-                    commentService.addRadstarCount(noteBo.getCreateuid(), circleid);
-                } else {
-                    commentService.updateRedWeekByUser(noteBo.getCreateuid(), curretWeekNo, year);
-                }
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-    private RedstarBo setRedstarBo(String userid, String circleid, int weekNo, int year){
-        RedstarBo redstarBo = new RedstarBo();
-        redstarBo.setUserid(userid);
-        redstarBo.setCommentTotal((long) 1);
-        redstarBo.setCommentWeek((long) 1);
-        redstarBo.setWeekNo(weekNo);
-        redstarBo.setCircleid(circleid);
-        redstarBo.setYear(year);
-        return redstarBo;
-    }
-    
+
+	/**
+	 * 帖子阅读 更新红人信息
+	 * 
+	 * @param userBo
+	 * @param noteBo
+	 * @param circleid
+	 * @param currentDate
+	 */
+	@Async
+	private void updateRedStar(UserBo userBo, NoteBo noteBo, String circleid, Date currentDate) {
+		RedstarBo redstarBo = commentService.findRedstarBo(userBo.getId(), circleid);
+		int curretWeekNo = CommonUtil.getWeekOfYear(currentDate);
+		int year = CommonUtil.getYear(currentDate);
+		if (redstarBo == null) {
+			redstarBo = setRedstarBo(userBo.getId(), circleid, curretWeekNo, year);
+			commentService.insertRedstar(redstarBo);
+		}
+		// 判断贴的作者是不是自己
+		boolean isNotSelf = !userBo.getId().equals(noteBo.getCreateuid());
+		boolean isNoteUserCurrWeek = true;
+		// 如果帖子作者不是自己
+		if (isNotSelf) {
+			// 帖子作者没有红人数据信息，则添加
+			RedstarBo noteRedstarBo = commentService.findRedstarBo(noteBo.getCreateuid(), circleid);
+			if (noteRedstarBo == null) {
+				noteRedstarBo = setRedstarBo(noteBo.getCreateuid(), circleid, curretWeekNo, year);
+				commentService.insertRedstar(noteRedstarBo);
+			} else {
+				// 判断帖子作者周榜是不是当前周，是则添加数据，不是则更新周榜数据
+				isNoteUserCurrWeek = (year == noteRedstarBo.getYear() && curretWeekNo == noteRedstarBo.getWeekNo());
+			}
+		}
+		// 判断自己周榜是不是同一周，是则添加数据，不是则更新周榜数据
+		boolean isCurrentWeek = (year == redstarBo.getYear() && curretWeekNo == redstarBo.getWeekNo());
+		// 更新自己或他人红人评论数量，需要加锁，保证数据准确
+		RLock lock = redisServer.getRLock(Constant.COMOMENT_LOCK);
+		try {
+			lock.lock(5, TimeUnit.SECONDS);
+			// 更新自己的红人信息
+			if (isCurrentWeek) {
+				commentService.addRadstarCount(userBo.getId(), circleid);
+			} else {
+				commentService.updateRedWeekByUser(userBo.getId(), curretWeekNo, year);
+			}
+			if (isNotSelf) {
+				// 更新帖子作者的红人信息
+				if (isNoteUserCurrWeek) {
+					commentService.addRadstarCount(noteBo.getCreateuid(), circleid);
+				} else {
+					commentService.updateRedWeekByUser(noteBo.getCreateuid(), curretWeekNo, year);
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private RedstarBo setRedstarBo(String userid, String circleid, int weekNo, int year) {
+		RedstarBo redstarBo = new RedstarBo();
+		redstarBo.setUserid(userid);
+		redstarBo.setCommentTotal((long) 1);
+		redstarBo.setCommentWeek((long) 1);
+		redstarBo.setWeekNo(weekNo);
+		redstarBo.setCircleid(circleid);
+		redstarBo.setYear(year);
+		return redstarBo;
+	}
+
 	private void saveComment(UserBo user, String content, LinkedHashSet<String> photos, CommentBo comment,
 			JSONObject object, String clazz) {
 		comment.setVisitor_id(user.getId());
@@ -264,101 +294,45 @@ public abstract class BaseContorller {
 		comment.setCreateTime(new Date());
 		comment.setCreateuid(user.getId());
 		comment.setSourceId(object.getString("id"));
-		switch(clazz) {
-			case "com.lad.bo.NoteBo":					
-				comment.setTargetType(1);
-				break;
-			case "lad.scrapybo.InforBo":					
-				comment.setTargetType(2);
-				break;
-			case "lad.scrapybo.SecurityBo":					
-				comment.setTargetType(7);
-				break;
-			case "lad.scrapybo.BroadcastBo":					
-				comment.setTargetType(8);
-				break;
-			case "lad.scrapybo.VideoBo":					
-				comment.setTargetType(9);
-				break;
-			case "lad.scrapybo.DailynewsBo":					
-				comment.setTargetType(10);
-				break;
-			case "lad.scrapybo.YanglaoBo":					
-				comment.setTargetType(11);
-				break;
-			case "com.lad.bo.CommentBo":					
-				comment.setTargetType(3);
-				CommentBo commentBo = commentService.findById(object.getString("id"));
-				comment.setSourceId(commentBo.getSourceId());
-				break;
-			case "com.lad.bo.DynamicBo":					
-				comment.setTargetType(4);
-				break;
-			case "com.lad.bo.ExposeBo":					
-				comment.setTargetType(5);					
-				break;
-			case "com.lad.bo.PartyBo":					
-				comment.setTargetType(6);					
-				break;
+		switch (clazz) {
+		case "com.lad.bo.NoteBo":
+			comment.setTargetType(1);
+			break;
+		case "lad.scrapybo.InforBo":
+			comment.setTargetType(2);
+			break;
+		case "lad.scrapybo.SecurityBo":
+			comment.setTargetType(7);
+			break;
+		case "lad.scrapybo.BroadcastBo":
+			comment.setTargetType(8);
+			break;
+		case "lad.scrapybo.VideoBo":
+			comment.setTargetType(9);
+			break;
+		case "lad.scrapybo.DailynewsBo":
+			comment.setTargetType(10);
+			break;
+		case "lad.scrapybo.YanglaoBo":
+			comment.setTargetType(11);
+			break;
+		case "com.lad.bo.CommentBo":
+			comment.setTargetType(3);
+			CommentBo commentBo = commentService.findById(object.getString("id"));
+			comment.setSourceId(commentBo.getSourceId());
+			break;
+		case "com.lad.bo.DynamicBo":
+			comment.setTargetType(4);
+			break;
+		case "com.lad.bo.ExposeBo":
+			comment.setTargetType(5);
+			break;
+		case "com.lad.bo.PartyBo":
+			comment.setTargetType(6);
+			break;
 		}
 		commentService.insert(comment);
 	}
-
-/*	public String addComment(@RequestParam(required = true) String noteid,
-			@RequestParam(required = true) String countent, String parentid, HttpServletRequest request,
-			HttpServletResponse response) {
-		UserBo userBo;
-		try {
-			userBo = checkSession(request, userService);
-		} catch (MyException e) {
-			return e.getMessage();
-		}
-		NoteBo noteBo = noteService.selectById(noteid);
-		if (noteBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.NOTE_IS_NULL.getIndex(), ERRORCODE.NOTE_IS_NULL.getReason());
-		}
-		updateHistory(userBo.getId(), noteBo.getCircleId(), locationService, circleService);
-		Date currentDate = new Date();
-		CommentBo commentBo = new CommentBo();
-		commentBo.setNoteid(noteBo.getId());
-		commentBo.setParentid(parentid);
-		commentBo.setUserName(userBo.getUserName());
-		commentBo.setContent(countent);
-		commentBo.setType(Constant.NOTE_TYPE);
-		commentBo.setCreateuid(userBo.getId());
-		commentBo.setOwnerid(noteBo.getCreateuid());
-		commentBo.setCreateTime(currentDate);
-		commentService.insert(commentBo);
-
-		updateNoteCount(noteid, Constant.COMMENT_NUM, 1);
-		userService.addUserLevel(userBo.getId(), 1, Constant.LEVEL_COMMENT, 0);
-		updateCircleHot(circleService, redisServer, noteBo.getCircleId(), 1, Constant.CIRCLE_NOTE_COMMENT);
-		asyncController.updateRedStar(userBo, noteBo, noteBo.getCircleId(), currentDate);
-		asyncController.updateCircieUnReadNum(noteBo.getCreateuid(), noteBo.getCircleId());
-		String path = "/note/note-info.do?noteid=" + noteid;
-		String content = "有人刚刚评论了你的帖子，快去看看吧!";
-
-		usePush(noteBo.getCreateuid(), pushTitle, content, path);
-
-		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
-				userBo.getId(), noteBo.getCreateuid());
-		if (!StringUtils.isEmpty(parentid)) {
-			CommentBo comment = commentService.findById(parentid);
-			if (comment != null) {
-				asyncController.updateCircieUnReadNum(comment.getCreateuid(), noteBo.getCircleId());
-				content = "有人刚刚回复了你的评论，快去看看吧!";
-
-				usePush(comment.getCreateuid(), pushTitle, content, path);
-
-				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
-						userBo.getId(), noteBo.getCreateuid());
-			}
-		}
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("commentVo", comentBo2Vo(commentBo));
-		return JSONObject.fromObject(map).toString();
-	}*/
 
 	/**
 	 * 点赞或取消点赞
@@ -833,7 +807,7 @@ public abstract class BaseContorller {
 					@Override
 					public void run() {
 						try {
-							HuaWeiPushNcMsg.push(title, "华为推送:" + description, path, userTokens);
+							HuaWeiPushNcMsg.push(title,  description, path, userTokens);
 						} catch (IOException e) {
 							logger.error("BaseContorller====={}", e);
 						}
@@ -847,7 +821,7 @@ public abstract class BaseContorller {
 					@Override
 					public void run() {
 						try {
-							MiPushUtil.sendMessageToRegIds(title, message, "小米推送:" + description, path, userRegIds);
+							MiPushUtil.sendMessageToRegIds(title, message, description, path, userRegIds);
 						} catch (Exception e) {
 							logger.error("BaseContorller====={}", e);
 						}
@@ -861,7 +835,7 @@ public abstract class BaseContorller {
 				@Override
 				public void run() {
 					try {
-						MeizuPushUtil.pushMessageByAlias(title, "魅族推送:" + description, message, aliasList);
+						MeizuPushUtil.pushMessageByAlias(title, description, message, aliasList);
 					} catch (Exception e) {
 						logger.error("BaseContorller====={}", e);
 					}
@@ -872,7 +846,7 @@ public abstract class BaseContorller {
 				@Override
 				public void run() {
 					try {
-						VivoPushUtil.sendToMany(title, "vivo推送" + description, aliasList, message);
+						VivoPushUtil.sendToMany(title, description, aliasList, message);
 					} catch (Exception e) {
 						logger.error("BaseContorller====={}", e);
 					}

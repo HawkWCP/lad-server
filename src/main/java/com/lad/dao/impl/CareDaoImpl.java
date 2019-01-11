@@ -1,5 +1,6 @@
 package com.lad.dao.impl;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
@@ -12,13 +13,14 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import com.lad.bo.CareAndPassBo;
-import com.lad.dao.CareAndPassDao;
+import com.lad.bo.CareBo;
+import com.lad.dao.ICareDao;
 import com.lad.util.Constant;
 import com.mongodb.BasicDBObject;
 import com.mongodb.WriteResult;
 
 @Repository("careAndPassDao")
-public class CareAndPassDaoImpl implements CareAndPassDao {
+public class CareDaoImpl implements ICareDao {
 	
 	@Autowired
 	private MongoTemplate mongoTemplate;
@@ -182,11 +184,26 @@ public class CareAndPassDaoImpl implements CareAndPassDao {
 	}
 
 
+	@Override
+	public CareBo findCareByUidAndOid(String uid, String oid, int type) {
+		return mongoTemplate.findOne(new Query(Criteria.where("uid").is(uid).and("oid").is(oid).and("objType").is(type)), CareBo.class);
+	}
 
 
+	@Override
+	public void updateCare(CareBo careBo) {
+		Query query = new Query(Criteria.where("_id").is(careBo.getId()));
+		Update update = new Update();
+		update.set("deleted", 0);
+		update.set("careType", careBo.getCareType());
+		update.set("updateTime", new Date());
+		mongoTemplate.updateFirst(query, update, CareBo.class);
+	}
 
 
-
-
-	
+	@Override
+	public CareBo insert(CareBo careBo) {
+		mongoTemplate.insert(careBo);
+		return careBo;
+	}
 }

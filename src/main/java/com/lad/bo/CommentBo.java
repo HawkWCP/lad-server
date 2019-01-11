@@ -17,7 +17,9 @@ import lombok.ToString;
 @ToString
 @Getter
 public class CommentBo extends BaseBo {
+	// 评论者id
 	private String visitor_id;
+	// 评论者name
 	private String userName;
 	private String headPicture;
 	// 被评论内容的创建者id

@@ -18,8 +18,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -30,21 +28,17 @@ import com.alibaba.fastjson.JSON;
 import com.lad.bo.CommentBo;
 import com.lad.bo.DynamicBackBo;
 import com.lad.bo.DynamicBo;
-import com.lad.bo.FriendsBo;
 import com.lad.bo.HomepageBo;
 import com.lad.bo.UserBo;
 import com.lad.bo.UserVisitBo;
 import com.lad.constants.UserCenterConstants;
-import com.lad.service.IFriendsService;
-import com.lad.service.IHomepageService;
-import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.MyException;
-import com.lad.vo.CommentVo;
 import com.lad.vo.DynamicVo;
 import com.lad.vo.UserBaseVo;
+import com.mongodb.WriteResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -58,26 +52,45 @@ import net.sf.json.JSONObject;
 @Api("动态信息相关接口")
 @RestController
 @RequestMapping("/dynamic")
-public class DynamicController extends BaseContorller {
+public class DynamicController extends ExtraController {
 
-	private static final Logger logger = LogManager.getLogger(DynamicController.class);
-
-	@Autowired
-	private IUserService userService;
-
-	@Autowired
-	private IFriendsService friendsService;
-
-	@Autowired
-	private IHomepageService homepageService;
-
-
+	private Logger logger = LogManager.getLogger(DynamicController.class);
 	private String pushTitle = "动态通知";
 
 	
+	@ApiOperation("对动态或动态下的评论进行评论")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "dynamicId", value = "动态或评论id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "type", value = "评论类型,0表示评论动态,1表示评论评论", paramType = "query", required = true, dataType = "integer"),
+			@ApiImplicitParam(name = "content", value = "评论类容", required = true, paramType = "query", dataType = "string")
+			})
+	@PostMapping("dynamic-delete")
+	public String dynamicDel(String dynamicId,HttpServletRequest request,HttpServletResponse response) {
+		Map<String,Object> map =new  HashMap<>();
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		DynamicBo dynamicBo = dynamicService.findDynamicById(dynamicId);
+		
+		if(!userBo.getId().equals(dynamicBo.getCreateuid())) {
+			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_MASTER_NULL.getIndex(),
+							ERRORCODE.CIRCLE_MASTER_NULL.getReason());
+		}
+		dynamicService.deleteDynamic(dynamicId);
+		map.put("ret", 0);
+		return JSONObject.fromObject(map).toString();
+	}
 	
+	@ApiOperation("对动态或动态下的评论进行评论")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "dynamicId", value = "动态或评论id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "type", value = "评论类型,0表示评论动态,1表示评论评论", paramType = "query", required = true, dataType = "integer"),
+			@ApiImplicitParam(name = "content", value = "评论类容", required = true, paramType = "query", dataType = "string")
+			})
 	@PostMapping("dynamic-comment")
-	public String dynamiccomment(String dynamicId,int type,String content,LinkedHashSet<String> photos,HttpServletRequest request,HttpServletResponse response) {
+	public String dynamiccomment(String dynamicId,int type,String content,HttpServletRequest request,HttpServletResponse response) {
 		Map<String,Object> map =new  HashMap<>();
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
@@ -85,27 +98,33 @@ public class DynamicController extends BaseContorller {
 					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
 		}
 		CommentBo comment = null;
+		// 生存着的意义:一开始是说有图片评论,所以放在整个方法的参数区,并且调用的私有方法已经写好了,后来又说没有图片,就设置一个变量闲置防止报错
+		LinkedHashSet<String> photos = new LinkedHashSet<String>();
 		// type:0 动态;1 评论
 		if(type == 0) {			
 			DynamicBo dynamicBo = dynamicService.findDynamicById(dynamicId);
+			if(dynamicBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.COMMENT_OBJ_NULL.getIndex(),
+						ERRORCODE.COMMENT_OBJ_NULL.getReason());
+			}
 			comment = comment(userBo, dynamicBo, content, photos);
 		}else if(type == 1){
 			CommentBo commentBo = commentService.findById(dynamicId);
+			if(commentBo == null) {
+				return CommonUtil.toErrorResult(ERRORCODE.COMMENT_OBJ_NULL.getIndex(),
+						ERRORCODE.COMMENT_OBJ_NULL.getReason());
+			}
 			comment = comment(userBo, commentBo, content, photos);
 		}
 		map.put("ret", 0);
 		map.put("result", comentBo2Vo(comment));
-		return JSON.toJSONString(map);
+		return JSONObject.fromObject(map).toString();
 	}
 	
-	
-	private CommentVo comentBo2Vo(CommentBo commentBo) {
-		CommentVo commentVo = new CommentVo();
-		BeanUtils.copyProperties(commentBo, commentVo);
-		commentVo.setCommentId(commentBo.getId());
-		commentVo.setUserid(commentBo.getCreateuid());
-		return commentVo;
-	}
+	@ApiOperation("动态点赞")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "dynamicId", value = "动态id", required = true, paramType = "query", dataType = "string"),
+			@ApiImplicitParam(name = "isThumbsup", value = "点赞:true,取消点赞:false", paramType = "query", required = true)})
 	@PostMapping("/thuumbsup")
 	public String thumbsup(String dynamicId, boolean isThumbsup, HttpServletRequest request,
 			HttpServletResponse response) {
@@ -133,8 +152,6 @@ public class DynamicController extends BaseContorller {
 		return result;
 	}
 
-
-	
 	@ApiOperation("动态详情")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "dynamicId", value = "动态id", required = true, paramType = "query", dataType = "string") })
@@ -152,30 +169,19 @@ public class DynamicController extends BaseContorller {
 
 			DynamicBo dynamicBo = dynamicService.findDynamicById(dynamicId);
 			DynamicVo dynamicVo = new DynamicVo();
-			bo2vo(dynamicBo, dynamicVo, userBo);
-
-			//	TODO
-			List<CommentBo> bos = commentService.findCommentsBySourceId(dynamicBo.getId());
-
+			dynamicBo2vo(dynamicBo, dynamicVo, userBo);
+			
 			map.put("ret", 0);
 			map.put("result", dynamicVo);
-			map.put("comments", bos);
 		} catch (Exception e) {
 			logger.error("@PostMapping(value = \"/dynamic-infor\") throw exception:{}", e);
 			map.put("ret", -1);
 			map.put("message", e.getMessage());
 		}
 
-		return JSON.toJSONString(map);
+		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 看过我动态的人数
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("看过我动态的人数")
 	@RequestMapping(value = "/new-visitors-count", method = { RequestMethod.GET, RequestMethod.POST })
 	public String visitMyDynamicsNum(HttpServletRequest request, HttpServletResponse response) {
@@ -217,13 +223,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 设置隐身访问
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("设置访问不隐身")
 	@RequestMapping(value = "/set-not-hide", method = { RequestMethod.GET, RequestMethod.POST })
 	public String setNotHide(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -249,13 +248,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 设置隐身访问
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("设置隐身访问")
 	@RequestMapping(value = "/set-hide-me", method = { RequestMethod.GET, RequestMethod.POST })
 	public String setHideMe(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -279,13 +271,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 设置用户访问为通知
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("设置用户访问为通知")
 	@RequestMapping(value = "/set-allow-push", method = { RequestMethod.GET, RequestMethod.POST })
 	public String setAllowPush(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -311,13 +296,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 设置用户访问不通知
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("设置用户访问不通知")
 	@RequestMapping(value = "/set-not-push", method = { RequestMethod.GET, RequestMethod.POST })
 	public String setNotPush(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -341,13 +319,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 删除来访记录
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("删除来访记录(谁看过我)")
 	@RequestMapping(value = "/delete-vzt2me-history", method = { RequestMethod.GET, RequestMethod.POST })
 	public String deleteVisit2Me(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -364,13 +335,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 删除来访记录
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("删除来访记录(我看过谁)")
 	@RequestMapping(value = "/delete-i2vzt-history", method = { RequestMethod.GET, RequestMethod.POST })
 	public String deleteMe2Visit(String uid, HttpServletRequest request, HttpServletResponse response) {
@@ -387,97 +351,9 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 添加动态
-	 * 
-	 * @param px
-	 * @param py
-	 * @param title
-	 * @param content
-	 * @param landmark
-	 * @param pictures
-	 * @param type
-	 * @param request
-	 * @param response
-	 * @return
-	 */
-	private String insert(double px, double py, String title, String content, String landmark, MultipartFile[] pictures,
-			String type, LinkedHashSet<String> atIds, boolean ishide, HttpServletRequest request,
-			HttpServletResponse response) {
-		UserBo userBo;
-		try {
-			userBo = checkSession(request, userService);
-		} catch (MyException e) {
-			return e.getMessage();
-		}
-		logger.info(
-				"@RequestMapping(value = \"/insert\")=====user:{}({}),position:[{},{}],title:{},content:{},landmark:{},type:{},atIds:{}",
-				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type,JSON.toJSONString(atIds));
-		String userId = userBo.getId();
-		DynamicBo dynamicBo = new DynamicBo();
-
-		dynamicBo.setTitle(title == null ? "动态未命名" : title);
-		dynamicBo.setContent(content);
-		dynamicBo.setCreateuid(userId);
-
-		dynamicBo.setLandmark(landmark);
-		dynamicBo.setPostion(new double[] { px, py });
-		dynamicBo.setAtIds(atIds);
-
-		if (pictures != null) {
-			LinkedHashSet<String> images = dynamicBo.getPhotos();
-			for (MultipartFile file : pictures) {
-				Long time = Calendar.getInstance().getTimeInMillis();
-				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
-				if ("video".equals(type)) {
-					// 0 是video 的路径， 1 是缩略图路径
-					String[] paths = CommonUtil.uploadVedio(file, Constant.DYNAMIC_PICTURE_PATH, fileName, 0);
-					// images.add(paths[0]);
-					dynamicBo.setVideo(paths[0]);
-					dynamicBo.setVideoPic(paths[1]);
-				} else {
-					String path = CommonUtil.upload(file, Constant.DYNAMIC_PICTURE_PATH, fileName, 0);
-					images.add(path);
-				}
-			}
-			dynamicBo.setPhotos(images);
-		}
-
-		if (ishide) {
-			dynamicBo.setAccess_level(UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE);
-		}
-		dynamicService.addDynamic(dynamicBo);
-
-		List<String> pushIds = atIds.stream()
-				.filter(atid -> !homepageService.selectByUserId(atid).getNot_push_set().contains(userId))
-				.collect(Collectors.toList());
-		String path = new String("/dynamic/dynamic_info?dynamicId=" + dynamicBo.getId());
-		String pushContent = String.format("“%s”在Ta的个人动态中@了你，快去看看吧！", userBo.getUserName());
-		usePush(pushIds, pushTitle, pushContent, path);
-		updateDynamicNums(userId, 1, dynamicService, redisServer);
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("dynamicid", dynamicBo.getId());
-		return JSONObject.fromObject(map).toString();
-	}
-
-	/**
-	 * 添加动态
-	 * 
-	 * @param px
-	 * @param py
-	 * @param content
-	 * @param landmark
-	 * @param pictures
-	 * @param type
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("添加动态信息")
 	@PostMapping(value = "/insert")
 	public String insert(String paramString, MultipartFile[] pictures, HttpServletRequest request, HttpServletResponse response) {
-		// {"px":114.15455,"py":30.6575,"content":"内容","landmark":"地标","type":"picture类型","ishide":false}
 		logger.info("@PostMapping(value = \"/insert\")=====json:{}", paramString);
 		com.alibaba.fastjson.JSONObject jsonObject = JSON.parseObject(paramString);
 		double px = jsonObject.getDouble("px");
@@ -490,18 +366,10 @@ public class DynamicController extends BaseContorller {
 		LinkedHashSet<String> atIds = new LinkedHashSet<>(list);
 		return insert(px, py, null, content, landmark, pictures, type, atIds, ishide, request, response);
 	}
-
-	/**
-	 * 所有好友动态列表
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
+	
 	@ApiOperation("所有好友动态列表")
 	@RequestMapping(value = "/all-dynamics", method = { RequestMethod.GET, RequestMethod.POST })
 	public String allDynamics(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
-
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -514,7 +382,7 @@ public class DynamicController extends BaseContorller {
 		friends.add(userBo.getId());
 		List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
-		bo2vo(msgBos, dynamicVos, userBo);
+		dynamicBo2vo(msgBos, dynamicVos, userBo);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicVos", dynamicVos);
@@ -524,13 +392,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 获取所有好友动态数量
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("获取所有好友动态数量")
 	@RequestMapping(value = "/all-dynamics-num", method = { RequestMethod.GET, RequestMethod.POST })
 	public String allFriendsNum(HttpServletRequest request, HttpServletResponse response) {
@@ -566,13 +427,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 好友动态列表
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("好友动态列表")
 	@RequestMapping(value = "/friend-dynamics", method = { RequestMethod.GET, RequestMethod.POST })
 	public String allDynamics(String friendid, int page, int limit, HttpServletRequest request,
@@ -592,7 +446,7 @@ public class DynamicController extends BaseContorller {
 		addVisitHis(userBo.getId(), friendid);
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(friendid, page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
-		bo2vo(msgBos, dynamicVos, userBo);
+		dynamicBo2vo(msgBos, dynamicVos, userBo);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicVos", dynamicVos);
@@ -602,13 +456,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 获取好友动态数量
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation(" 获取好友动态数量")
 	@RequestMapping(value = "/one-dynamics-num", method = { RequestMethod.GET, RequestMethod.POST })
 	public String friendsNum(String friendid, HttpServletRequest request, HttpServletResponse response) {
@@ -640,13 +487,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 我的动态
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("我的动态")
 	@RequestMapping(value = "/my-dynamics", method = { RequestMethod.GET, RequestMethod.POST })
 	public String myDynamics(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
@@ -659,7 +499,7 @@ public class DynamicController extends BaseContorller {
 				userBo.getUserName(), userBo.getId(), page, limit);
 		List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(userBo.getId(), page, limit);
 		List<DynamicVo> dynamicVos = new ArrayList<>();
-		bo2vo(msgBos, dynamicVos, userBo);
+		dynamicBo2vo(msgBos, dynamicVos, userBo);
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
 		map.put("dynamicVos", dynamicVos);
@@ -689,13 +529,6 @@ public class DynamicController extends BaseContorller {
 		return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
 	}
 
-	/**
-	 * 我的动态数量
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("我的动态数量")
 	@RequestMapping(value = "/my-dynamics-num", method = { RequestMethod.GET, RequestMethod.POST })
 	public String myDynamicsNum(HttpServletRequest request, HttpServletResponse response) {
@@ -714,12 +547,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 *
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("不看他的动态")
 	@RequestMapping(value = "/dynamic-not-see", method = { RequestMethod.GET, RequestMethod.POST })
 	public String notSee(String friendid, HttpServletRequest request, HttpServletResponse response) {
@@ -746,13 +573,6 @@ public class DynamicController extends BaseContorller {
 		return Constant.COM_RESP;
 	}
 
-	/**
-	 * 谁看过我的动态
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("谁看过我的动态")
 	@RequestMapping(value = "/visit-my-dynamic", method = { RequestMethod.GET, RequestMethod.POST })
 	public String visitMyDynamics(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
@@ -812,13 +632,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 我看过谁的动态
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("我看过谁的动态")
 	@RequestMapping(value = "/my-visit-dynamic", method = { RequestMethod.GET, RequestMethod.POST })
 	public String myVisitDynamics(int page, int limit, HttpServletRequest request, HttpServletResponse response) {
@@ -866,13 +679,6 @@ public class DynamicController extends BaseContorller {
 		return JSONObject.fromObject(map).toString();
 	}
 
-	/**
-	 * 我的动态
-	 * 
-	 * @param request
-	 * @param response
-	 * @return
-	 */
 	@ApiOperation("更新动态背景图片")
 	@RequestMapping(value = "/update-backpic", method = { RequestMethod.GET, RequestMethod.POST })
 	public String updateDynamicsPic(MultipartFile backPic, HttpServletRequest request, HttpServletResponse response) {
@@ -913,131 +719,79 @@ public class DynamicController extends BaseContorller {
 		}
 		userService.addUserVisit(visitBo);
 	}
-
-	// 新建重载方法,对单个实体进行移植
-	private void bo2vo(DynamicBo msgBo, DynamicVo dynamicVo, UserBo userBo) {
-		if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
-			System.out.println("动态为私有");
-			return;
+	
+	/**
+	 * 添加动态
+	 * 
+	 * @param px
+	 * @param py
+	 * @param title
+	 * @param content
+	 * @param landmark
+	 * @param pictures
+	 * @param type
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	private String insert(double px, double py, String title, String content, String landmark, MultipartFile[] pictures,
+			String type, LinkedHashSet<String> atIds, boolean ishide, HttpServletRequest request,
+			HttpServletResponse response) {
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
 		}
-		if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_PART) {
-			System.out.println("只对部分人开放");
-			LinkedHashSet<String> access_allow_set = msgBo.getAccess_allow_set();
-			if (!access_allow_set.contains(userBo.getId())) {
-				return;
-			}
-		}
-		BeanUtils.copyProperties(msgBo, dynamicVo);
+		logger.info(
+				"private insert=====user:{}({}),position:[{},{}],title:{},content:{},landmark:{},type:{},atIds:{}",
+				userBo.getUserName(), userBo.getId(), px, py, title, content, landmark, type,JSON.toJSONString(atIds));
+		String userId = userBo.getId();
+		DynamicBo dynamicBo = new DynamicBo();
 
-		if (!userBo.getId().equals(msgBo.getCreateuid())) {
-			// 如果该条动态不是自己创建的
-			UserBo user = userService.getUser(msgBo.getCreateuid());
-			dynamicVo.setUserPic(user.getHeadPictureName());
-			dynamicVo.setUserid(msgBo.getCreateuid());
-			FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), msgBo.getCreateuid());
-			if (friendsBo != null && !StringUtils.isEmpty(friendsBo.getBackname())) {
-				dynamicVo.setUserName(friendsBo.getBackname());
-			} else {
-				dynamicVo.setUserName(user.getUserName());
-			}
-		} else {
-			dynamicVo.setUserPic(userBo.getHeadPictureName());
-			dynamicVo.setUserid(userBo.getId());
-			dynamicVo.setUserName(userBo.getUserName());
-		}
+		dynamicBo.setTitle(title == null ? "动态未命名" : title);
+		dynamicBo.setContent(content);
+		dynamicBo.setCreateuid(userId);
 
-		
-		LinkedHashSet<String> atIds = msgBo.getAtIds();
-		if(atIds!=null) {
-			List<UserBo> atUsers = userService.findUserByIds(new ArrayList<>(atIds));
-			ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
-			dynamicVo.setAtUsers(userVos);
-		}
-		dynamicVo.setTime(msgBo.getCreateTime());
-		dynamicVo.setIsMyThumbsup(
-				thumbsupService.findHaveOwenidAndVisitorid(msgBo.getSourceId(), userBo.getId()) != null);
+		dynamicBo.setLandmark(landmark);
+		dynamicBo.setPostion(new double[] { px, py });
+		dynamicBo.setAtIds(atIds);
 
-		LinkedHashSet<String> unReadFrend = msgBo.getUnReadFrend();
-		if (unReadFrend != null && unReadFrend.contains(userBo.getId())) {
-			unReadFrend.remove(userBo.getId());
-			dynamicService.updateUnReadSet(msgBo.getId(), unReadFrend);
-			dynamicVo.setNeww(true);
-		}
-	}
-
-
-	private ArrayList<UserBaseVo> userBo2Vo(UserBo userBo, List<UserBo> atUsers) {
-		ArrayList<UserBaseVo> userVos = new ArrayList<>();
-		for (UserBo user : atUsers) {
-			UserBaseVo userVo = new UserBaseVo();
-			BeanUtils.copyProperties(user, userVo);
-			FriendsBo friend = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(), user.getId());
-			userVo.setBackName(user.getUserName());
-			if(friend!=null) {
-				String backname = friend.getBackname();
-				if(backname!=null) {
-					userVo.setBackName(friend.getBackname());
-				}
-			}
-			userVos.add(userVo);
-		}
-		return userVos;
-	}
-
-	private void bo2vo(List<DynamicBo> msgBos, List<DynamicVo> dynamicVos, UserBo userBo) {
-		// userBo 动态的浏览者
-		for (DynamicBo msgBo : msgBos) {
-			if (!msgBo.getCreateuid().equals(userBo.getId())&& msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
-				continue;
-			}
-			if (!msgBo.getCreateuid().equals(userBo.getId())&& msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_PART) {
-				LinkedHashSet<String> access_allow_set = msgBo.getAccess_allow_set();
-				if (!access_allow_set.contains(userBo.getId())) {
-					continue;
-				}
-			}
-			DynamicVo dynamicVo = new DynamicVo();
-			BeanUtils.copyProperties(msgBo, dynamicVo);
-
-			if (!userBo.getId().equals(msgBo.getCreateuid())) {
-				// 如果该条动态不是自己创建的
-				UserBo user = userService.getUser(msgBo.getCreateuid());
-				dynamicVo.setUserPic(user.getHeadPictureName());
-				dynamicVo.setUserid(msgBo.getCreateuid());
-				FriendsBo friendsBo = friendsService.getFriendByIdAndVisitorIdAgree(userBo.getId(),
-						msgBo.getCreateuid());
-				if (friendsBo != null && !StringUtils.isEmpty(friendsBo.getBackname())) {
-					dynamicVo.setUserName(friendsBo.getBackname());
+		if (pictures != null) {
+			dynamicBo.setFileType(type);
+			LinkedHashSet<String> images = dynamicBo.getPhotos();
+			for (MultipartFile file : pictures) {
+				Long time = Calendar.getInstance().getTimeInMillis();
+				String fileName = String.format("%s-%d-%s", userId, time, file.getOriginalFilename());
+				if ("video".equals(type)) {
+					// 0 是video 的路径， 1 是缩略图路径
+					String[] paths = CommonUtil.uploadVedio(file, Constant.DYNAMIC_PICTURE_PATH, fileName, 0);
+					// images.add(paths[0]);
+					dynamicBo.setVideo(paths[0]);
+					dynamicBo.setVideoPic(paths[1]);
 				} else {
-					dynamicVo.setUserName(user.getUserName());
+					String path = CommonUtil.upload(file, Constant.DYNAMIC_PICTURE_PATH, fileName, 0);
+					images.add(path);
 				}
-			} else {
-				dynamicVo.setUserPic(userBo.getHeadPictureName());
-				dynamicVo.setUserid(userBo.getId());
-				dynamicVo.setUserName(userBo.getUserName());
 			}
-
-			dynamicVo.setTime(msgBo.getCreateTime());
-			dynamicVo.setIsMyThumbsup(
-					thumbsupService.findHaveOwenidAndVisitorid(msgBo.getSourceId(), userBo.getId()) != null);
-			// 获取@user
-			LinkedHashSet<String> atIds = msgBo.getAtIds();
-			
-			System.out.println(atIds);
-			
-			if(atIds!=null) {
-				List<UserBo> atUsers = userService.findUserByIds(new ArrayList<>(atIds));
-				ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
-				dynamicVo.setAtUsers(userVos);
-			}
-			LinkedHashSet<String> unReadFrend = msgBo.getUnReadFrend();
-			if (unReadFrend != null && unReadFrend.contains(userBo.getId())) {
-				unReadFrend.remove(userBo.getId());
-				dynamicService.updateUnReadSet(msgBo.getId(), unReadFrend);
-				dynamicVo.setNeww(true);
-			}
-			dynamicVos.add(dynamicVo);
+			dynamicBo.setPhotos(images);
 		}
-	}
 
+		if (ishide) {
+			dynamicBo.setAccess_level(UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE);
+		}
+		dynamicService.addDynamic(dynamicBo);
+
+		List<String> pushIds = atIds.stream()
+				.filter(atid -> !homepageService.selectByUserId(atid).getNot_push_set().contains(userId))
+				.collect(Collectors.toList());
+		String path = new String("/dynamic/dynamic_info?dynamicId=" + dynamicBo.getId());
+		String pushContent = String.format("“%s”在Ta的个人动态中@了你，快去看看吧！", userBo.getUserName());
+		usePush(pushIds, pushTitle, pushContent, path);
+		updateDynamicNums(userId, 1, dynamicService, redisServer);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("dynamicid", dynamicBo.getId());
+		return JSONObject.fromObject(map).toString();
+	}
 }
