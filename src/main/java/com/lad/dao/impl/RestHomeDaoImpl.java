@@ -79,11 +79,11 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	public WriteResult updateHomeById(String id, Map<String, Object> params) {
 		Query query = new Query(Criteria.where("_id").is(id).and("deleted").is(0));
 		Update update = new Update();
-		if(params.size()>0) {
-		for (Entry<String, Object> entry : params.entrySet()) {
-			update.set(entry.getKey(), entry.getValue());
-		}
-		}else {
+		if (params.size() > 0) {
+			for (Entry<String, Object> entry : params.entrySet()) {
+				update.set(entry.getKey(), entry.getValue());
+			}
+		} else {
 			update.set("_class", "com.lad.bo.RestHomeBo");
 		}
 		return mongoTemplate.updateFirst(query, update, RestHomeBo.class);
@@ -93,11 +93,11 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 	public WriteResult updatePeopleById(String id, Map<String, Object> params) {
 		Query query = new Query(Criteria.where("_id").is(id).and("deleted").is(0));
 		Update update = new Update();
-		if(params.size()>0) {
+		if (params.size() > 0) {
 			for (Entry<String, Object> entry : params.entrySet()) {
 				update.set(entry.getKey(), entry.getValue());
 			}
-		}else {
+		} else {
 			update.set("_class", "com.lad.bo.RetiredPeopleBo");
 		}
 
@@ -240,8 +240,6 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 			String wannaRegex = areaMap.get("wannaArea") + ".*";
 			String homeRegex = areaMap.get("homeArea") + ".*";
 
-
-			
 //			Criteria orCriteria = new Criteria();
 //			意向地址等于所在地址,并且接受异地;
 //			Criteria acceptTrueAndWannaTrue = Criteria.where("area").regex(wannaRegex).and("acceptOtherArea").is(true);
@@ -253,9 +251,9 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 //			orCriteria.orOperator(acceptTrueAndWannaTrue, acceptFalseAndHomeTrue);
 //
 //			Criteria criteria = Criteria.where("deleted").is(0).andOperator(orCriteria);
-			
+
 			Criteria criteria = Criteria.where("area").regex(wannaRegex).and("deleted").is(0);
-			if(!wannaRegex.equals(homeRegex)) {
+			if (!wannaRegex.equals(homeRegex)) {
 				criteria.and("acceptOtherArea").is(true);
 			}
 			if (StringUtils.isNotEmpty(id)) {
@@ -318,13 +316,13 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 
 	@Override
 	public void updateTransCount(String shareId, int num) {
-		Query query  = new Query(Criteria.where("_id").is(shareId).and("deleted").is(0));
+		Query query = new Query(Criteria.where("_id").is(shareId).and("deleted").is(0));
 		RestHomeBo findOne = mongoTemplate.findOne(query, RestHomeBo.class);
 		Update update = new Update();
-		if(findOne!=null) {
-			if(findOne.getShareCount()!=0) {
-				update.set("shareCount", findOne.getShareCount()+num);
-			}else {
+		if (findOne != null) {
+			if (findOne.getShareCount() != 0) {
+				update.set("shareCount", findOne.getShareCount() + num);
+			} else {
 				update.set("shareCount", num);
 			}
 		}
@@ -334,15 +332,15 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 
 	@Override
 	public void updateHomeHot(String homeId, int num, int type) {
-		Query query  = new Query(Criteria.where("_id").is(homeId).and("deleted").is(0));
+		Query query = new Query(Criteria.where("_id").is(homeId).and("deleted").is(0));
 		RestHomeBo findOne = mongoTemplate.findOne(query, RestHomeBo.class);
 		Update update = new Update();
-		if(findOne!=null) {
-			switch(type) {
+		if (findOne != null) {
+			switch (type) {
 			case Constant.HOME_SHARE:
-				if(findOne.getShareCount()!=0) {
-					update.set("homeHot", findOne.getShareCount()+num);
-				}else {
+				if (findOne.getShareCount() != 0) {
+					update.set("homeHot", findOne.getShareCount() + num);
+				} else {
 					update.set("homeHot", num);
 				}
 				break;
@@ -352,5 +350,18 @@ public class RestHomeDaoImpl implements IRestHomeDao {
 
 		}
 		mongoTemplate.updateFirst(query, update, RestHomeBo.class);
+	}
+
+	@Override
+	public int findPublishHomeNum(String uid) {
+		return (int) mongoTemplate.count(
+				new Query(Criteria.where("deleted").is(Constant.ACTIVITY).and("createuid").is(uid)), RestHomeBo.class);
+	}
+
+	@Override
+	public int findPublishPeopleNum(String uid) {
+		return (int) mongoTemplate.count(
+				new Query(Criteria.where("deleted").is(Constant.ACTIVITY).and("createuid").is(uid)),
+				RetiredPeopleBo.class);
 	}
 }

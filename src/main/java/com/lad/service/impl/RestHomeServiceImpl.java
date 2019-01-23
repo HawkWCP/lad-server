@@ -146,18 +146,29 @@ public class RestHomeServiceImpl extends BaseServiceImpl implements IRestHomeSer
 	}
 
 	@Override
-	public List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList, String price, int page, int limit) {
-		return restHomeDao.findPeopleListByPrice(uid, conditionList,price, page, limit);
+	public List<RetiredPeopleBo> findPeopleListByPrice(String uid, List<Map<String, Object>> conditionList,
+			String price, int page, int limit) {
+		return restHomeDao.findPeopleListByPrice(uid, conditionList, price, page, limit);
 	}
 
 	@Override
 	public void updateTransCount(String shareId, int num) {
-		restHomeDao.updateTransCount( shareId,  num);
+		restHomeDao.updateTransCount(shareId, num);
 	}
 
 	@Override
 	public void updateHomeHot(String homeId, int num, int type) {
-		restHomeDao.updateHomeHot( homeId,  num,  type);
+		restHomeDao.updateHomeHot(homeId, num, type);
+	}
+
+	@Override
+	public int findPublishHomeNum(String uid) {
+		return restHomeDao.findPublishHomeNum(uid);
+	}
+
+	@Override
+	public int findPublishPeopleNum(String uid) {
+		return restHomeDao.findPublishPeopleNum(uid);
 	}
 
 }

@@ -1109,23 +1109,23 @@ public class NoteController extends BaseContorller {
 		DynamicBo dynamicBo = new DynamicBo();
 		dynamicBo.setTitle(noteBo.getSubject());
 		dynamicBo.setView(view);
+		// String sourceId = noteBo.getForward()==1?noteBo.getSourceid():noteid;
 		dynamicBo.setSourceId(noteid);
 		dynamicBo.setCreateuid(userBo.getId());
 		dynamicBo.setOwner(noteBo.getCreateuid());
 		dynamicBo.setLandmark(landmark);
 		dynamicBo.setForward(GeneralContants.YES);
 		dynamicBo.setType(Constant.NOTE_TYPE);
-//		dynamicBo.setPicType(noteBo.getType());
 		if (noteBo.getType().equals("video")) {
 			dynamicBo.setVideoPic(noteBo.getVideoPic());
 			dynamicBo.setVideo(noteBo.getPhotos().getFirst());
 		} else {
 			dynamicBo.setPhotos(new LinkedHashSet<>(noteBo.getPhotos()));
 		}
+		//
 		CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
 		if (circleBo != null) {
 			dynamicBo.setSourceName(circleBo.getName());
-			dynamicBo.setSourceId(circleBo.getId());
 		}
 		dynamicBo.setCreateuid(userBo.getId());
 

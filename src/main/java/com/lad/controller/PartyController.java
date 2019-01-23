@@ -111,6 +111,8 @@ public class PartyController extends BaseContorller {
 
 	private String titlePush = "聚会通知";
 
+
+
 	@ApiOperation("创建发布聚会")
 	@PostMapping("/create")
 	public String create(@RequestParam String partyJson, MultipartFile backPic, MultipartFile[] photos,

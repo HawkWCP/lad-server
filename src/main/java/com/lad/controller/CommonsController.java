@@ -213,6 +213,11 @@ public class CommonsController extends BaseContorller {
 		map.put("showZhaoNum", showZhaoNum);
 		int showJieNum = showService.findPublishJieNum(userBo.getId());
 		map.put("showJieNum", showJieNum);
+		int restHomeNum = restHomeService.findPublishHomeNum(userBo.getId());
+		map.put("restHomeNum", restHomeNum);
+		int retiredPeopleNum = restHomeService.findPublishPeopleNum(userBo.getId());
+		map.put("retiredPeopleNum", retiredPeopleNum);
+
 		return JSONObject.fromObject(map).toString();
 	}
 

@@ -1,5 +1,7 @@
 package com.lad.service;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,8 +52,22 @@ public interface ICareService {
 	// 修改数据
 	WriteResult updateCare(String situation, String mainId, Map<String, Set<String>> careRoster);
 	WriteResult updatePass(String situation, String mainId, Set<String> passRoster);
+	
+	
+	/* =======================================以上的方法都需要在被整合,详情见CareAndPassBo类============================================== */
+	
+	/**
+	 * 查找一个关注
+	 * @param uid	主体id
+	 * @param oId	客体id
+	 * @param type	关注类型
+	 * @return
+	 */
+	CareBo findCareByUidAndOidIngoreDel(String uid, String oId, int type);
 	CareBo findCareByUidAndOid(String uid, String oId, int type);
 	void updateCare(CareBo careBo);
 	CareBo insert(CareBo careBo);
+	List<CareBo> findCareListByUidAndTye(String uid, int objType,int page,int limit);
+	WriteResult delCareListByUidAndTyeAndOids(String uid, int objType, List<String> Oids);
 	
 }

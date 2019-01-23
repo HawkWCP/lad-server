@@ -1,7 +1,6 @@
 package com.lad.dao;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import com.lad.bo.CareAndPassBo;
 import com.lad.bo.CareBo;
@@ -44,9 +43,12 @@ public interface ICareDao {
 	// 修改数据
 	WriteResult updateCare(String situation, String mainId, Map<String, Set<String>> careRoster);
 	WriteResult updatePass(String situation, String mainId, Set<String> passRoster);
+	CareBo findCareByUidAndOidIngoreDel(String uid, String oid, int type);
 	CareBo findCareByUidAndOid(String uid, String oid, int type);
 	void updateCare(CareBo careBo);
 	CareBo insert(CareBo careBo);
+	List<CareBo> findCareListByUidAndTye(String uid, int objType,int page,int limit);
+	WriteResult delCareListByUidAndTyeAndOids(String uid, int objType, List<String> oids);
 
 
 }

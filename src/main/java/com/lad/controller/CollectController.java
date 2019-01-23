@@ -317,42 +317,28 @@ public class CollectController extends BaseContorller {
 					}	
 				} else if(collectBo.getSub_type() == Constant.NOTE_TYPE) {
 					NoteBo noteBo = noteService.selectById(id);
-					if(noteBo.getForward() == 1) {
-						if(noteBo!=null) {
 
-							vo.setNoteForward(1);
-							int noteType = noteBo.getNoteType();
-							// TODO
-							// 从其他帖子转发的帖子
-//							public static final int NOTE_FORWARD = 0;
-							// 从资讯转发的帖子
-//							public static final int INFOR_FORWARD = 1;
-							// 从养老院转发的帖子
-//							public static final int REST_FORWARD = 2;
-							// 从演出转发的帖子
-//							public static final int SHOW_FORWARD = 3;
-							if(noteType == NoteBo.NOTE_FORWARD) {
-								vo.setNoteForwardType(NoteBo.NOTE_FORWARD);
-								noteBo = noteService.selectById(noteBo.getSourceid());
-								if("pic".equals(noteBo.getType())) {
-									vo.setNoteFileType(2);
-									vo.setCollectPic(noteBo.getPhotos().get(0));
-								}else if("video".equals(noteBo.getType())){
-									vo.setNoteFileType(3);
-									vo.setVideo(noteBo.getPhotos().get(0));
-									vo.setVideoPic(noteBo.getVideoPic());
-								}else if("notes".equals(noteBo.getType())) {
-									vo.setNoteFileType(1);
-								}
-							}else if(noteType == NoteBo.INFOR_FORWARD) {
-								vo.setNoteForwardType(NoteBo.INFOR_FORWARD);
-								String inforid = noteBo.getSourceid();
-								int inforType = noteBo.getInforType();
-								vo.setTargetid(inforid);
-								switch (inforType) {
+					if(noteBo == null){
+						continue;
+					}
+
+					if(noteBo.getForward() == 1) {
+						vo.setNoteForward(1);
+						int noteType = noteBo.getNoteType();
+
+						if(noteType == NoteBo.NOTE_FORWARD) {
+							vo.setNoteForwardType(NoteBo.NOTE_FORWARD);
+							noteBo = noteService.selectById(noteBo.getSourceid());
+							setNoteType(vo, noteBo);
+						}else if(noteType == NoteBo.INFOR_FORWARD) {
+							vo.setNoteForwardType(NoteBo.INFOR_FORWARD);
+							String inforid = noteBo.getSourceid();
+							int inforType = noteBo.getInforType();
+							vo.setTargetid(inforid);
+							switch (inforType) {
 								case Constant.INFOR_HEALTH:
 									InforBo inforBo = inforService.findById(inforid);
-									
+
 									if (inforBo != null) {
 										vo.setModule(inforBo.getModule());
 										vo.setClassName(inforBo.getClassName());
@@ -399,21 +385,11 @@ public class CollectController extends BaseContorller {
 									break;
 								default:
 									break;
-								}
 							}
 						}
 					}else{
 						vo.setNoteForward(0);
-						if("pic".equals(noteBo.getType())) {
-							vo.setNoteFileType(2);
-							vo.setCollectPic(noteBo.getPhotos().get(0));
-						}else if("video".equals(noteBo.getType())){
-							vo.setNoteFileType(3);
-							vo.setVideo(noteBo.getPhotos().get(0));
-							vo.setVideoPic(noteBo.getVideoPic());
-						}else if("notes".equals(noteBo.getType())) {
-							vo.setNoteFileType(1);
-						}
+						setNoteType(vo, noteBo);
 					}
 					
 				}else if (collectBo.getSub_type() == Constant.PARTY_TYPE) {
@@ -476,6 +452,19 @@ public class CollectController extends BaseContorller {
 			}
 			collectVos.add(vo);
 		}
+	}
+
+	private void setNoteType(CollectVo vo, NoteBo noteBo) {
+		if("pic".equals(noteBo.getType())) {
+            vo.setNoteFileType(2);
+            vo.setCollectPic(noteBo.getPhotos().get(0));
+        }else if("video".equals(noteBo.getType())){
+            vo.setNoteFileType(3);
+            vo.setVideo(noteBo.getPhotos().get(0));
+            vo.setVideoPic(noteBo.getVideoPic());
+        }else if("notes".equals(noteBo.getType())) {
+            vo.setNoteFileType(1);
+        }
 	}
 
 }

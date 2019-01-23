@@ -1,10 +1,10 @@
 package com.lad.dao.impl;
 
-import java.util.Date;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.BasicQuery;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -185,10 +185,14 @@ public class CareDaoImpl implements ICareDao {
 
 
 	@Override
-	public CareBo findCareByUidAndOid(String uid, String oid, int type) {
+	public CareBo findCareByUidAndOidIngoreDel(String uid, String oid, int type) {
 		return mongoTemplate.findOne(new Query(Criteria.where("uid").is(uid).and("oid").is(oid).and("objType").is(type)), CareBo.class);
 	}
 
+	@Override
+	public CareBo findCareByUidAndOid(String uid, String oid, int type) {
+		return mongoTemplate.findOne(new Query(Criteria.where("uid").is(uid).and("oid").is(oid).and("objType").is(type).and("deleted").is(Constant.ACTIVITY)), CareBo.class);
+	}
 
 	@Override
 	public void updateCare(CareBo careBo) {
@@ -205,5 +209,34 @@ public class CareDaoImpl implements ICareDao {
 	public CareBo insert(CareBo careBo) {
 		mongoTemplate.insert(careBo);
 		return careBo;
+	}
+
+
+	@Override
+	public List<CareBo> findCareListByUidAndTye(String uid, int objType,int page,int limit) {
+		Query query = new Query(Criteria.where("uid").is(uid).and("objType").is(objType).and("careType")
+				.is(CareBo.CARE_CARE).and("deleted").is(Constant.ACTIVITY));
+		
+		// 等于-1查看全部
+		if(limit!=-1) {
+			int start = (page-1)<0?0:(page-1);
+			int skip = start*limit;
+			query.skip(skip);
+			query.limit(limit);
+		}
+		
+		query.with(new Sort(Direction.DESC, "_id"));
+		return mongoTemplate.find(query, CareBo.class);
+	}
+
+
+	@Override
+	public WriteResult delCareListByUidAndTyeAndOids(String uid, int objType, List<String> oids) {
+		Query query = new Query(Criteria.where("uid").is(uid).and("oid").in(oids).and("objType").is(objType).and("careType")
+				.is(CareBo.CARE_CARE).and("deleted").is(Constant.ACTIVITY));
+		System.out.println(query);
+		Update update = new Update();
+		update.set("deleted", Constant.DELETED);
+		return mongoTemplate.updateMulti(query, update, CareBo.class);
 	}
 }

@@ -66,7 +66,6 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
-import lad.scrapybo.BaseInforBo;
 import lad.scrapybo.BroadcastBo;
 import lad.scrapybo.DailynewsBo;
 import lad.scrapybo.InforBo;
@@ -1076,6 +1075,7 @@ public class InforController extends BaseContorller {
 	@ApiOperation("资讯主页推荐top4,带图片")
 	@GetMapping("/home-top4")
 	public String homeHealthTop(HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@GetMapping(\"/home-top4\")");
 		RMapCache<String, Object> cache = redisServer.getCacheMap(Constant.TEST_CACHE);
 		List<InforVo> top4 = null;
 		if (cache.containsKey("top4")) {
@@ -1084,11 +1084,14 @@ public class InforController extends BaseContorller {
 			top4 = new ArrayList<>();
 			int size = 0;
 			List<InforBo> inforBos = inforService.homeHealthRecom(50);
+			System.out.println(inforBos.size());
 			for (InforBo inforBo : inforBos) {
 				if (size > 4) {
 					break;
 				}
 				LinkedList<String> images = inforBo.getImageUrls();
+				logger.info("@GetMapping(\"/home-top4\")=====image:{}", images);
+
 				if (images != null && !images.isEmpty()) {
 					InforVo inforVo = new InforVo();
 					bo2vo(inforBo, inforVo);

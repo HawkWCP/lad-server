@@ -1,13 +1,7 @@
 package com.lad.controller;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -21,11 +15,13 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSON;
+import com.lad.bo.CareBo;
 import com.lad.bo.CircleBo;
 import com.lad.bo.DynamicBo;
 import com.lad.bo.NoteBo;
@@ -44,9 +40,11 @@ import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
 import com.lad.util.MyException;
+import com.lad.vo.BaseVo;
 import com.lad.vo.RestHomeVo;
 import com.lad.vo.RetiredPeopleVo;
 import com.lad.vo.UserBaseVo;
+import com.mongodb.WriteResult;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -59,25 +57,135 @@ import net.sf.json.JSONObject;
 @RestController
 @RequestMapping("resthome")
 @SuppressWarnings("all")
-public class RestHomeController extends BaseContorller {
+public class RestHomeController extends ExtraController {
 
 	private static final Logger logger = LogManager.getLogger(RestHomeController.class);
 
 	@Autowired
-	private IRestHomeService restHomeService;
-	@Autowired
-	private IUserService userService;
-	@Autowired
 	private IMarriageService marriageService;
-	
-	@Autowired
-	private IDynamicService dynamicService;
-	
-	@Autowired
-	private IFriendsService friendsService;
+
 	@Autowired
 	private AsyncController asyncController;
-	
+
+    @ApiOperation("用户关注/取消关注老人")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "peopleId", value = "被关注/取消的养老者id", required = true, dataType = "string", paramType = "query"),
+            @ApiImplicitParam(name = "isCare", value = "关注/取消关注", required = true, dataType = "bool", paramType = "query")
+    })
+    @PostMapping("/care-people")
+    public String carePeople(String peopleId,boolean isCare,HttpServletRequest request,HttpServletResponse response){
+        UserBo userBo;
+        try {
+            userBo = checkSession(request, userService);
+        } catch (MyException e) {
+            return e.getMessage();
+        }
+        RetiredPeopleBo people = restHomeService.findPeopleById(peopleId);
+        if (null == people) {
+            return CommonUtil.toErrorResult(ERRORCODE.PEOPLE_IS_NULL.getIndex(), ERRORCODE.PEOPLE_IS_NULL.getReason());
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        if(isCare){
+            map.put("ret", addCare(userBo, people, CareBo.CARE_CARE));
+        }else{
+            List<String> peoples = new ArrayList<>();
+            peoples.add(peopleId);
+            WriteResult result = careService.delCareListByUidAndTyeAndOids(userBo.getId(), CareBo.CARE_PEOPLE, peoples);
+            map.put("ret", 0);
+        }
+        return JSON.toJSONString(map);
+    }
+
+    @ApiOperation("用户关注/取消关注养老院")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "homeId", value = "被关注/取消的养老院id", required = true, dataType = "string", paramType = "query"),
+            @ApiImplicitParam(name = "isCare", value = "关注/取消关注", required = true, dataType = "bool", paramType = "query")
+    })
+    @PostMapping("/care-home")
+	public String careHome(String homeId,boolean isCare,HttpServletRequest request,HttpServletResponse response){
+        UserBo userBo;
+        try {
+            userBo = checkSession(request, userService);
+        } catch (MyException e) {
+            return e.getMessage();
+        }
+        RestHomeBo home = restHomeService.findHomeById(homeId);
+        if (null == home) {
+            return CommonUtil.toErrorResult(ERRORCODE.HOME_IS_NULL.getIndex(), ERRORCODE.HOME_IS_NULL.getReason());
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        if(isCare){
+            map.put("ret", addCare(userBo, home, CareBo.CARE_CARE));
+        }else{
+            List<String> homes = new ArrayList<>();
+            homes.add(homeId);
+            WriteResult result = careService.delCareListByUidAndTyeAndOids(userBo.getId(), CareBo.CARE_RESTHOME, homes);
+            map.put("ret", 0);
+        }
+        return JSON.toJSONString(map);
+    }
+
+	@ApiOperation("用户关注的老人列表,需要当前登录用户是养老院的创建者")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "page", value = "当前页", required = true, dataType = "integer", paramType = "query"),
+			@ApiImplicitParam(name = "limit", value = "每页要显示的条数", required = true, dataType = "integer", paramType = "query")
+	})
+	@PostMapping("/care-list-home")
+	public String homeCareList(int page, int limit, HttpServletRequest request,
+			HttpServletResponse response) {
+		logger.info("@PostMapping(\"/care-list-home\")=====page:{},limit:{}", page, limit);
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		List<CareBo> careList = careService.findCareListByUidAndTye(userBo.getId(), CareBo.CARE_PEOPLE, page, limit);
+		List<RetiredPeopleVo> res = new ArrayList<>();
+		for (CareBo careBo : careList) {
+			String peopleId = careBo.getOid();
+			RetiredPeopleBo peopleBo = restHomeService.findPeopleById(peopleId);
+			RetiredPeopleVo peopleVo = new RetiredPeopleVo();
+			peopleBo2Vo(peopleBo, peopleVo);
+			res.add(peopleVo);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("res", res);
+		return JSON.toJSONString(map);
+	}
+
+	@ApiOperation("用户关注的养老院列表,需要当前登录用户是people的创建者")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "page", value = "当前页", required = true, dataType = "integer", paramType = "query"),
+			@ApiImplicitParam(name = "limit", value = "每页要显示的条数", required = true, dataType = "integer", paramType = "query") })
+	@PostMapping("/care-list-people")
+	public String poepleCareList(int page, int limit, HttpServletRequest request,HttpServletResponse response) {
+		logger.info("@PostMapping(\"/care-list-people\")=====page:{},limit:{}", page, limit);
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		// 用户校验
+		List<CareBo> careList = careService.findCareListByUidAndTye(userBo.getId(), CareBo.CARE_RESTHOME, page, limit);
+		List<RestHomeVo> res = new ArrayList<>();
+		for (CareBo careBo : careList) {
+			String homeId = careBo.getOid();
+			RestHomeBo homeBo = restHomeService.findHomeById(homeId);
+			RestHomeVo homeVo = new RestHomeVo();
+			homeBo2Vo(homeBo, homeVo);
+			res.add(homeVo);
+		}
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("res", res);
+		return JSON.toJSONString(map);
+	}
+
 	@ApiOperation("转发养老院到我的动态")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "homeId", value = "被转发的养老院id", required = true, dataType = "string", paramType = "query"),
@@ -86,14 +194,15 @@ public class RestHomeController extends BaseContorller {
 	@PostMapping("/forward-dynamic")
 	public String forwardDynamic(String homeId, String view, String landmark, HttpServletRequest request,
 			HttpServletResponse response) {
-		
+
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
 		} catch (MyException e) {
 			return e.getMessage();
 		}
-		logger.info("@PostMapping(\"/forward-dynamic\")=====homeId:{},view:{},landmark:{},user:{}({})", homeId, view, landmark,userBo.getUserName(),userBo.getId());
+		logger.info("@PostMapping(\"/forward-dynamic\")=====homeId:{},view:{},landmark:{},user:{}({})", homeId, view,
+				landmark, userBo.getUserName(), userBo.getId());
 
 		RestHomeBo home = restHomeService.findHomeById(homeId);
 		if (null == home) {
@@ -108,7 +217,7 @@ public class RestHomeController extends BaseContorller {
 		dynamicBo.setOwner(home.getCreateuid());
 		dynamicBo.setLandmark(landmark);
 		dynamicBo.setType(UserCenterConstants.FORWARD_FROM_DISCOVERY_RESTHOME);
-		if(home.getImages()!=null&& home.getImages().size()>0) {
+		if (home.getImages() != null && home.getImages().size() > 0) {
 //			dynamicBo.setPicType("pic");
 			dynamicBo.setPhotos(home.getImages());
 		}
@@ -129,92 +238,15 @@ public class RestHomeController extends BaseContorller {
 	@ApiOperation("转发指定的圈子")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "circleid", value = "转发圈子id", required = true, paramType = "query", dataType = "string"),
-			@ApiImplicitParam(name = "homeId", value = "养老院id", required = true, paramType = "query", dataType = "string")})
+			@ApiImplicitParam(name = "homeId", value = "养老院id", required = true, paramType = "query", dataType = "string") })
 	@RequestMapping(value = "/forward-circle", method = { RequestMethod.GET, RequestMethod.POST })
 	public String forwardCircle(String circleid, String homeId, HttpServletRequest request,
 			HttpServletResponse response) {
 		return forwardCircle(circleid, homeId, null, request, response);
 	}
 
-	/**
-	 * 作为一个可扩展的私有handler
-	 * @param circleid
-	 * @param homeId
-	 * @param landmark
-	 * @param request
-	 * @param response
-	 * @return
-	 */
-	private String forwardCircle(String circleid, String homeId,String landmark, HttpServletRequest request,
-			HttpServletResponse response) {
-		UserBo userBo = getUserLogin(request);
-		if (userBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
-					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
-		}
-		logger.info(
-				"@RequestMapping(value = \"/forward-dynamic\")=====user:{}({}),circleid:{},homeId:{}",
-				userBo.getUserName(), userBo.getId(),circleid, homeId);
-		RestHomeBo home = restHomeService.findHomeById(homeId);
-		if (null == home) {
-			return CommonUtil.toErrorResult(ERRORCODE.HOME_IS_NULL.getIndex(), ERRORCODE.HOME_IS_NULL.getReason());
-		}
-		CircleBo circleBo = circleService.selectById(circleid);
-		if (circleBo == null) {
-			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_IS_NULL.getIndex(), ERRORCODE.CIRCLE_IS_NULL.getReason());
-		}
-		
-		NoteBo noteBo = new NoteBo();
-		noteBo.setSourceid(homeId);
-		noteBo.setNoteType(NoteBo.REST_FORWARD);
-		noteBo.setForward(1);
-		noteBo.setCreateuid(userBo.getId());
-		noteBo.setCircleId(circleid);
-		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
-		if(landmark!=null) {
-			noteBo.setLandmark(landmark);
-		}
-//		String[] atUser = atUserids.split(",");
-//		noteBo.setAtUsers(new LinkedList<>(Arrays.asList(atUser)));
-		
-		NoteBo insert = noteService.insert(noteBo);
-		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
-		asyncController.updateCircieNoteUnReadNum(userBo.getId(), circleid, insert.getId());
-		updateCount(homeId, Constant.SHARE_NUM, 1);
-		Map<String, Object> map = new HashMap<>();
-		map.put("ret", 0);
-		map.put("noteId", insert.getId());
-		return JSONObject.fromObject(map).toString();	
-	}
-	
-	private void updateCount(String shareId,int type,int num) {
-		RLock lock = redisServer.getRLock(shareId.concat(String.valueOf(type)));
-		try {
-			lock.lock(2, TimeUnit.SECONDS);
-			switch (type) {
 
-			case Constant.SHARE_NUM:// 分享
-				restHomeService.updateTransCount(shareId, num);
-				break;
-			default:
-				break;
-			}
-		} finally {
-			lock.unlock();
-		}
-	}
-	
-	private void updateHomeHot(String homeId,int num, int type){
-		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
-		try {
-			// 3s自动解锁
-			lock.lock(3, TimeUnit.SECONDS);
-			restHomeService.updateHomeHot(homeId, num, type);
-		} finally {
-			lock.unlock();
-		}
-	}
-	
+
 	@ApiOperation("搜索住院者")
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "price", value = "住院者心理价位", required = true, paramType = "query", dataType = "int"),
@@ -620,7 +652,7 @@ public class RestHomeController extends BaseContorller {
 	@PostMapping("/updateHome")
 	public String updateHome(String homeJson, HttpServletRequest request, HttpServletResponse response) {
 		logger.info("@PostMapping(\"/updateHome\")=====homeJson:{}", homeJson);
-		
+
 		Map<String, Object> map = new HashMap<>();
 		try {
 			UserBo userBo = getUserLogin(request);
@@ -636,7 +668,7 @@ public class RestHomeController extends BaseContorller {
 			}
 
 			homeJson = jsonHandler(homeJson);
-			
+
 			RestHomeBo homeBo = JSON.parseObject(homeJson, RestHomeBo.class);
 			if (homeBo.getId() == null) {
 				map.put("ret", -1);
@@ -774,6 +806,7 @@ public class RestHomeController extends BaseContorller {
 				UserBaseVo baseVo = new UserBaseVo();
 				BeanUtils.copyProperties(createUser, baseVo);
 				map.put("createuser", baseVo);
+				map.put("isCare", careService.findCareByUidAndOid(userBo.getId(), peopleId, CareBo.CARE_PEOPLE) != null);
 			} else {
 				map.put("ret", -1);
 				map.put("message", "数据不存在或已删除");
@@ -816,6 +849,7 @@ public class RestHomeController extends BaseContorller {
 				UserBaseVo baseVo = new UserBaseVo();
 				BeanUtils.copyProperties(createUser, baseVo);
 				map.put("createuser", baseVo);
+				map.put("isCare", careService.findCareByUidAndOid(userBo.getId(), homeId, CareBo.CARE_RESTHOME) != null);
 			} else {
 				map.put("ret", -1);
 				map.put("message", "数据不存在或已删除");
@@ -926,8 +960,7 @@ public class RestHomeController extends BaseContorller {
 			}
 
 			resthomeJson = jsonHandler(resthomeJson);
-			
-			
+
 			RestHomeBo homeBo = JSON.parseObject(resthomeJson, RestHomeBo.class);
 			if (homeBo != null) {
 				if (homeBo.isProtocol()) {
@@ -957,18 +990,6 @@ public class RestHomeController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 
-	private String jsonHandler(String resthomeJson) {
-		// 特殊处理   传入参数将最低价值与最高价值拆分为两个字段
-		com.alibaba.fastjson.JSONObject parseObject = JSON.parseObject(resthomeJson);
-		int highest = (int)parseObject.get("priceHighest");
-		int lowest = (int) parseObject.get("priceLowest");
-		String price = lowest+"-"+highest;
-		parseObject.remove("priceHighest");
-		parseObject.remove("priceLowest");
-		parseObject.put("price", price);
-		resthomeJson = JSON.toJSONString(parseObject);
-		return resthomeJson;
-	}
 
 	@ApiOperation("添加养老信息")
 	@ApiImplicitParams({
@@ -1012,6 +1033,20 @@ public class RestHomeController extends BaseContorller {
 		return JSON.toJSONString(map);
 	}
 
+
+	private String jsonHandler(String resthomeJson) {
+		// 特殊处理 传入参数将最低价值与最高价值拆分为两个字段
+		com.alibaba.fastjson.JSONObject parseObject = JSON.parseObject(resthomeJson);
+		int highest = (int) parseObject.get("priceHighest");
+		int lowest = (int) parseObject.get("priceLowest");
+		String price = lowest + "-" + highest;
+		parseObject.remove("priceHighest");
+		parseObject.remove("priceLowest");
+		parseObject.put("price", price);
+		resthomeJson = JSON.toJSONString(parseObject);
+		return resthomeJson;
+	}
+	
 	private void homeBo2Vo(RestHomeBo homeBo, RestHomeVo homeVo) {
 		if (homeBo != null && homeVo != null) {
 			BeanUtils.copyProperties(homeBo, homeVo);
@@ -1092,5 +1127,84 @@ public class RestHomeController extends BaseContorller {
 			}
 		}
 		return params;
+	}
+	
+	/**
+	 * 作为一个可扩展的私有handler
+	 * 
+	 * @param circleid
+	 * @param homeId
+	 * @param landmark
+	 * @param request
+	 * @param response
+	 * @return
+	 */
+	private String forwardCircle(String circleid, String homeId, String landmark, HttpServletRequest request,
+			HttpServletResponse response) {
+		UserBo userBo = getUserLogin(request);
+		if (userBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
+					ERRORCODE.ACCOUNT_OFF_LINE.getReason());
+		}
+		logger.info("@RequestMapping(value = \"/forward-dynamic\")=====user:{}({}),circleid:{},homeId:{}",
+				userBo.getUserName(), userBo.getId(), circleid, homeId);
+		RestHomeBo home = restHomeService.findHomeById(homeId);
+		if (null == home) {
+			return CommonUtil.toErrorResult(ERRORCODE.HOME_IS_NULL.getIndex(), ERRORCODE.HOME_IS_NULL.getReason());
+		}
+		CircleBo circleBo = circleService.selectById(circleid);
+		if (circleBo == null) {
+			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_IS_NULL.getIndex(), ERRORCODE.CIRCLE_IS_NULL.getReason());
+		}
+
+		NoteBo noteBo = new NoteBo();
+		noteBo.setSourceid(homeId);
+		noteBo.setNoteType(NoteBo.REST_FORWARD);
+		noteBo.setForward(1);
+		noteBo.setCreateuid(userBo.getId());
+		noteBo.setCircleId(circleid);
+		noteBo.setCreateDate(CommonUtil.getCurrentDate(new Date()));
+		if (landmark != null) {
+			noteBo.setLandmark(landmark);
+		}
+//		String[] atUser = atUserids.split(",");
+//		noteBo.setAtUsers(new LinkedList<>(Arrays.asList(atUser)));
+
+		NoteBo insert = noteService.insert(noteBo);
+		// 更新圈子成员未读帖子列表 重写了updateCircieNoteUnReadNum,添加了noteId字段
+		asyncController.updateCircieNoteUnReadNum(userBo.getId(), circleid, insert.getId());
+		updateCount(homeId, Constant.SHARE_NUM, 1);
+		Map<String, Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("noteId", insert.getId());
+		return JSONObject.fromObject(map).toString();
+	}
+
+	private void updateCount(String shareId, int type, int num) {
+		RLock lock = redisServer.getRLock(shareId.concat(String.valueOf(type)));
+		try {
+			lock.lock(2, TimeUnit.SECONDS);
+			switch (type) {
+
+			case Constant.SHARE_NUM:// 分享
+				restHomeService.updateTransCount(shareId, num);
+				break;
+			default:
+				break;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private void updateHomeHot(String homeId, int num, int type) {
+		RLock lock = redisServer.getRLock(Constant.CHAT_LOCK);
+		try {
+			// 3s自动解锁
+			lock.lock(3, TimeUnit.SECONDS);
+			restHomeService.updateHomeHot(homeId, num, type);
+		} finally {
+			lock.unlock();
+		}
 	}
 }

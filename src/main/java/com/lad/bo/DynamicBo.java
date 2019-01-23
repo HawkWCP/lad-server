@@ -58,6 +58,7 @@ public class DynamicBo extends BaseBo {
 	private String owner;
 	// 来源
 	private String sourceId;
+	// 圈子
 
 	/* ==============================动态数据================================= */
 	// 转发量
@@ -83,6 +84,7 @@ public class DynamicBo extends BaseBo {
 	private int inforType;
 	// 视频,广播
 	private String inforClassName;
+	// 招接演出类型
 	private int showType;
 
 	// 信息来源id

@@ -64,4 +64,8 @@ public interface IRestHomeService {
 	void updateTransCount(String shareId, int num);
 
 	void updateHomeHot(String homeId, int num, int type);
+
+	int findPublishHomeNum(String id);
+
+	int findPublishPeopleNum(String id);
 }

@@ -1,5 +1,7 @@
 package com.lad.service.impl;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -98,10 +100,13 @@ public class CareServiceImpl implements ICareService {
 	}
 
 	@Override
+	public CareBo findCareByUidAndOidIngoreDel(String uid, String oid, int type) {
+		return careDao.findCareByUidAndOidIngoreDel(uid,oid,type);
+	}
+	@Override
 	public CareBo findCareByUidAndOid(String uid, String oid, int type) {
 		return careDao.findCareByUidAndOid(uid,oid,type);
 	}
-
 	@Override
 	public void updateCare(CareBo careBo) {
 		careDao.updateCare( careBo);
@@ -110,6 +115,16 @@ public class CareServiceImpl implements ICareService {
 	@Override
 	public CareBo insert(CareBo careBo) {
 		return careDao.insert(careBo);
+	}
+
+	@Override
+	public List<CareBo> findCareListByUidAndTye(String uid, int objType,int page,int limit) {
+		return careDao.findCareListByUidAndTye( uid,  objType,page,limit) ;
+	}
+
+	@Override
+	public WriteResult delCareListByUidAndTyeAndOids(String uid, int objType, List<String> Oids) {
+		return careDao.delCareListByUidAndTyeAndOids( uid,  objType, Oids);
 	}
 
 

@@ -38,15 +38,51 @@ import com.lad.vo.UserBaseVo;
  *
  */
 public class ExtraController extends BaseContorller {
+	
+	// 添加关注
+	protected int addCare(Object mainObj,Object obj,int careType) {
+		
+		int type = getCareType(obj);
+		if(type == -1) {
+			return type;
+		}
+		JSONObject  mobjJson = JSON.parseObject(JSON.toJSONString(mainObj));
+		String uid = mobjJson.getString("id");
+		String createuid = mobjJson.getString("createuid");
+		
+		JSONObject objJson = JSON.parseObject(JSON.toJSONString(obj));
+		String oId = objJson.getString("id");
+		
+		CareBo careBo = careService.findCareByUidAndOidIngoreDel(uid,oId,type);
+		if(careBo!=null) {
+			careBo.setDeleted(0);
+			careBo.setCareType(careType);
+			careService.updateCare(careBo);
+		}else{
+			careBo = new CareBo();
+			careBo.setCareType(careType);
+			careBo.setCreateuid(createuid);
+			careBo.setObjType(type);
+			careBo.setUid(uid);
+			careBo.setOid(oId);
+			careBo.setUpdateTime(new Date());
+			careBo = careService.insert(careBo);
+		}	
+		
+		return 0;
+	}
 		
 	// 添加关注
-	protected void addCare(UserBo userBo,Object obj,int careType) {
+	protected int addCare(UserBo userBo,Object obj,int careType) {
 		int type = getCareType(obj);
+		if(type == -1) {
+			return type;
+		}
 		String uid = userBo.getId();
 		JSONObject jsonObj = JSON.parseObject(JSON.toJSONString(obj));
 		String oId = jsonObj.getString("id");
 		
-		CareBo careBo = careService.findCareByUidAndOid(uid,oId,type);
+		CareBo careBo = careService.findCareByUidAndOidIngoreDel(uid,oId,type);
 		if(careBo!=null) {
 			careBo.setDeleted(0);
 			careBo.setCareType(careType);
@@ -60,8 +96,8 @@ public class ExtraController extends BaseContorller {
 			careBo.setOid(oId);
 			careBo.setUpdateTime(new Date());
 			careBo = careService.insert(careBo);
-		}
-		
+		}	
+		return 0;
 	}
 	
 	private int getCareType(Object obj) {
@@ -71,6 +107,9 @@ public class ExtraController extends BaseContorller {
 		switch(className){
 			case "com.lad.bo.RestHomeBo":
 				res = 3;
+				break;
+			case "com.lad.bo.RetiredPeopleBo":
+				res = 6;
 				break;
 			default:
 				res = -1;
@@ -153,19 +192,21 @@ public class ExtraController extends BaseContorller {
 		}
 		dynamicVo.setThumbsupUser(getThumber(msgBo));		
 		List<CommentBo> bos = commentService.findCommentsBySourceId(msgBo.getId());
-		// TODO
 		List<CommentVo> cvos = comentBo2Vo(bos,msgBo.getId());
 		dynamicVo.setComment(cvos);
 
 		LinkedHashSet<String> atIds = msgBo.getAtIds();
 		if(atIds!=null) {
-			List<UserBo> atUsers = userService.findUserByIds(new ArrayList<>(atIds));
+			List<String> userIds = new ArrayList<>(atIds);
+			// TODO
+			System.out.println("userIds:"+JSON.toJSONString(userIds));
+			List<UserBo> atUsers = userService.findUserByIds(userIds);
 			ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
 			dynamicVo.setAtUsers(userVos);
 		}
 		dynamicVo.setTime(msgBo.getCreateTime());
 		dynamicVo.setIsMyThumbsup(
-				thumbsupService.findHaveOwenidAndVisitorid(msgBo.getSourceId(), userBo.getId()) != null);
+				thumbsupService.findHaveOwenidAndVisitorid(msgBo.getId(), userBo.getId()) != null);
 
 		LinkedHashSet<String> unReadFrend = msgBo.getUnReadFrend();
 		if (unReadFrend != null && unReadFrend.contains(userBo.getId())) {
@@ -210,7 +251,7 @@ public class ExtraController extends BaseContorller {
 	}
 	
 	/**
-	 *  	将List<UserBo>对象转换为List<UserBaseVo>对象
+	 *  将List<UserBo>对象转换为List<UserBaseVo>对象
 	 * @param userBo
 	 * @param atUsers
 	 * @return
@@ -228,8 +269,9 @@ public class ExtraController extends BaseContorller {
 					userVo.setBackName(friend.getBackname());
 				}
 			}
-			userVo.setSex(user.getSex());
-			userVo.setBirthDay(user.getBirthDay()==null?"1970年09月20日":user.getBirthDay());
+//			userVo.setSex(user.getSex());
+			// 可能为空,设置默认出生日期为1970年9月20日
+//			userVo.setBirthDay(user.getBirthDay()==null?"1970年09月20日":user.getBirthDay());
 			uvos.add(userVo);
 		}
 		return uvos;

@@ -65,4 +65,8 @@ public interface IRestHomeDao extends IBaseDao {
 
 	void updateHomeHot(String homeId, int num, int type);
 
+	int findPublishHomeNum(String uid);
+
+	int findPublishPeopleNum(String uid);
+
 }

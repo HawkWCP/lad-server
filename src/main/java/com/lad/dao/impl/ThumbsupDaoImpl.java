@@ -31,14 +31,14 @@ public class ThumbsupDaoImpl implements IThumbsupDao {
 		query.addCriteria(new Criteria("_id").is(thumbsupId));
 		Update update = new Update();
 		update.set("deleted", 1);
-		return mongoTemplate.updateFirst(query,update,ThumbsupBo.class );
+		return mongoTemplate.updateMulti(query,update,ThumbsupBo.class);
 	}
 
 	@Override
 	public ThumbsupBo findIsDelete(String ownerid, String visitorid) {
-		Query query = new Query();
-		query.addCriteria(new Criteria("owner_id").is(ownerid));
-		query.addCriteria(new Criteria("visitor_id").is(visitorid));
+		Query query = new Query(Criteria.where("owner_id").is(ownerid).and("visitor_id").is(visitorid).and("deleted").is(0));
+//		query.addCriteria(new Criteria("owner_id").is(ownerid));
+//		query.addCriteria(new Criteria("visitor_id").is(visitorid));
 		return mongoTemplate.findOne(query, ThumbsupBo.class);
 	}
 

@@ -223,7 +223,7 @@ public abstract class BaseContorller {
 	 * @param currentDate
 	 */
 	@Async
-	private void updateRedStar(UserBo userBo, NoteBo noteBo, String circleid, Date currentDate) {
+	protected void updateRedStar(UserBo userBo, NoteBo noteBo, String circleid, Date currentDate) {
 		RedstarBo redstarBo = commentService.findRedstarBo(userBo.getId(), circleid);
 		int curretWeekNo = CommonUtil.getWeekOfYear(currentDate);
 		int year = CommonUtil.getYear(currentDate);
@@ -352,14 +352,18 @@ public abstract class BaseContorller {
 	}
 
 	private int deletedThumbsup(UserBo userBo, Object obj) {
+
 		if (obj == null) {
 			return -1;
 		}
 		JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(obj));
 		String owner_id = jsonObject.getString("id");
+		System.out.println(String.format("这里是取消点赞,访问者是:%s(%s),访问对象为%s",userBo.getUserName(),userBo.getId(),owner_id));
 		String visitor_id = userBo.getId();
-		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(visitor_id, owner_id);
+		ThumbsupBo thumbsupBo = thumbsupService.findHaveOwenidAndVisitorid(owner_id,visitor_id);
+		System.out.println("thumbsupBo:"+JSON.toJSONString(thumbsupBo));
 		if (thumbsupBo != null && thumbsupBo.getDeleted() == Constant.ACTIVITY) {
+			System.out.println("取消点赞方法在这里进入下一层");
 			thumbsupService.deleteById(thumbsupBo.getId());
 		}
 		// 还需要根据每个实体的类型减少实体中的点赞数
@@ -473,7 +477,7 @@ public abstract class BaseContorller {
 	 * @return
 	 */
 	@Async
-	private void updateExposeCounts(IExposeService service, String id, int numType, int num) {
+	protected void updateExposeCounts(IExposeService service, String id, int numType, int num) {
 		RLock lock = redisServer.getRLock(id.concat(String.valueOf(numType)));
 		try {
 			lock.lock(2, TimeUnit.SECONDS);
