@@ -80,6 +80,7 @@ import lad.scrapybo.InforBo;
 import lad.scrapybo.SecurityBo;
 import lad.scrapybo.VideoBo;
 import lad.scrapybo.YanglaoBo;
+import com.lad.util.JPushUtil;
 
 public abstract class BaseContorller {
 
@@ -856,13 +857,14 @@ public abstract class BaseContorller {
 					}
 				}
 			});
-//			JPushUtil.push(title, "极光推送:" + description, path, alias);
+			JPushUtil.push(title, "极光推送:" + description, path, alias);
 		} catch (Exception e) {
 			logger.error("BaseContorller====={}", e);
 		} finally {
 			lock.unlock();
 		}
 	}
+
 
 	/**
 	 * 定向到错误页面

@@ -263,8 +263,8 @@ public class FriendsController extends BaseContorller {
 			friendsBo.setApply(0);
 			friendsService.insert(friendsBo);
 			String path = "/friends/apply-list.do";
-//			JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
-			usePush(friendid, pushTitle,"“"+userBo.getUserName()+"”"+JPushUtil.APPLY, path);
+			JPushUtil.push(pushTitle, userBo.getUserName() + JPushUtil.APPLY, path, friendid);
+			// usePush(friendid, pushTitle,"“"+userBo.getUserName()+"”"+JPushUtil.APPLY, path);
 			addMessage(messageService, path, "“"+userBo.getUserName()+"”"+JPushUtil.APPLY, pushTitle, friendid);
 			map.put("ret", 0);
 		} catch (MyException e) {

@@ -98,8 +98,7 @@ public class DynamicDaoImpl implements IDynamicDao {
 
     @Override
     public List<DynamicBo> findAFriendsMsg(String friendid, int page, int limit) {
-        Query query = new Query();
-        query.addCriteria(new Criteria("createuid").is(friendid).and("deleted").is(Constant.ACTIVITY));
+        Query query = new Query(Criteria.where("createuid").is(friendid).and("deleted").is(Constant.ACTIVITY));
         query.with(new Sort(new Sort.Order(Sort.Direction.DESC, "_id")));
         if (page != -1) {
             page = page < 1 ? 1 : page;

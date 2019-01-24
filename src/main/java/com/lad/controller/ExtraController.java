@@ -129,7 +129,7 @@ public class ExtraController extends BaseContorller {
 	protected void dynamicBo2vo(List<DynamicBo> msgBos, List<DynamicVo> dynamicVos, UserBo userBo) {
 		// userBo 动态的浏览者
 		for (DynamicBo msgBo : msgBos) {
-			if(userBo.getId().equals(msgBo.getCreateuid())) {
+			if(!userBo.getId().equals(msgBo.getCreateuid())) {
 				// 预先判断,防止在调用重载方法是执行return导致的vo实体为空现象
 				if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
 					continue;
@@ -158,7 +158,9 @@ public class ExtraController extends BaseContorller {
 	 * @param userBo
 	 */
 	protected void dynamicBo2vo(DynamicBo msgBo, DynamicVo dynamicVo, UserBo userBo) {
-		if(userBo.getId().equals(msgBo.getCreateuid())) {
+		System.out.println("msgBo:"+JSON.toJSONString(msgBo));
+
+		if(!userBo.getId().equals(msgBo.getCreateuid())) {
 			// 如果动态不是自己发布的,则需要验证权限
 			if (msgBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
 				// 动态为私有,在此处跳出

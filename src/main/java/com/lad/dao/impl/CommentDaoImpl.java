@@ -91,9 +91,7 @@ public class CommentDaoImpl implements ICommentDao {
     }
 
     public List<BasicDBObject> selectMyNoteReply(String userid, int page, int limit){
-        Criteria criteria = new Criteria("createuid").is(userid);
-        criteria.and("deleted").is(Constant.ACTIVITY).and("type").is(Constant.NOTE_TYPE);
-        criteria.and("ownerid").ne(userid);
+        Criteria criteria = new Criteria("createuid").is(userid).and("deleted").is(Constant.ACTIVITY).and("type").is(Constant.NOTE_TYPE).and("ownerid").ne(userid);
 
         page = page < 1 ? 1 : page;
         AggregationOperation match = Aggregation.match(criteria);

@@ -760,10 +760,13 @@ public class NoteController extends BaseContorller {
 			return e.getMessage();
 		}
 		String userid = userBo.getId();
-		List<BasicDBObject> objects = commentService.selectMyNoteReply(userBo.getId(), page, limit);
+		List<BasicDBObject> objects = commentService.selectMyNoteReply(userid, page, limit);
 		List<NoteVo> noteVoList = new LinkedList<>();
 		for (BasicDBObject object : objects) {
-			String id = object.get("noteid").toString();
+			String id = object.getString("noteid");
+			if("".equals(id)|| id == null){
+				continue;
+			}
 			NoteBo noteBo = noteService.selectById(id);
 			if (noteBo != null) {
 				CircleBo circleBo = circleService.selectById(noteBo.getCircleId());
@@ -1096,6 +1099,7 @@ public class NoteController extends BaseContorller {
 	@PostMapping("/forward-dynamic")
 	public String forwardDynamic(String noteid, String view, String landmark, HttpServletRequest request,
 			HttpServletResponse response) {
+		logger.info("@PostMapping(\"/forward-dynamic\")=====noteid:{},view:{},landmark:{}",noteid,view,landmark);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);

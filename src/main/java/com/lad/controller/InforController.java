@@ -278,12 +278,12 @@ public class InforController extends BaseContorller {
 		if (userBo != null) {
 			ThumbsupBo thumbsupBo = thumbsupService.getByVidAndVisitorid(inforBo.getId(), userBo.getId());
 			inforVo.setSelfSub(thumbsupBo != null);
-			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_DAILY);
-			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_DAILY, inforBo.getModule(),
+			asyncController.updateUserReadHis(userBo.getId(), inforBo.getClassName(), "", Constant.INFOR_YANGLAO);
+			asyncController.addUserReadhis(userBo.getId(), inforid, Constant.INFOR_YANGLAO, inforBo.getModule(),
 					inforBo.getClassName());
 		}
-		updateInforNum(inforid, Constant.INFOR_DAILY, 1, Constant.VISIT_NUM);
-		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_DAILY);
+		updateInforNum(inforid, Constant.INFOR_YANGLAO, 1, Constant.VISIT_NUM);
+		asyncController.updateInforHistroy(inforid, inforBo.getClassName(), Constant.INFOR_YANGLAO);
 		BeanUtils.copyProperties(inforBo, inforVo);
 		inforVo.setInforid(inforBo.getId());
 		inforVo.setThumpsubNum(inforBo.getThumpsubNum());
@@ -1533,6 +1533,7 @@ public class InforController extends BaseContorller {
 	@RequestMapping(value = "/collect-infor", method = { RequestMethod.GET, RequestMethod.POST })
 	public String collectInfor(@RequestParam String inforid, @RequestParam int inforType, HttpServletRequest request,
 			HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/collect-infor\")=====inforid:{},inforType:{}",inforid,inforType);
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -1610,9 +1611,8 @@ public class InforController extends BaseContorller {
 			@ApiImplicitParam(name = "inforid", value = "合集首条资讯id", required = true, paramType = "query", dataType = "string"),
 			@ApiImplicitParam(name = "inforType", value = "1健康，2 安防，3广播，4视频，5时政，6养老", required = true, paramType = "query", dataType = "int") })
 	@RequestMapping(value = "/collect-classes", method = { RequestMethod.GET, RequestMethod.POST })
-	public String collectClasses(String module, String className, String inforid, int inforType,
-			HttpServletRequest request, HttpServletResponse response) {
-
+	public String collectClasses(String module, String className, String inforid, int inforType,HttpServletRequest request, HttpServletResponse response) {
+		logger.info("@RequestMapping(value = \"/collect-classes\")=====module:{},className:{},inforid:{},inforType:{}",module,className,inforid,inforType);
 		UserBo userBo = getUserLogin(request);
 		if (userBo == null) {
 			return CommonUtil.toErrorResult(ERRORCODE.ACCOUNT_OFF_LINE.getIndex(),
@@ -2183,6 +2183,7 @@ public class InforController extends BaseContorller {
 			BeanUtils.copyProperties(bo, inforVo);
 			inforVo.setInforid(bo.getId());
 			inforVo.setReadNum(bo.getVisitNum());
+			// 评论数与点赞数暂时数据库无数据
 			inforVo.setCommentNum(bo.getCommnetNum());
 			inforVo.setThumpsubNum(bo.getThumpsubNum());
 			inforVo.setText("");

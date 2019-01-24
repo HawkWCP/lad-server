@@ -390,6 +390,7 @@ public class DynamicController extends ExtraController {
                 userBo.getId(), page, limit);
         List<String> friends = CommonUtil.deleteBack(dynamicService, friendsService, userBo);
         friends.add(userBo.getId());
+        System.out.println("friends:"+friends.toString());
         List<DynamicBo> msgBos = dynamicService.findAllFriendsMsg(friends, page, limit);
         List<DynamicVo> dynamicVos = new ArrayList<>();
         dynamicBo2vo(msgBos, dynamicVos, userBo);
@@ -503,6 +504,8 @@ public class DynamicController extends ExtraController {
         logger.info("@RequestMapping(value = \"/my-dynamics\")=====user:{}({}),page:{},limit:{}",
                 userBo.getUserName(), userBo.getId(), page, limit);
         List<DynamicBo> msgBos = dynamicService.findOneFriendMsg(userBo.getId(), page, limit);
+
+
         List<DynamicVo> dynamicVos = new ArrayList<>();
         dynamicBo2vo(msgBos, dynamicVos, userBo);
         Map<String, Object> map = new HashMap<>();

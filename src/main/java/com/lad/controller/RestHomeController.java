@@ -132,10 +132,10 @@ public class RestHomeController extends ExtraController {
 			@ApiImplicitParam(name = "page", value = "当前页", required = true, dataType = "integer", paramType = "query"),
 			@ApiImplicitParam(name = "limit", value = "每页要显示的条数", required = true, dataType = "integer", paramType = "query")
 	})
-	@PostMapping("/care-list-home")
+	@PostMapping("/care-list-people")
 	public String homeCareList(int page, int limit, HttpServletRequest request,
 			HttpServletResponse response) {
-		logger.info("@PostMapping(\"/care-list-home\")=====page:{},limit:{}", page, limit);
+		logger.info("@PostMapping(\"/care-list-people\")=====page:{},limit:{}", page, limit);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -153,7 +153,7 @@ public class RestHomeController extends ExtraController {
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		map.put("res", res);
+		map.put("result", res);
 		return JSON.toJSONString(map);
 	}
 
@@ -161,9 +161,9 @@ public class RestHomeController extends ExtraController {
 	@ApiImplicitParams({
 			@ApiImplicitParam(name = "page", value = "当前页", required = true, dataType = "integer", paramType = "query"),
 			@ApiImplicitParam(name = "limit", value = "每页要显示的条数", required = true, dataType = "integer", paramType = "query") })
-	@PostMapping("/care-list-people")
+	@PostMapping("/care-list-home")
 	public String poepleCareList(int page, int limit, HttpServletRequest request,HttpServletResponse response) {
-		logger.info("@PostMapping(\"/care-list-people\")=====page:{},limit:{}", page, limit);
+		logger.info("@PostMapping(\"/care-list-home\")=====page:{},limit:{}", page, limit);
 		UserBo userBo;
 		try {
 			userBo = checkSession(request, userService);
@@ -182,7 +182,7 @@ public class RestHomeController extends ExtraController {
 		}
 		Map<String, Object> map = new HashMap<>();
 		map.put("ret", 0);
-		map.put("res", res);
+		map.put("result", res);
 		return JSON.toJSONString(map);
 	}
 
