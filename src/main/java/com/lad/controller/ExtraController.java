@@ -1,27 +1,13 @@
 package com.lad.controller;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import com.lad.bo.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.lad.bo.BaseBo;
-import com.lad.bo.CareBo;
-import com.lad.bo.ChatroomBo;
-import com.lad.bo.ChatroomUserBo;
-import com.lad.bo.CommentBo;
-import com.lad.bo.DynamicBo;
-import com.lad.bo.FriendsBo;
-import com.lad.bo.ThumbsupBo;
-import com.lad.bo.UserBo;
 import com.lad.constants.UserCenterConstants;
 import com.lad.vo.ChatroomUserVo;
 import com.lad.vo.ChatroomVo;
@@ -38,6 +24,16 @@ import com.lad.vo.UserBaseVo;
  *
  */
 public class ExtraController extends BaseContorller {
+
+	protected  int addCrcular(String title,String content, LinkedHashSet<String> targetuids,LinkedHashSet<String> images){
+        CrcularBo crcular = new CrcularBo();
+        crcular.setTitle(title);
+        crcular.setContent(content);
+        crcular.setTargetuids(targetuids);
+        crcular.setImages(images);
+
+        return 0;
+	}
 	
 	// 添加关注
 	protected int addCare(Object mainObj,Object obj,int careType) {

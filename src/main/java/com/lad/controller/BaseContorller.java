@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
+import com.lad.service.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.redisson.api.RLock;
@@ -46,25 +47,6 @@ import com.lad.bo.RedstarBo;
 import com.lad.bo.ThumbsupBo;
 import com.lad.bo.UserBo;
 import com.lad.redis.RedisServer;
-import com.lad.service.ICareService;
-import com.lad.service.IChatroomService;
-import com.lad.service.ICircleService;
-import com.lad.service.ICommentService;
-import com.lad.service.IDynamicService;
-import com.lad.service.IExposeService;
-import com.lad.service.IFriendsService;
-import com.lad.service.IHomepageService;
-import com.lad.service.IInforRecomService;
-import com.lad.service.IInforService;
-import com.lad.service.ILocationService;
-import com.lad.service.IMessageService;
-import com.lad.service.INoteService;
-import com.lad.service.IReadHistoryService;
-import com.lad.service.IReasonService;
-import com.lad.service.IRestHomeService;
-import com.lad.service.IThumbsupService;
-import com.lad.service.ITokenService;
-import com.lad.service.IUserService;
 import com.lad.util.CommonUtil;
 import com.lad.util.Constant;
 import com.lad.util.ERRORCODE;
@@ -133,6 +115,9 @@ public abstract class BaseContorller {
 	
 	@Autowired
 	protected ICareService careService;
+
+	@Autowired
+	protected ICrcularService crcularService;
 	
 	protected int dayTimeMins = 24 * 60 * 60 * 1000;
 	private Logger logger = LogManager.getLogger();
