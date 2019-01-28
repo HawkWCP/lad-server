@@ -30,6 +30,8 @@ import com.lad.service.SpouseService;
 import com.lad.service.TravelersService;
 import com.lad.util.CommonUtil;
 import com.lad.util.ERRORCODE;
+import com.lad.util.MyException;
+import com.lad.vo.CrcularVo;
 import com.lad.vo.OptionVo;
 
 import io.swagger.annotations.ApiOperation;
@@ -43,7 +45,7 @@ import net.sf.json.JSONObject;
 @RestController
 @RequestMapping("common")
 @SuppressWarnings("all")
-public class CommonsController extends BaseContorller {
+public class CommonsController extends ExtraController {
 
 	private Logger logger = LogManager.getLogger();
 
@@ -61,6 +63,23 @@ public class CommonsController extends BaseContorller {
 
 	@Autowired
 	private IShowService showService;
+	
+
+	@GetMapping("crcular-pull")
+	public String getCrcular(HttpServletRequest request) {
+		UserBo userBo;
+		try {
+			userBo = checkSession(request, userService);
+		} catch (MyException e) {
+			return e.getMessage();
+		}
+		
+		List<CrcularVo> pull = pull(userBo.getId());
+		Map<String,Object> map = new HashMap<>();
+		map.put("ret", 0);
+		map.put("result", pull);
+		return JSON.toJSONString(map);
+	}
 
 	@ApiOperation("养老模块-特色服务选项卡")
 	@GetMapping("get-ylKnightService")

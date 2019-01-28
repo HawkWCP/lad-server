@@ -4,6 +4,7 @@ import java.util.*;
 
 import com.lad.bo.*;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.misc.Hash;
 import org.springframework.beans.BeanUtils;
 
 import com.alibaba.fastjson.JSON;
@@ -12,6 +13,7 @@ import com.lad.constants.UserCenterConstants;
 import com.lad.vo.ChatroomUserVo;
 import com.lad.vo.ChatroomVo;
 import com.lad.vo.CommentVo;
+import com.lad.vo.CrcularVo;
 import com.lad.vo.DynamicVo;
 import com.lad.vo.ThumbsupBaseVo;
 import com.lad.vo.UserBaseVo;
@@ -24,15 +26,35 @@ import com.lad.vo.UserBaseVo;
  *
  */
 public class ExtraController extends BaseContorller {
+	
+	protected List<CrcularVo> pull(String uid){
+		List<CrcularBo> result = crcularService.findCrcularById(uid);
+		List<CrcularVo> res = new ArrayList<>();
+        HashSet<String> updateids = new HashSet<>();
+		for (CrcularBo crcularBo : result) {
+			CrcularVo vo = new CrcularVo();
+			BeanUtils.copyProperties(crcularBo, vo);
+			vo.setIsread(crcularBo.getStatus() == 1);
+			res.add(vo);
+            updateids.add(crcularBo.getId());
+		}
+        crcularService.updateStatus(updateids);
+		return res;
+	}
+	protected void addCrcular(Collection<String>  targetuids,String title,String content,String path){
+		// 通知
+        HashSet<CrcularBo> insertMany = new HashSet<>();
+        for(String targetId:targetuids){
+            CrcularBo crcular = new CrcularBo();
+            crcular.setTitle(title);
+            crcular.setContent(content);
+            crcular.setTargetuids(targetId);
+            crcular.setStatus(0);
+            crcular.setPath(path);
+            insertMany.add(crcular);
+        }
 
-	protected  int addCrcular(String title,String content, LinkedHashSet<String> targetuids,LinkedHashSet<String> images){
-        CrcularBo crcular = new CrcularBo();
-        crcular.setTitle(title);
-        crcular.setContent(content);
-        crcular.setTargetuids(targetuids);
-        crcular.setImages(images);
-
-        return 0;
+		crcularService.insert(insertMany);
 	}
 	
 	// 添加关注
@@ -342,6 +364,7 @@ public class ExtraController extends BaseContorller {
 		BeanUtils.copyProperties(commentBo, commentVo);
 		// I 的大小写对不上
 		commentVo.setTargetId(commentBo.getTargetid());
+		commentVo.setCommentId(commentBo.getId());
 		if(dyid!=null && commentBo.getTargetid().equals(dyid)) {
 			commentVo.setTargetId("");
 		}

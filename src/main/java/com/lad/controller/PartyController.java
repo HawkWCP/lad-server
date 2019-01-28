@@ -3,18 +3,7 @@ package com.lad.controller;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,6 +27,7 @@ import com.lad.bo.ChatroomUserBo;
 import com.lad.bo.CircleBo;
 import com.lad.bo.CollectBo;
 import com.lad.bo.CommentBo;
+import com.lad.bo.CrcularBo;
 import com.lad.bo.DynamicBo;
 import com.lad.bo.FriendsBo;
 import com.lad.bo.PartyBo;
@@ -80,7 +70,7 @@ import net.sf.json.JSONObject;
 @Api(value = "PartyController", description = "圈子聚会相关接口")
 @RestController
 @RequestMapping("/party")
-public class PartyController extends BaseContorller {
+public class PartyController extends ExtraController {
 
 	private static final String partyQualiName = "com.lad.controller.PartyController";
 	private static Logger logger = LogManager.getLogger(PartyController.class.getName());
@@ -167,22 +157,26 @@ public class PartyController extends BaseContorller {
 			String path = "/party/party-info.do?partyid=" + partyBo.getId();
 			String content = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(), partyBo.getTitle());
 			circleUsers.remove(userBo.getId());
+
+			HashSet<String> crcularTarget = new HashSet<>();
+
 			if (circleUsers.size() > 0) {
 				String[] userids = new String[circleUsers.size()];
-
 				usePush(circleUsers, titlePush, content, path);
-
+				crcularTarget.addAll(circleUsers);
 				addMessage(messageService, path, content, titlePush, userId, userids);
 			}
-			
 			if (partyBo.isOpen()) {
 				List<FriendsBo> friendByUserid = friendsService.getFriendByUserid(userBo.getId());
 				List<String> friendsList = new ArrayList<>();
 				friendByUserid.parallelStream().filter(f->!f.getFriendid().equals(userBo.getId())||!circleUsers.contains(f.getFriendid())).forEach(f->friendsList.add(f.getFriendid()));
 				// “发起人昵称”发起了聚会【聚会名称】，快去看看吧！
-				String pushContent = String.format("“%s”发起了聚会【%s】，快去看看吧！", userBo.getUserName(),partyBo.getTitle());
-				usePush(friendsList,titlePush, pushContent, path);
+
+				usePush(friendsList,titlePush, content, path);
+				crcularTarget.addAll(friendsList);
 			}
+			addCrcular(crcularTarget,titlePush,content,path);
+			
 			// 用户等级
 			userService.addUserLevel(userBo.getId(), 1, Constant.PARTY_TYPE, 0);
 			// 圈子热度
@@ -488,6 +482,8 @@ public class PartyController extends BaseContorller {
 		}
 		masters.add(partyBo.getCreateuid());
 		usePush(masters, titlePush, content, path);
+		addCrcular(masters,titlePush, content, path);
+
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		return Constant.COM_RESP;
 	}
@@ -884,6 +880,9 @@ public class PartyController extends BaseContorller {
 		String userids = partyBo.getCreateuid();
 
 		usePush(userids, titlePush, content, path);
+		List<String> list = new ArrayList<>();
+		list.add(userids);
+		addCrcular(list, titlePush, content, path);
 		addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 		if (!StringUtils.isEmpty(comment.getParentid())) {
 			CommentBo commentBo1 = commentService.findById(comment.getParentid());
@@ -891,6 +890,9 @@ public class PartyController extends BaseContorller {
 				content = "有人刚刚回复了你的评论，快去看看吧!";
 
 				usePush(commentBo1.getCreateuid(), titlePush, content, path);
+				List<String> master = new ArrayList<>();
+				master.add(commentBo1.getCreateuid());
+				addCrcular(master, titlePush, content, path);
 				addMessage(messageService, path, content, titlePush, partyBo.getCreateuid());
 			}
 		}
@@ -1125,6 +1127,9 @@ public class PartyController extends BaseContorller {
 				if (commentBo != null) {
 					String path = "/party/party-info.do?partyid=" + commentBo.getTargetid();
 					usePush(commentBo.getCreateuid(), titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path);
+					List<String> master = new ArrayList<>();
+					master.add(commentBo.getCreateuid());
+					addCrcular(master, titlePush, "有人刚刚赞了你的聚会，快去看看吧!", path);
 					addMessage(messageService, path, "有人刚刚赞了你的聚会，快去看看吧!", titlePush, commentBo.getCreateuid());
 				}
 			}
@@ -1243,6 +1248,7 @@ public class PartyController extends BaseContorller {
 				String pushContent = String.format("【聚会通知】感谢您报名参与聚会，“%s”通知您:" + content, partyBo.getPayName(),
 						userBo.getUserName());
 				usePush(userids, titlePush, pushContent, path);
+				addCrcular(Arrays.asList(userids), titlePush, pushContent, path);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), userids);
 			}
 		} catch (MyException e) {

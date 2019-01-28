@@ -814,6 +814,7 @@ public class DynamicController extends ExtraController {
             String path = new String("/dynamic/dynamic_info?dynamicId=" + dynamicBo.getId());
             String pushContent = String.format("“%s”在Ta的个人动态中@了你，快去看看吧！", userBo.getUserName());
             usePush(pushIds, pushTitle, pushContent, path);
+            addCrcular(pushIds, pushTitle, pushContent, path);
         }
     }
 }

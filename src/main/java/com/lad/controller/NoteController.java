@@ -2,18 +2,7 @@ package com.lad.controller;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -80,7 +69,7 @@ import net.sf.json.JSONObject;
 @Api(value = "NoteController", description = "帖子相关接口")
 @RestController
 @RequestMapping("note")
-public class NoteController extends BaseContorller {
+public class NoteController extends ExtraController {
 
 	private static final String NoteQualiName = "com.lad.controller.NoteController";
 	private final Logger logger = LogManager.getLogger(NoteController.class);
@@ -238,6 +227,7 @@ public class NoteController extends BaseContorller {
 
 			usePush(useridArr, pushTitle, content, path);
 
+			addCrcular(Arrays.asList(useridArr),pushTitle, content,path);
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
 		// 设置当前用户访问该帖子的历史
@@ -594,6 +584,10 @@ public class NoteController extends BaseContorller {
 		String content = "有人刚刚评论了你的帖子，快去看看吧!";
 
 		usePush(noteBo.getCreateuid(), pushTitle, content, path);
+		List<String> list = new ArrayList<>();
+		list.add(noteBo.getCreateuid());
+		addCrcular(list,pushTitle, content,path);
+
 
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
 				userBo.getId(), noteBo.getCreateuid());
@@ -605,6 +599,9 @@ public class NoteController extends BaseContorller {
 
 				usePush(comment.getCreateuid(), pushTitle, content, path);
 
+				List<String> master = new ArrayList<>();
+				master.add(comment.getCreateuid());
+				addCrcular(master,pushTitle, content,path);
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
 			}
@@ -1894,14 +1891,6 @@ public class NoteController extends BaseContorller {
 			}
 			noteVo.setAtUsers(atUserVos);
 		}
-	}
-
-	private CommentVo comentBo2Vo(CommentBo commentBo) {
-		CommentVo commentVo = new CommentVo();
-		BeanUtils.copyProperties(commentBo, commentVo);
-		commentVo.setCommentId(commentBo.getId());
-		commentVo.setUserid(commentBo.getCreateuid());
-		return commentVo;
 	}
 
 	/**

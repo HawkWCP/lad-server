@@ -1,16 +1,7 @@
 package com.lad.controller;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
@@ -101,7 +92,7 @@ import net.sf.json.JSONObject;
 @Api(value = "CircleController", description = "圈子相关接口")
 @RestController
 @RequestMapping("circle")
-public class CircleController extends BaseContorller {
+public class CircleController extends ExtraController {
 
 	private static final String CircleQualiName = "com.lad.controller.CircleController";
 
@@ -394,7 +385,7 @@ public class CircleController extends BaseContorller {
 			}
 			masters.add(circleBo.getCreateuid());
 			usePush(masters, titlePush, content, path);
-
+			addCrcular(masters, titlePush, content, path);
 			String[] pushUser = new String[masters.size()];
 			masters.toArray(pushUser);
 			addMessage(messageService, path, content, titlePush, userBo.getId(), pushUser);
@@ -609,13 +600,16 @@ public class CircleController extends BaseContorller {
 						String pushPath = "/circle/circle-info.do?circleid=" + circleid;
 						friendsList.remove(userBo.getId());
 						usePush(friendsList, titlePush, pushContent, pushPath);
+						addCrcular(friendsList, titlePush, pushContent, pushPath);
 					}
 					// 是否通过聚会页面加入圈子
 					if (reasonBo.getAddType() == 1) {
 						String party = String.format("/party/party-info.do?partyid=%s", reasonBo.getPartyid());
 
 						usePush(userid, titlePush, content, party);
-
+						List<String> list = new ArrayList<>();
+						list.add(userid);
+						addCrcular(list,titlePush, content, party);
 						addMessage(messageService, party, content, titlePush, userid);
 					} else {
 						accepts.add(userid);
@@ -638,7 +632,7 @@ public class CircleController extends BaseContorller {
 			accepts.toArray(userArr);
 
 			usePush(accepts, titlePush, content, path);
-
+			addCrcular(accepts, titlePush, content, path);
 			addMessage(messageService, path, content, titlePush, userBo.getId(), userArr);
 		}
 		asyncController.pushToFriends(circleBo.getName(), path, pushFriends);
@@ -811,7 +805,9 @@ public class CircleController extends BaseContorller {
 		String path = "/circle/get-circle-his.do?circleid=" + historyBo.getId();
 
 		usePush(userid, titlePush, content, path);
-
+		List<String> list = new ArrayList<>();
+		list.add(userid);
+		addCrcular(list,titlePush, content,path);
 		addMessage(messageService, path, content, titlePush, userid);
 		return Constant.COM_RESP;
 	}
@@ -857,13 +853,17 @@ public class CircleController extends BaseContorller {
 			}
 			title = "设置管理员通知";
 			content = String.format("“%s”将您设置为管理员", creater.getUserName());
+
 			for (String id : ids) {
 				if (users.contains(id)) {
 					masters.add(id);
 					CircleHistoryBo historyBo = addCircleOperateHis(id, circleid, userBo.getId(), title, content);
 					String path = "/circle/get-circle-his.do?circleid=".concat(historyBo.getId());
-
+					List<String> list = new ArrayList<>();
+					list.add(id);
+					addCrcular(list,titlePush, content, path);
 					usePush(id, titlePush, content, path);
+
 					addMessage(messageService, path, content, title, id);
 				}
 			}
@@ -876,7 +876,9 @@ public class CircleController extends BaseContorller {
 					masters.remove(id);
 					CircleHistoryBo historyBo = addCircleOperateHis(id, circleid, userBo.getId(), title, content);
 					String path = "/circle/get-circle-his.do?circleid=".concat(historyBo.getId());
-
+					List<String> list = new ArrayList<>();
+					list.add(id);
+					addCrcular(list,titlePush, content, path);
 					usePush(id, titlePush, content, path);
 					addMessage(messageService, path, content, title, id);
 				}
@@ -2049,6 +2051,7 @@ public class CircleController extends BaseContorller {
 			str = users.toArray(str);
 
 			usePush(users, titlePush, pushContent, path);
+			addCrcular(users, titlePush, pushContent, path);
 
 		} else {
 			return CommonUtil.toErrorResult(ERRORCODE.CIRCLE_MASTER_NULL.getIndex(),
@@ -2538,8 +2541,11 @@ public class CircleController extends BaseContorller {
 			}
 
 			usePush(useridArr, titlePush, content, path);
+
+			addCrcular(Arrays.asList(useridArr),titlePush, content, path);
 		} else {
 			usePush(useridArr, titlePush, content, path);
+			addCrcular(Arrays.asList(useridArr),titlePush, content, path);
 		}
 		addMessage(messageService, path, content, titlePush, userid, useridArr);
 		return Constant.COM_RESP;

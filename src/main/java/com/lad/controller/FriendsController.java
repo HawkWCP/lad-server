@@ -65,7 +65,7 @@ import net.sf.json.JSONObject;
 
 @RestController
 @RequestMapping("friends")
-public class FriendsController extends BaseContorller {
+public class FriendsController extends ExtraController {
 
 	private static Logger logger = LogManager.getLogger(FriendsController.class);
 
@@ -792,6 +792,7 @@ public class FriendsController extends BaseContorller {
 			
 			userSet.remove(userBo.getId());
 			usePush(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
+			addCrcular(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
 			addMessage(messageService, "", userBo.getUserName() + JPushUtil.MULTI_INSERT, pushTitle, userBo.getId(),
 					idsList);
 

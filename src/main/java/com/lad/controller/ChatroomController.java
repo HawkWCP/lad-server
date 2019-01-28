@@ -437,6 +437,7 @@ public class ChatroomController extends ExtraController {
 				String path = "";
 				String content = String.format("“%s”邀请您加入群聊", userBo.getUserName());
 				usePush(hashSet, titlePush, content, path);
+				addCrcular(hashSet, titlePush, content, path);
 				addMessage(messageService, path, content, titlePush, userBo.getId(), useridArr);
 				return Constant.COM_RESP;
 			}
@@ -475,6 +476,9 @@ public class ChatroomController extends ExtraController {
 					String msg = String.format("“%s”邀请您加入群聊", userBo.getUserName());
 					// TODO
 					usePush(user.getId(), titlePush, msg, "");
+					List<String> list = new ArrayList<>();
+					list.add(user.getId());
+					addCrcular(list, titlePush, msg, "");
 //					JPushUtil.pushTo(msg, userid);
 					addMessage(messageService, "", msg, titlePush, userid);
 				}
