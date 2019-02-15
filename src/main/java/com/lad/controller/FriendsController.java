@@ -792,7 +792,7 @@ public class FriendsController extends ExtraController {
 			
 			userSet.remove(userBo.getId());
 			usePush(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
-			addCrcular(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
+//			addCrcular(userSet, pushTitle,userBo.getUserName() + JPushUtil.MULTI_INSERT, "");
 			addMessage(messageService, "", userBo.getUserName() + JPushUtil.MULTI_INSERT, pushTitle, userBo.getId(),
 					idsList);
 

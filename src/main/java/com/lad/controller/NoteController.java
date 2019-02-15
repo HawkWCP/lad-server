@@ -227,7 +227,7 @@ public class NoteController extends ExtraController {
 
 			usePush(useridArr, pushTitle, content, path);
 
-			addCrcular(Arrays.asList(useridArr),pushTitle, content,path);
+//			addCrcular(Arrays.asList(useridArr),pushTitle, content,path);
 			addMessage(messageService, path, content, pushTitle, noteBo.getId(), useridArr);
 		}
 		// 设置当前用户访问该帖子的历史
@@ -586,7 +586,7 @@ public class NoteController extends ExtraController {
 		usePush(noteBo.getCreateuid(), pushTitle, content, path);
 		List<String> list = new ArrayList<>();
 		list.add(noteBo.getCreateuid());
-		addCrcular(list,pushTitle, content,path);
+//		addCrcular(list,pushTitle, content,path);
 
 
 		addMessage(messageService, path, content, pushTitle, noteid, 1, commentBo.getId(), noteBo.getCircleId(),
@@ -601,7 +601,7 @@ public class NoteController extends ExtraController {
 
 				List<String> master = new ArrayList<>();
 				master.add(comment.getCreateuid());
-				addCrcular(master,pushTitle, content,path);
+//				addCrcular(master,pushTitle, content,path);
 				addMessage(messageService, path, content, pushTitle, noteid, 1, comment.getId(), noteBo.getCircleId(),
 						userBo.getId(), noteBo.getCreateuid());
 			}
