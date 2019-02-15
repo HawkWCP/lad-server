@@ -256,7 +256,7 @@ public class NoteController extends ExtraController {
 			CircleBo circleBo = circleService.selectById(circleid);
 			if (circleBo != null) {
 				dynamicBo.setSourceName(circleBo.getName());
-				dynamicBo.setSourceId(circleBo.getId());
+				dynamicBo.setSourceId(noteBo.getId());
 			}
 //			dynamicBo.setPicType(noteBo.getType());
 			if (noteBo.getType().equals("video")) {

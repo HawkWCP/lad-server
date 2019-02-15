@@ -480,7 +480,9 @@ public class DynamicController extends ExtraController {
     private int getHideNum(UserBo userBo, List<DynamicBo> msgBos) {
         int hideNum = 0;
         for (DynamicBo dynamicBo : msgBos) {
-
+            if(userBo.getId().equals(dynamicBo.getCreateuid())){
+                continue;
+            }
             if (dynamicBo.getAccess_level() == UserCenterConstants.ACCESS_SECURITY_ALLOW_NONE) {
                 hideNum++;
             }
@@ -515,6 +517,11 @@ public class DynamicController extends ExtraController {
         map.put("headPic", userBo.getHeadPictureName());
         map.put("signature", userBo.getPersonalizedSignature());
         HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+        if(homepageBo == null){
+            homepageBo = new HomepageBo();
+            homepageBo.setOwner_id(userBo.getId());
+            homepageService.insert(homepageBo);
+        }
         HashSet<String> not_push_set = homepageBo.getNot_push_set();
 
         List<UserVisitBo> userVisitBos = userService.findUserVisitFirst(userBo.getId(), not_push_set, 1);
@@ -533,8 +540,9 @@ public class DynamicController extends ExtraController {
             }
         }
 
-        map.put("showUser", JSONObject.fromObject(show).toString());
-        return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
+        map.put("showUser", show);
+//        return JSON.toJSONString(map).replace("\\", "").replace("\"{", "{").replace("}\"", "}");
+        return JSONObject.fromObject(map).toString();
     }
 
     @ApiOperation("我的动态数量")

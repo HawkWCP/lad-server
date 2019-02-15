@@ -832,7 +832,10 @@ public class CommonUtil {
 	public static List<String> deleteBack(IDynamicService dynamicService, IFriendsService friendsService,UserBo userBo) {
 		List<FriendsBo> friendsBos = friendsService.getFriendByUserid(userBo.getId());
 		List<String> friends = new LinkedList<>();
-		friendsBos.forEach(bo->friends.add(bo.getFriendid()));
+//		friendsBos.forEach(bo->friends.add(bo.getFriendid()));
+		for (FriendsBo friend:friendsBos){
+			friends.add(friend.getFriendid());
+		}
 		// 去除我拉黑的对象
 		DynamicBackBo backBo = dynamicService.findBackByUserid(userBo.getId());
 		if (null != backBo) {

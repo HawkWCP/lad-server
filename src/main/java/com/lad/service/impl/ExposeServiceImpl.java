@@ -20,14 +20,14 @@ import lad.scrapybo.InforBo;
  * Time:2018/4/22
  */
 @Service("exposeService")
-public class ExposeServiceImpl implements IExposeService {
+public class ExposeServiceImpl extends BaseServiceImpl implements IExposeService {
 
     @Autowired
     private ExposeDao exposeDao;
 
     @Override
     public ExposeBo insert(ExposeBo exposeBo) {
-        return exposeDao.insert(exposeBo);
+        return changeImgHost(exposeDao.insert(exposeBo));
     }
 
     @Override
@@ -37,12 +37,12 @@ public class ExposeServiceImpl implements IExposeService {
 
     @Override
     public List<ExposeBo> findByRegex(String title, List<String> exposeTypes, int page, int limit) {
-        return exposeDao.findRegexByPage(title, exposeTypes, page, limit);
+        return changeImgHost(exposeDao.findRegexByPage(title, exposeTypes, page, limit));
     }
 
     @Override
     public ExposeBo findById(String id) {
-        return exposeDao.findById(id);
+        return changeImgHost(exposeDao.findById(id));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class ExposeServiceImpl implements IExposeService {
 
     @Override
     public List<ExposeBo> findByParams(Map<String, Object> params, int page, int limit) {
-        return exposeDao.findParamsByPage(params, page, limit);
+        return changeImgHost(exposeDao.findParamsByPage(params, page, limit));
     }
 
     @Override
@@ -67,7 +67,7 @@ public class ExposeServiceImpl implements IExposeService {
 
 	@Override
 	public List<InforBo> findAllInfores() {
-		return exposeDao.findAllInfores();
+        return changeImgHost(exposeDao.findAllInfores());
 	}
 
 	@Override

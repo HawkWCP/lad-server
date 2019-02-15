@@ -238,7 +238,7 @@ public class SpouseDaoImpl implements ISpouseDao {
 			}
 			
 			Logger logger = LoggerFactory.getLogger(SpouseDaoImpl.class);
-			logger.error("==================找老伴匹配,初始分数为:100,要求者为:"+baseBo.getNickName()+",当前参与匹配者为:"+bo.getNickName()+"====================");
+			logger.info("==================找老伴匹配,初始分数为:100,要求者为:"+baseBo.getNickName()+",当前参与匹配者为:"+bo.getNickName()+"====================");
 			
 			int match = 100;
 			// 地址匹配
@@ -246,7 +246,7 @@ public class SpouseDaoImpl implements ISpouseDao {
 			if((boAdd == null) || (boAdd!=null && !boAdd.contains(address))){
 				match -= 25;
 			}
-			logger.error("地址匹配:----意向地址为:"+address+",匹配者地址为:"+boAdd+",结算分数为:"+match);
+			logger.info("地址匹配:----意向地址为:"+address+",匹配者地址为:"+boAdd+",结算分数为:"+match);
 			
 			// 年龄
 			int boAge = bo.getAge();
@@ -258,7 +258,7 @@ public class SpouseDaoImpl implements ISpouseDao {
 			}
 			match = match - dif;
 			
-			logger.error("年龄匹配:----意向年龄为:"+reqAge+",匹配者年龄为:"+boAge+",结算分数为:"+match);
+			logger.info("年龄匹配:----意向年龄为:"+reqAge+",匹配者年龄为:"+boAge+",结算分数为:"+match);
 			// 兴趣
 			Map<String, Set<String>> bh = bo.getHobbys();
 			int temp = 0;
@@ -278,7 +278,7 @@ public class SpouseDaoImpl implements ISpouseDao {
 				} 
 			}
 			
-			logger.error("兴趣匹配:----意向兴趣数量为:"+mhSetLen+",匹配数量为:"+temp+",结算分数为:"+match);
+			logger.info("兴趣匹配:----意向兴趣数量为:"+mhSetLen+",匹配数量为:"+temp+",结算分数为:"+match);
 
 
 			// 月收入
@@ -288,12 +288,12 @@ public class SpouseDaoImpl implements ISpouseDao {
 			if(maxBs<minSal){
 				match = match-25; 
 			}
-			logger.error("收入匹配:----意向收入与为:"+reqSal+",匹配者收入为:"+bo.getSalary()+",结算分数为:"+match);
-			logger.error("=========================================================end==============================================================");
+			logger.info("收入匹配:----意向收入与为:"+reqSal+",匹配者收入为:"+bo.getSalary()+",结算分数为:"+match);
+			logger.info("=========================================================end==============================================================");
 			
 			
 			tempList.add(bo.getId());
-			if (match >= 0) {
+			if (match >= 60) {
 				Map map = new HashMap<>();
 				map.put("match", match);
 				SpouseBaseVo baseVo = new SpouseBaseVo();

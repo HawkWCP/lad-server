@@ -218,8 +218,6 @@ public class ExtraController extends BaseContorller {
 		LinkedHashSet<String> atIds = msgBo.getAtIds();
 		if(atIds!=null) {
 			List<String> userIds = new ArrayList<>(atIds);
-			// TODO
-			System.out.println("userIds:"+JSON.toJSONString(userIds));
 			List<UserBo> atUsers = userService.findUserByIds(userIds);
 			ArrayList<UserBaseVo> userVos = userBo2Vo(userBo, atUsers);
 			dynamicVo.setAtUsers(userVos);

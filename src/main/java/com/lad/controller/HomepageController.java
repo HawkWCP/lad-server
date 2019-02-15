@@ -101,9 +101,13 @@ public class HomepageController extends BaseContorller {
 		}
 		userBo = userService.getUser(userBo.getId());
 		Map<String, Object> map = new HashMap<String, Object>();
-		HomepageBo homepageBo = new HomepageBo();
-		homepageBo.setOwner_id(userBo.getId());
-		homepageService.insert(homepageBo);
+
+		HomepageBo homepageBo = homepageService.selectByUserId(userBo.getId());
+		if(homepageBo == null){
+			homepageBo = new HomepageBo();
+			homepageBo.setOwner_id(userBo.getId());
+			homepageService.insert(homepageBo);
+		}
 		map.put("ret", 0);
 		return JSONObject.fromObject(map).toString();
 	}
